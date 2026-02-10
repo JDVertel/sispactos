@@ -1,0 +1,247 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+}
+
+.login-visual {
+  position: relative;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(11, 5, 62, 0.55),
+      rgba(171, 34, 146, 0.45),
+      rgba(255, 141, 0, 0.35),
+      rgba(0, 81, 165, 0.5)
+    ),
+    url("/sispactos-collage.svg") center/cover no-repeat;
+  color: #f8fafc;
+  display: flex;
+  align-items: flex-end;
+  padding: 3.5rem;
+}
+
+.login-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at top right,
+    rgba(248, 250, 252, 0.2),
+    transparent 55%
+  );
+}
+
+.visual-content {
+  position: relative;
+  z-index: 1;
+  max-width: 26rem;
+}
+
+.visual-content h1 {
+  font-family: inherit;
+  font-size: 2.75rem;
+  margin: 1.25rem 0 0.5rem;
+  letter-spacing: 0.02em;
+}
+
+.visual-content p {
+  margin: 0;
+  line-height: 1.6;
+  font-size: 1.05rem;
+  color: rgba(248, 250, 252, 0.85);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.9rem;
+  background: rgba(248, 250, 252, 0.15);
+  border: 1px solid rgba(248, 250, 252, 0.25);
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.login-panel {
+  background: rgba(255, 255, 255, 0.92);
+  padding: 3.5rem 3.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  box-shadow: inset 1px 0 0 rgba(148, 163, 184, 0.2);
+}
+
+.panel-header h2 {
+  font-family: inherit;
+  margin: 0 0 0.25rem;
+  font-size: 2rem;
+}
+
+.panel-header p {
+  margin: 0;
+  color: #475569;
+}
+
+.login-form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field label {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.field input {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.field input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.mode {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-size: 0.95rem;
+  color: #334155;
+}
+
+.mode label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.8rem 1.8rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #0f172a;
+  color: #f8fafc;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.actions button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
+}
+
+.actions .ghost {
+  background: transparent;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.3);
+}
+
+.info {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.info h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.info-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.info p {
+  margin: 0.35rem 0 0;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.info.empty {
+  border-style: dashed;
+  text-align: center;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .login-visual {
+    min-height: 40vh;
+    padding: 2.5rem;
+  }
+
+  .login-panel {
+    padding: 2.5rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .login-panel {
+    padding: 2rem 1.5rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

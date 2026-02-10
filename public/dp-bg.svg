@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f172a" />
+      <stop offset="1" stop-color="#1e3a8a" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.8" cy="0.2" r="0.6">
+      <stop offset="0" stop-color="#f8fafc" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#0f172a" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="1200" fill="url(#base)" />
+  <circle cx="980" cy="220" r="380" fill="url(#glow)" />
+  <circle cx="220" cy="980" r="460" fill="#0b1224" fill-opacity="0.35" />
+  <text x="110" y="660" fill="#f8fafc" font-family="'Space Grotesk', Arial, sans-serif" font-size="300" font-weight="600" opacity="0.6" letter-spacing="18">DNP</text>
+</svg>

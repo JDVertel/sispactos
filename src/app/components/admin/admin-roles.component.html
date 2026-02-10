@@ -1,0 +1,97 @@
+<section class="roles">
+  <header class="roles-header">
+    <div>
+      <p class="eyebrow">Administracion</p>
+      <h1>Gestion de usuarios y roles</h1>
+      <p class="subtitle">Crea, revisa y elimina perfiles de acceso para Sispactos.</p>
+    </div>
+    <div class="summary">
+      <div>
+        <span class="summary-label">Usuarios activos</span>
+        <p>{{ roles.length }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Ultima actualizacion</span>
+        <p>#fecha</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="roles-grid">
+    <form class="roles-form" (ngSubmit)="addRole()">
+      <h2>Nuevo rol</h2>
+      <label>
+        Nombre del rol
+        <input type="text" name="roleName" [(ngModel)]="newRoleName" placeholder="Ej: Coordinador" />
+      </label>
+      <label>
+        Tipo de rol
+        <select name="roleType" [(ngModel)]="newRoleType">
+          <option value="administrador">Administrador</option>
+          <option value="registrado">Registrado</option>
+          <option value="colaborador">Colaborador</option>
+          <option value="visitante">Visitante</option>
+        </select>
+      </label>
+      <label>
+        Modulos
+        <select name="roleModule" [(ngModel)]="newRoleModule">
+          <option value="proyectos">Proyectos</option>
+          <option value="financiero">Financiero</option>
+          <option value="mapas">Mapas</option>
+          <option value="reportes">Reportes</option>
+        </select>
+      </label>
+      <label>
+        Descripcion
+        <textarea name="roleDescription" [(ngModel)]="newRoleDescription" rows="4" placeholder="Describe el alcance del rol"></textarea>
+      </label>
+      <button type="submit">Agregar rol</button>
+    </form>
+
+    <div class="roles-list">
+      <h2>Roles existentes</h2>
+      <div class="role-card" *ngFor="let role of roles">
+        <div class="role-card-header">
+          <div>
+            <h3>{{ role.name }}</h3>
+            <p>{{ role.description }}</p>
+          </div>
+          <button type="button" class="ghost" (click)="removeRole(role.id)">Eliminar</button>
+        </div>
+        <div class="role-tags">
+          <span *ngFor="let permission of role.permissions">{{ permission }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="pending">
+    <div class="pending-header">
+      <div>
+        <p class="eyebrow">Usuarios</p>
+        <h2>Usuarios por aprobar</h2>
+        <p class="subtitle">Solicitudes pendientes de acceso a la plataforma.</p>
+      </div>
+      <span class="pending-count">{{ pendingUsers.length }} pendientes</span>
+    </div>
+
+    <div class="pending-list" *ngIf="pendingUsers.length; else emptyPending">
+      <div class="pending-card" *ngFor="let user of pendingUsers">
+        <div>
+          <h3>{{ user.name }}</h3>
+          <p>{{ user.email }}</p>
+          <span class="pending-tag">Rol solicitado: {{ user.requestedRole }}</span>
+        </div>
+        <div class="pending-actions">
+          <button type="button" class="ghost" (click)="rejectUser(user.id)">Rechazar</button>
+          <button type="button" class="primary" (click)="approveUser(user.id)">Aprobar</button>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #emptyPending>
+      <div class="pending-empty">No hay usuarios pendientes.</div>
+    </ng-template>
+  </section>
+</section>

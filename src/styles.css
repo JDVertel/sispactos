@@ -1,1 +1,39 @@
-/* You can add global styles to this file, and also import other style files */
+/* Global theme */
+:root {
+  --brand-1: #0b053e;
+  --brand-2: #ab2292;
+  --brand-3: #ff8d00;
+  --brand-4: #0051a5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #0f172a;
+  background:
+    radial-gradient(
+      circle at 10% 15%,
+      rgba(255, 141, 0, 0.25),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 85% 20%,
+      rgba(171, 34, 146, 0.22),
+      transparent 45%
+    ),
+    radial-gradient(circle at 85% 85%, rgba(0, 81, 165, 0.22), transparent 50%),
+    linear-gradient(
+      135deg,
+      var(--brand-1),
+      var(--brand-2) 40%,
+      var(--brand-3) 70%,
+      var(--brand-4)
+    );
+  background-attachment: fixed;
+}

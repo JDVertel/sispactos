@@ -1,0 +1,44 @@
+:host {
+  display: block;
+}
+
+.page {
+  display: grid;
+  gap: 2rem;
+}
+
+.page-header h1 {
+  margin: 0.4rem 0 0.6rem;
+  font-family: "Fraunces", "Times New Roman", serif;
+  font-size: 2.2rem;
+  color: #0f172a;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.subtitle {
+  margin: 0;
+  color: #475569;
+  max-width: 38rem;
+  line-height: 1.6;
+}
+
+.page-card {
+  background: #ffffff;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
+}
+
+.page-card p {
+  margin: 0;
+  font-weight: 500;
+  color: #1e293b;
+}
