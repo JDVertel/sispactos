@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
-  loginMode: 'local' | 'guest' = 'local';
+  loginMode: 'local' | 'guest' = 'guest';
   username = '';
   password = '';
   submittedData: {
@@ -37,15 +37,11 @@ export class LoginComponent {
       password: safePassword,
       submittedAt: new Date().toLocaleString('es-CO')
     };
+    
+    // Navegar automáticamente si es invitado
+    if (this.loginMode === 'guest') {
+      this.router.navigateByUrl('/dashboard/home');
+    }
   }
 
-  onGuest(): void {
-    this.loginMode = 'guest';
-    if (!this.username.trim()) {
-      this.username = 'Invitado';
-    }
-    this.password = '';
-    this.onSubmit();
-    this.router.navigateByUrl('/dashboard/home');
-  }
 }

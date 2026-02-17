@@ -15,6 +15,7 @@
 
 .sidebar {
   width: 220px;
+  height: 100vh;
   background: #ffffff;
   color: #334155;
   padding: 1.75rem 1.25rem;
@@ -23,11 +24,23 @@
   gap: 1.5rem;
   border-right: 1px solid rgba(148, 163, 184, 0.35);
   box-shadow: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: sticky;
+  top: 0;
+  /* Ocultar scrollbar pero mantener funcionalidad */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
   transition:
     width 0.25s ease,
     padding 0.25s ease,
     transform 0.25s ease,
     opacity 0.25s ease;
+}
+
+/* Ocultar scrollbar en WebKit (Chrome, Safari) */
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .brand {
@@ -45,7 +58,6 @@
 .brand-mark {
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 0.85rem;
   background: rgba(15, 23, 42, 0.08);
   border: 1px solid rgba(15, 23, 42, 0.18);
   display: inline-flex;
@@ -79,7 +91,6 @@
   margin-left: auto;
   width: 2.3rem;
   height: 2.3rem;
-  border-radius: 0.6rem;
   border: 1px solid rgba(148, 163, 184, 0.5);
   background: transparent;
   display: none;
@@ -97,7 +108,6 @@
   width: 1.15rem;
   height: 2px;
   background: #475569;
-  border-radius: 999px;
 }
 
 .sidebar-fab {
@@ -106,7 +116,6 @@
   left: 1rem;
   width: 2.6rem;
   height: 2.6rem;
-  border-radius: 0.75rem;
   border: 1px solid rgba(148, 163, 184, 0.5);
   background: #ffffff;
   display: none;
@@ -118,6 +127,13 @@
   padding: 0;
   z-index: 30;
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.15);
+  transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+}
+
+.sidebar-fab.is-hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  visibility: hidden;
 }
 
 .sidebar-fab span {
@@ -125,7 +141,6 @@
   width: 1.2rem;
   height: 2px;
   background: #475569;
-  border-radius: 999px;
 }
 
 .menu-overlay {
@@ -150,6 +165,8 @@
 .menu {
   display: grid;
   gap: 0.4rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .menu a {
@@ -157,7 +174,6 @@
   align-items: center;
   gap: 0.7rem;
   padding: 0.6rem 0.75rem;
-  border-radius: 0.75rem;
   color: inherit;
   text-decoration: none;
   position: relative;
@@ -247,16 +263,15 @@
 
 .menu-submenu {
   position: absolute;
-  top: 0;
-  left: calc(100% + 0.5rem);
+  top: 100%;
+  left: 0;
   min-width: 190px;
   background: #ffffff;
-  border-radius: 0.85rem;
   border: 1px solid rgba(148, 163, 184, 0.35);
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
   padding: 0.5rem;
   display: none;
-  z-index: 10;
+  z-index: 9999;
 }
 
 .menu-submenu.is-open {
@@ -269,7 +284,6 @@
   align-items: center;
   gap: 0.55rem;
   padding: 0.45rem 0.75rem;
-  border-radius: 0.7rem;
   color: #475569;
   text-decoration: none;
   position: relative;
@@ -292,7 +306,6 @@
 .menu-subitem .bullet {
   width: 0.45rem;
   height: 0.45rem;
-  border-radius: 999px;
   background: rgba(15, 23, 42, 0.4);
   flex-shrink: 0;
 }
@@ -300,6 +313,8 @@
 .content {
   padding: 2.2rem;
   background: #ffffff;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 980px) {
@@ -311,7 +326,7 @@
     position: relative;
   }
 
-  .sidebar {
+.sidebar {
     width: 200px;
     padding: 1.25rem 1rem;
     align-items: stretch;
@@ -323,6 +338,16 @@
     transform: translateX(-100%);
     opacity: 0;
     pointer-events: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Ocultar scrollbar en móvil también */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  /* Ocultar scrollbar en WebKit para móvil */
+  .sidebar::-webkit-scrollbar {
+    display: none;
   }
 
   .sidebar.is-open {
@@ -337,6 +362,12 @@
 
   .sidebar-fab {
     display: inline-flex;
+  }
+
+  .sidebar.is-open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .menu a,
@@ -370,11 +401,13 @@
 
   .content {
     padding: 2rem 1.5rem;
+    margin-top: 3.5rem;
   }
 }
 
 @media (max-width: 600px) {
   .content {
     padding: 1.75rem 1.25rem;
+    margin-top: 3.5rem;
   }
 }

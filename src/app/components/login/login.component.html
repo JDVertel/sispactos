@@ -1,54 +1,20 @@
 <div class="login-shell">
 	<section class="login-visual">
 		<div class="visual-content">
-			<span class="badge">S2</span>
-			<h1>Sispactos 2</h1>
-			<p>Ingresa como usuario local o continua como invitado.</p>
+	
+			<h1>SISPACTOS</h1>
+			<p>Una herramienta que facilita el seguimiento y monitoreo de los Pactos Territoriales, permitiendo gestionar y visualizar la información de los proyectos para el DNP y la ciudadanía.</p>
 		</div>
 	</section>
 
 	<section class="login-panel">
 		<div class="panel-header">
 			<h2>Inicia sesion</h2>
-			<p>Capturaremos tu usuario y clave para mostrarla debajo.</p>
+			<p>Ingrese usuario y contraseña.</p>
 		</div>
 
 		<form class="login-form" (ngSubmit)="onSubmit()" #loginForm="ngForm">
-			<div class="field">
-				<label for="username">Usuario</label>
-				<input
-					id="username"
-					name="username"
-					type="text"
-					[(ngModel)]="username"
-					[required]="loginMode === 'local'"
-					placeholder="Tu usuario"
-				/>
-			</div>
-
-			<div class="field">
-				<label for="password">Contrasena</label>
-				<input
-					id="password"
-					name="password"
-					type="password"
-					[(ngModel)]="password"
-					[required]="loginMode === 'local'"
-					[disabled]="loginMode === 'guest'"
-					placeholder="Tu clave"
-				/>
-			</div>
-
 			<div class="mode">
-				<label>
-					<input
-						type="radio"
-						name="mode"
-						value="local"
-						[(ngModel)]="loginMode"
-					/>
-					Ingreso local
-				</label>
 				<label>
 					<input
 						type="radio"
@@ -58,19 +24,49 @@
 					/>
 					Invitado
 				</label>
+				<label>
+					<input
+						type="radio"
+						name="mode"
+						value="local"
+						[(ngModel)]="loginMode"
+					/>
+					Ingreso local
+				</label>
+			</div>
+
+			<div class="field" *ngIf="loginMode === 'local'">
+				<label for="username">Usuario</label>
+				<input
+					id="username"
+					name="username"
+					type="text"
+					[(ngModel)]="username"
+					required
+					placeholder="Tu usuario"
+				/>
+			</div>
+
+			<div class="field" *ngIf="loginMode === 'local'">
+				<label for="password">Contrasena</label>
+				<input
+					id="password"
+					name="password"
+					type="password"
+					[(ngModel)]="password"
+					required
+					placeholder="Tu clave"
+				/>
 			</div>
 
 			<div class="actions">
 				<button type="submit" [disabled]="loginMode === 'local' && !loginForm.form.valid">
 					Ingresar
 				</button>
-				<button type="button" class="ghost" (click)="onGuest()">
-					Ingresar como invitado
-				</button>
 			</div>
 		</form>
 
-		<div class="info" *ngIf="submittedData; else emptyState">
+<!-- 		<div class="info" *ngIf="submittedData; else emptyState">
 			<h3>Info:</h3>
 			<div class="info-grid">
 				<div>
@@ -90,7 +86,7 @@
 					<p>{{ submittedData.submittedAt }}</p>
 				</div>
 			</div>
-		</div>
+		</div> -->
 
 		<ng-template #emptyState>
 			<div class="info empty">

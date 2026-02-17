@@ -55,6 +55,10 @@ const PAGE_DATA: Record<string, { title: string; description: string }> = {
     title: 'Administracion',
     description: 'Configuracion y gestion interna.'
   },
+  administracion2: {
+    title: 'Administracion2',
+    description: 'Configuracion y gestion interna.'
+  },
   ayudas: {
     title: 'Ayudas',
     description: 'Soporte y preguntas frecuentes.'

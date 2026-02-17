@@ -6,7 +6,13 @@
     aria-label="Cerrar menu"
     (click)="closeAllMenus()"
   ></button>
-  <button class="sidebar-fab" type="button" (click)="toggleSidebar()" aria-label="Abrir menu">
+  <button 
+    class="sidebar-fab" 
+    type="button" 
+    (click)="toggleSidebar()" 
+    aria-label="Abrir menu"
+    [class.is-hidden]="isSidebarOpen"
+  >
     <span></span>
     <span></span>
     <span></span>

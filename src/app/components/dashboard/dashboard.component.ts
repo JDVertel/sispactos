@@ -41,11 +41,44 @@ const MENU_ITEMS: MenuItem[] = [
     type: 'submenu',
     label: 'administracion',
     icon: 'settings',
-    children: [{ label: 'Gestion de roles', route: 'administracion' }]
+    children: [
+      { label: 'Gestion de roles', route: 'administracion' },
+      { label: 'Gestion de pactos', route: 'gestion-pactos' }
+    ]
   },
   { type: 'item', label: 'Ayudas', route: 'ayudas', icon: 'help' },
   { type: 'item', label: 'Salir', route: '/login', icon: 'logout', absolute: true }
 ];
+
+export function getAvailablePermissions(): Array<{ value: string; label: string }> {
+  const permissions: Array<{ value: string; label: string }> = [];
+  const excludedItems = ['home', 'acerca-de', 'ayudas'];
+  
+  MENU_ITEMS.forEach(item => {
+    if (item.type === 'item' && item.label !== 'Salir' && !excludedItems.includes(item.route)) {
+      permissions.push({
+        value: item.route,
+        label: item.label
+      });
+    } else if (item.type === 'submenu') {
+      // Agregar el submenu principal
+      permissions.push({
+        value: item.label.toLowerCase(),
+        label: item.label.charAt(0).toUpperCase() + item.label.slice(1)
+      });
+      
+      // Agregar los items del submenu
+      item.children.forEach(child => {
+        permissions.push({
+          value: child.route,
+          label: child.label
+        });
+      });
+    }
+  });
+  
+  return permissions;
+}
 
 @Component({
   selector: 'app-dashboard',

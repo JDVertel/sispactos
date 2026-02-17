@@ -1,0 +1,179 @@
+<section class="pactos-container">
+  <header class="pactos-header">
+    <div>
+      <p class="eyebrow">Administración</p>
+      <h1>Gestión de Pactos</h1>
+      <p class="subtitle">Crea, administra y visualiza los pactos territoriales del sistema SISPACTOS.</p>
+    </div>
+    <div class="summary">
+      <div>
+        <span class="summary-label">Pactos activos</span>
+        <p>{{ pactos.length }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Monto total</span>
+        <p>{{ formatCurrency(getTotalCuantia()) }}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="pactos-grid">
+    <form class="pactos-form" (ngSubmit)="addPacto()">
+      <h2>Nuevo Pacto Territorial</h2>
+      
+      <div class="form-grid">
+        <label>
+          Nombre del Pacto
+          <input 
+            type="text" 
+            name="pactosNombre" 
+            [(ngModel)]="newPacto.nombre" 
+            placeholder="Ej: Pacto por el Norte de Santander" 
+            required 
+          />
+        </label>
+
+        <label>
+          Código
+          <input 
+            type="text" 
+            name="pactosCodigo" 
+            [(ngModel)]="newPacto.codigo" 
+            placeholder="Ej: PNS-2024-001" 
+            required 
+          />
+        </label>
+
+        <label class="full-width">
+          Descripción
+          <textarea 
+            name="pactosDescripcion" 
+            [(ngModel)]="newPacto.descripcion" 
+            rows="3" 
+            placeholder="Describe brevemente el propósito y alcance del pacto territorial" 
+            required
+          ></textarea>
+        </label>
+
+        <label>
+          Cuantía (COP)
+          <input 
+            type="number" 
+            name="pactosCuantia" 
+            [(ngModel)]="newPacto.cuantia" 
+            placeholder="0" 
+            min="0" 
+            required 
+          />
+        </label>
+
+        <label>
+          Ámbito Geográfico
+          <input 
+            type="text" 
+            name="pactosAmbito" 
+            [(ngModel)]="newPacto.ambitoGeografico" 
+            placeholder="Ej: Norte de Santander - Colombia" 
+            required 
+          />
+        </label>
+
+        <label>
+          Duración
+          <input 
+            type="text" 
+            name="pactosDuracion" 
+            [(ngModel)]="newPacto.duracion" 
+            placeholder="Ej: 4 años (2024-2028)" 
+            required 
+          />
+        </label>
+
+        <label>
+          Eje o Línea Estratégica
+          <select name="pactosEje" [(ngModel)]="newPacto.ejeEstrategico" required>
+            <option value="">Seleccionar eje estratégico</option>
+            <option *ngFor="let eje of ejesEstrategicos" [value]="eje">{{ eje }}</option>
+          </select>
+        </label>
+
+        <label class="full-width">
+          Objetivo General
+          <textarea 
+            name="pactosObjetivo" 
+            [(ngModel)]="newPacto.objetivoGeneral" 
+            rows="4" 
+            placeholder="Define el objetivo principal que persigue el pacto territorial" 
+            required
+          ></textarea>
+        </label>
+      </div>
+
+      <button type="submit" [disabled]="!newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.codigo.trim() || newPacto.cuantia <= 0 || !newPacto.objetivoGeneral.trim() || !newPacto.ambitoGeografico.trim() || !newPacto.duracion.trim() || !newPacto.ejeEstrategico">
+        Crear Pacto
+      </button>
+    </form>
+
+    <div class="pactos-list">
+      <h2>Pactos Territoriales</h2>
+      <div class="pactos-cards" *ngIf="pactos.length > 0; else noPactos">
+        <div class="pacto-card" *ngFor="let pacto of pactos">
+          <div class="pacto-header">
+            <div>
+              <h3>{{ pacto.nombre }}</h3>
+              <span class="pacto-codigo">{{ pacto.codigo }}</span>
+            </div>
+            <button type="button" class="ghost" (click)="removePacto(pacto.id)" title="Eliminar pacto">
+              Eliminar
+            </button>
+          </div>
+          
+          <div class="pacto-info">
+            <div class="info-item">
+              <span class="info-label">Descripción</span>
+              <p>{{ pacto.descripcion }}</p>
+            </div>
+            
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Cuantía</span>
+                <p class="cuantia">{{ formatCurrency(pacto.cuantia) }}</p>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Ámbito Geográfico</span>
+                <p>{{ pacto.ambitoGeografico }}</p>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Duración</span>
+                <p>{{ pacto.duracion }}</p>
+              </div>
+              
+              <div class="info-item">
+                <span class="info-label">Eje Estratégico</span>
+                <p>{{ pacto.ejeEstrategico }}</p>
+              </div>
+            </div>
+            
+            <div class="info-item">
+              <span class="info-label">Objetivo General</span>
+              <p>{{ pacto.objetivoGeneral }}</p>
+            </div>
+            
+            <div class="pacto-meta">
+              <span class="creation-date">Creado: {{ pacto.fechaCreacion | date:'short' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <ng-template #noPactos>
+        <div class="empty-state">
+          <h3>No hay pactos registrados</h3>
+          <p>Utiliza el formulario para crear el primer pacto territorial.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</section>

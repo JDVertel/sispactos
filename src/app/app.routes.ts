@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { AdminRolesComponent } from './components/admin/admin-roles.component';
+import { PactosManagementComponent } from './components/admin/pactos-management.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { DashboardPageComponent } from './components/dashboard/dashboard-page.component';
 import { LoginComponent } from './components/login/login.component';
@@ -26,6 +27,10 @@ export const routes: Routes = [
 			{
 				path: 'administracion',
 				component: AdminRolesComponent
+			},
+			{
+				path: 'gestion-pactos',
+				component: PactosManagementComponent
 			},
 			{
 				path: ':page',
