@@ -1,16 +1,17 @@
 <div class="login-shell">
 	<section class="login-visual">
-		<div class="visual-content">
 	
-			<h1>SISPACTOS</h1>
-			<p>Una herramienta que facilita el seguimiento y monitoreo de los Pactos Territoriales, permitiendo gestionar y visualizar la información de los proyectos para el DNP y la ciudadanía.</p>
-		</div>
 	</section>
 
 	<section class="login-panel">
+			<div class="visual-content">
+	
+			<h1>SISPACTOS</h1>
+			<h4>Una herramienta que facilita el seguimiento y monitoreo de los Pactos Territoriales, permitiendo gestionar y visualizar la información de los proyectos para el DNP y la ciudadanía.</h4>
+		</div>
 		<div class="panel-header">
 			<h2>Inicia sesion</h2>
-			<p>Ingrese usuario y contraseña.</p>
+		
 		</div>
 
 		<form class="login-form" (ngSubmit)="onSubmit()" #loginForm="ngForm">
@@ -34,7 +35,7 @@
 					Ingreso local
 				</label>
 			</div>
-
+	<p *ngIf="loginMode === 'local'">Diligencia los siguientes datos</p>
 			<div class="field" *ngIf="loginMode === 'local'">
 				<label for="username">Usuario</label>
 				<input
