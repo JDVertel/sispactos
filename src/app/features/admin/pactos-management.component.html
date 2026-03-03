@@ -1,0 +1,290 @@
+﻿<section class="pactos-container">
+  <header class="pactos-header">
+    <div>
+      <p class="eyebrow">Administración</p>
+      <h1>Gestión de Pactos</h1>
+      <p class="subtitle">Crea, administra y visualiza los pactos territoriales del sistema SISPACTOS.</p>
+    </div>
+    <div class="summary">
+      <div>
+        <span class="summary-label">Pactos activos</span>
+        <p>{{ (pactos$ | async)?.length ?? 0 }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Monto total</span>
+          <p>{{ formatCurrency(getTotalValorEstimado()) }}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="pactos-grid">
+    <form class="pactos-form" (ngSubmit)="addPacto()">
+      <h2>Nuevo Pacto Territorial</h2>
+      
+      <div class="form-grid">
+        <label>
+          Tipo de Pacto
+          <select name="tipoPacto" [(ngModel)]="newPacto.tipoPacto" required>
+            <option value="">Seleccionar tipo</option>
+            <option *ngFor="let tipo of tiposPactos" [value]="tipo">{{ tipo }}</option>
+          </select>
+        </label>
+
+        <label>
+          Nombre
+          <input 
+            type="text" 
+            name="nombre" 
+            [(ngModel)]="newPacto.nombre" 
+            required 
+          />
+        </label>
+
+        <label class="full-width">
+          Descripción
+          <textarea 
+            name="descripcion" 
+            [(ngModel)]="newPacto.descripcion" 
+            rows="3" 
+            required
+          ></textarea>
+        </label>
+
+        <label class="full-width">
+          Objetivo
+          <textarea 
+            name="objetivo" 
+            [(ngModel)]="newPacto.objetivo" 
+            rows="3" 
+            required
+          ></textarea>
+        </label>
+
+        <label class="full-width">
+          Líneas Temáticas
+          <select name="lineasTematicas" [(ngModel)]="newPacto.lineasTematicas" multiple required>
+            <option *ngFor="let linea of lineasTematicasOptions" [value]="linea">{{ linea }}</option>
+          </select>
+        </label>
+
+        <label>
+          Fecha de Suscripción
+          <input 
+            type="date" 
+            name="fechaSuscripcion" 
+            [(ngModel)]="newPacto.fechaSuscripcion"
+          />
+        </label>
+
+        <label>
+          Fecha de Negociación
+          <input 
+            type="date" 
+            name="fechaNegociacion" 
+            [(ngModel)]="newPacto.fechaNegociacion"
+          />
+        </label>
+
+        <label>
+          Valor Estimado (COP)
+          <input 
+            type="number" 
+            name="valorEstimado" 
+            [(ngModel)]="newPacto.valorEstimado" 
+            min="0"
+          />
+        </label>
+
+        <label>
+          Valor Estimado Otros
+          <input 
+            type="number" 
+            name="valorEstimadoOtros" 
+            [(ngModel)]="newPacto.valorEstimadoOtros" 
+            min="0"
+          />
+        </label>
+
+  <!--       <label>
+          Porcentaje Estimado (%)
+          <input 
+            type="number" 
+            name="porcentajeEstimado" 
+            [(ngModel)]="newPacto.porcentajeEstimado" 
+            min="0"
+            max="100"
+          />
+        </label> 
+
+        <label>
+          Usuario Creó
+          <input 
+            type="text" 
+            name="usuarioCreo" 
+            [(ngModel)]="newPacto.usuarioCreo"
+          />
+        </label>
+
+        <label>
+          Usuario Modificó
+          <input 
+            type="text" 
+            name="usuarioModifico" 
+            [(ngModel)]="newPacto.usuarioModifico"
+          />
+        </label>
+
+        <label>
+          ID Etapa
+          <input 
+            type="text" 
+            name="idEtapa" 
+            [(ngModel)]="newPacto.idEtapa"
+          />
+        </label>
+-->
+        <label>
+          Fecha de Vencimiento
+          <input 
+            type="date" 
+            name="fechaVencimiento" 
+            [(ngModel)]="newPacto.fechaVencimiento"
+          />
+        </label>
+
+        <label class="full-width">
+          Alcance
+          <textarea 
+            name="alcance" 
+            [(ngModel)]="newPacto.alcance" 
+            rows="3"
+          ></textarea>
+        </label>
+
+        <label>
+          Documento Pacto
+          <input 
+            type="file" 
+            name="urlDocPacto" 
+            (change)="onFileSelected($event, 'urlDocPacto')"
+          />
+        </label>
+
+        <label>
+          Documento Minuta
+          <input 
+            type="file" 
+            name="urlDocMinuta" 
+            (change)="onFileSelected($event, 'urlDocMinuta')"
+          />
+        </label>
+
+        <label>
+          Documento PEI
+          <input 
+            type="file" 
+            name="urlDocPEI" 
+            (change)="onFileSelected($event, 'urlDocPEI')"
+          />
+        </label>
+
+        <label>
+          Documento Ficha
+          <input 
+            type="file" 
+            name="urlDocFicha" 
+            (change)="onFileSelected($event, 'urlDocFicha')"
+          />
+        </label>
+      </div>
+
+      <button type="submit" [disabled]="!newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim()">
+        Crear Pacto
+      </button>
+    </form>
+
+    <div class="pactos-list">
+      <h2>Listado de Pactos Territoriales</h2>
+      <ng-container *ngIf="(pactos$ | async) as pactos; else noPactos">
+        <div class="pactos-cards" *ngIf="pactos.length > 0">
+          <div class="pacto-card" *ngFor="let pacto of pactos">
+            <div class="pacto-header">
+              <div>
+                <h3>{{ pacto.nombre }}</h3>
+                <span class="pacto-tipo">{{ pacto.tipoPacto }}</span>
+              </div>
+              <button type="button" class="ghost" (click)="removePacto(pacto.id)" title="Eliminar pacto">
+                Eliminar
+              </button>
+            </div>
+            
+            <div class="pacto-info">
+              <div class="info-item">
+                <span class="info-label">Descripción</span>
+                <p>{{ pacto.descripcion }}</p>
+              </div>
+
+              <div class="info-item">
+                <span class="info-label">Objetivo</span>
+                <p>{{ pacto.objetivo }}</p>
+              </div>
+
+              <div class="info-grid">
+                <div class="info-item" *ngIf="pacto.lineasTematicas.length">
+                  <span class="info-label">Líneas Temáticas</span>
+                  <p>{{ pacto.lineasTematicas.join(', ') }}</p>
+                </div>
+
+                <div class="info-item" *ngIf="pacto.valorEstimado">
+                  <span class="info-label">Valor Estimado</span>
+                  <p>{{ formatCurrency(pacto.valorEstimado) }}</p>
+                </div>
+
+                <div class="info-item" *ngIf="pacto.porcentajeEstimado">
+                  <span class="info-label">Porcentaje Estimado</span>
+                  <p>{{ pacto.porcentajeEstimado }}%</p>
+                </div>
+
+                <div class="info-item" *ngIf="pacto.fechaSuscripcion">
+                  <span class="info-label">Fecha Suscripción</span>
+                  <p>{{ pacto.fechaSuscripcion }}</p>
+                </div>
+
+                <div class="info-item" *ngIf="pacto.fechaVencimiento">
+                  <span class="info-label">Fecha Vencimiento</span>
+                  <p>{{ pacto.fechaVencimiento }}</p>
+                </div>
+
+                <div class="info-item" *ngIf="pacto.idEtapa">
+                  <span class="info-label">ID Etapa</span>
+                  <p>{{ pacto.idEtapa }}</p>
+                </div>
+              </div>
+
+              <div class="info-item" *ngIf="pacto.alcance">
+                <span class="info-label">Alcance</span>
+                <p>{{ pacto.alcance }}</p>
+              </div>
+              
+              <div class="pacto-meta">
+                <span class="creation-date">Creado por: {{ pacto.usuarioCreo }}</span>
+                <span class="modification-date">Modificado: {{ pacto.fechaModificacion }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="pactos.length === 0">
+          <h3>No hay pactos registrados</h3>
+          <p>Utiliza el formulario para crear el primer pacto territorial.</p>
+        </div>
+      </ng-container>
+      
+      <ng-template #noPactos>
+        <div class="empty-state">
+          <h3>No hay pactos registrados</h3>
+          <p>Utiliza el formulario para crear el primer pacto territorial.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</section>

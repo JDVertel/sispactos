@@ -1,0 +1,377 @@
+﻿:host {
+  display: block;
+}
+
+.contratos-container {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.contratos-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.contratos-header h1 {
+  margin: 0.25rem 0 0.4rem;
+  font-size: 2rem;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0;
+  color: #475569;
+  max-width: 36rem;
+  line-height: 1.6;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  background: #ffffff;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.summary p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.contratos-grid {
+  display: grid;
+  grid-template-columns: 22rem 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.contratos-form {
+  background: #ffffff;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  position: sticky;
+  top: 1rem;
+}
+
+.contratos-form h2 {
+  margin: 0 0 1.25rem;
+  font-size: 1.125rem;
+  color: #0f172a;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.contratos-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.contratos-form input,
+.contratos-form select,
+.contratos-form textarea {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.contratos-form input:focus,
+.contratos-form select:focus,
+.contratos-form textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.contratos-form textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.btn-submit {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.btn-submit:hover {
+  background: #2563eb;
+}
+
+.contratos-list {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.contratos-list h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  color: #0f172a;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.contrato-card {
+  background: #ffffff;
+  padding: 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 1rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+}
+
+.card-header h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.card-type {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.btn-danger {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-danger svg {
+  fill: currentColor;
+}
+
+.card-objeto {
+  padding: 1rem;
+  background: #f1f5f9;
+  border-left: 3px solid #3b82f6;
+}
+
+.card-objeto p {
+  margin: 0.25rem 0 0;
+  color: #0f172a;
+  line-height: 1.6;
+}
+
+.card-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.detail strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 0.25rem;
+  width: fit-content;
+}
+
+.badge[data-estado="En Trámite"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge[data-estado="Perfeccionado"] {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge[data-estado="En Ejecución"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge[data-estado="Suspendido"] {
+  background: #fed7aa;
+  color: #92400e;
+}
+
+.badge[data-estado="Terminado"] {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge[data-estado="Liquidado"] {
+  background: #ddd6fe;
+  color: #5b21b6;
+}
+
+.badge[data-estado="Anulado"] {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.card-footer {
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 1024px) {
+  .contratos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contratos-form {
+    position: static;
+  }
+
+  .summary {
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  }
+
+  .card-details {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .contratos-header {
+    flex-direction: column;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column;
+  }
+
+  .btn-danger {
+    align-self: start;
+  }
+}
+
+th {
+  font-weight: 600;
+  background: #f5f5f5;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #c82333;
+}
+
+.summary {
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+.summary p {
+  margin: 0.5rem 0;
+}

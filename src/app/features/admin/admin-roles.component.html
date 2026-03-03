@@ -1,0 +1,347 @@
+﻿<section class="admin-container">
+  <header class="admin-header">
+    <div>
+      <p class="eyebrow">Configuracion</p>
+      <h1>Gestion de usuarios y roles</h1>
+      <p class="subtitle">Administra roles, usuarios locales y usuarios externos para Sispactos.</p>
+    </div>
+  </header>
+
+  <!-- Sistema de pestañas -->
+  <div class="tabs-container">
+    <nav class="tabs-nav">
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'roles'" 
+        (click)="setActiveTab('roles')"
+      >
+        Gestión de Roles
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'local'" 
+        (click)="setActiveTab('local')"
+      >
+        Usuarios Locales
+      </button>
+      <button 
+        class="tab-button" 
+        [class.active]="activeTab === 'external'" 
+        (click)="setActiveTab('external')"
+      >
+        Usuarios Externos
+      </button>
+    </nav>
+
+    <!-- Contenido de la pestaña Gestión de Roles -->
+    <div class="tab-content" *ngIf="activeTab === 'roles'">
+      <div class="roles-grid">
+        <form class="roles-form" (ngSubmit)="addRole()">
+          <h2>Nuevo rol</h2>
+          <label>
+            Nombre del rol
+            <input type="text" name="roleName" [(ngModel)]="newRoleName" required />
+          </label>
+          <label>
+            Descripcion
+            <textarea name="roleDescription" [(ngModel)]="newRoleDescription" rows="4" required></textarea>
+          </label>
+          <label>
+            Permisos
+            <div class="permissions-checkboxes">
+              <span class="permission-item" 
+                    [class.selected]="newRolePermissions.includes(module.value)" 
+                    *ngFor="let module of availableModules"
+                    (click)="togglePermission(module.value)">
+                {{ module.label }}
+              </span>
+            </div>
+          </label>
+          <button type="submit" [disabled]="!newRoleName.trim() || !newRoleDescription.trim() || newRolePermissions.length === 0">Agregar rol</button>
+        </form>
+
+        <div class="roles-list">
+          <h2>Roles existentes</h2>
+          <div class="roles-table-container">
+            <table class="roles-table">
+              <thead>
+                <tr>
+                  <th>Nombre del rol</th>
+                  <th>Descripción</th>
+                  <th>Permisos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let role of roles$ | async" class="role-row">
+                  <td class="role-name">{{ role.name }}</td>
+                  <td class="role-description">{{ role.description }}</td>
+                  <td class="role-permissions">
+                    <div class="permission-tags">
+                      <span class="permission-tag" *ngFor="let permission of role.permissions">{{ permission }}</span>
+                    </div>
+                  </td>
+                  <td class="role-actions">
+                    <button type="button" class="ghost" (click)="removeRole(role.id)">Eliminar</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido de la pestaña Usuarios Locales -->
+    <div class="tab-content" *ngIf="activeTab === 'local'">
+      <div class="local-users-grid">
+        <form class="local-users-form" (ngSubmit)="addLocalUser()">
+          <h2>Nuevo usuario local</h2>
+          <label>
+            Nombre completo
+            <input 
+              type="text" 
+              name="localUserName" 
+              [(ngModel)]="newLocalUser.name" 
+              required 
+            />
+          </label>
+          <label>
+            Correo electrónico
+            <input 
+              type="email" 
+              name="localUserEmail" 
+              [(ngModel)]="newLocalUser.email" 
+              required 
+            />
+          </label>
+          <label>
+            Rol
+            <select name="localUserRole" [(ngModel)]="newLocalUser.role" required>
+              <option value="">Seleccionar rol</option>
+              <option *ngFor="let role of roles$ | async" [value]="role.name">{{ role.name }}</option>
+            </select>
+          </label>
+          <label>
+            Pactos asignados
+            <div class="selection-checkboxes">
+              <span 
+                class="selection-item" 
+                [class.selected]="newLocalUser.pactos.includes(pacto)" 
+                *ngFor="let pacto of availablePactos"
+                (click)="toggleLocalPacto(pacto)"
+              >
+                {{ pacto }}
+              </span>
+            </div>
+          </label>
+          <label>
+            Proyectos asignados
+            <div class="selection-checkboxes">
+              <span 
+                class="selection-item" 
+                [class.selected]="newLocalUser.proyectos.includes(proyecto)" 
+                *ngFor="let proyecto of availableProyectos"
+                (click)="toggleLocalProyecto(proyecto)"
+              >
+                {{ proyecto }}
+              </span>
+            </div>
+          </label>
+          <label>
+            Contratos asignados
+            <div class="selection-checkboxes">
+              <span 
+                class="selection-item" 
+                [class.selected]="newLocalUser.contratos.includes(contrato)" 
+                *ngFor="let contrato of availableContratos"
+                (click)="toggleLocalContrato(contrato)"
+              >
+                {{ contrato }}
+              </span>
+            </div>
+          </label>
+          <button type="submit" [disabled]="!newLocalUser.name.trim() || !newLocalUser.email.trim() || !newLocalUser.role">
+            Agregar usuario
+          </button>
+        </form>
+
+        <div class="local-users-list">
+          <h2>Usuarios locales</h2>
+          <div class="users-table-container">
+            <table class="users-table" *ngIf="(localUsers$ | async) as users; else noLocalUsers">
+              <thead *ngIf="users.length > 0">
+                <tr>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Pactos</th>
+                  <th>Proyectos</th>
+                  <th>Contratos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let user of users" class="user-row">
+                  <td>{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.role }}</td>
+                  <td>
+                    <div class="tags">
+                      <span class="tag" *ngFor="let pacto of user.pactos">{{ pacto }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="tags">
+                      <span class="tag" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="tags">
+                      <span class="tag" *ngFor="let contrato of user.contratos">{{ contrato }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <button type="button" class="ghost" (click)="removeLocalUser(user.id)">Eliminar</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <ng-template #noLocalUsers>
+              <div class="empty-state">
+                <p>No hay usuarios locales registrados</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido de la pestaña Usuarios Externos -->
+    <div class="tab-content" *ngIf="activeTab === 'external'">
+      <div class="external-users-grid">
+        <form class="external-users-form" (ngSubmit)="addExternalUser()">
+          <h2>Nuevo usuario externo</h2>
+          <label>
+            Nombre completo
+            <input 
+              type="text" 
+              name="externalUserName" 
+              [(ngModel)]="newExternalUser.name" 
+              required 
+            />
+          </label>
+          <label>
+            Correo electrónico
+            <input 
+              type="email" 
+              name="externalUserEmail" 
+              [(ngModel)]="newExternalUser.email" 
+              required 
+            />
+          </label>
+          <label>
+            Entidad responsable
+            <input 
+              type="text" 
+              name="externalUserEntidad" 
+              [(ngModel)]="newExternalUser.entidadResponsable" 
+              required 
+            />
+          </label>
+          <label>
+            Pactos asignados
+            <div class="selection-checkboxes">
+              <span 
+                class="selection-item" 
+                [class.selected]="newExternalUser.pactos.includes(pacto)" 
+                *ngFor="let pacto of availablePactos"
+                (click)="toggleExternalPacto(pacto)"
+              >
+                {{ pacto }}
+              </span>
+            </div>
+          </label>
+          <label>
+            Proyectos asignados
+            <div class="selection-checkboxes">
+              <span 
+                class="selection-item" 
+                [class.selected]="newExternalUser.proyectos.includes(proyecto)" 
+                *ngFor="let proyecto of availableProyectos"
+                (click)="toggleExternalProyecto(proyecto)"
+              >
+                {{ proyecto }}
+              </span>
+            </div>
+          </label>
+          <label>
+            Contratos asignados
+            <div class="selection-checkboxes">
+              <span 
+                class="selection-item" 
+                [class.selected]="newExternalUser.contratos.includes(contrato)" 
+                *ngFor="let contrato of availableContratos"
+                (click)="toggleExternalContrato(contrato)"
+              >
+                {{ contrato }}
+              </span>
+            </div>
+          </label>
+          <button type="submit" [disabled]="!newExternalUser.name.trim() || !newExternalUser.email.trim() || !newExternalUser.entidadResponsable.trim()">
+            Agregar usuario externo
+          </button>
+        </form>
+
+        <div class="external-users-list">
+          <h2>Usuarios externos</h2>
+          <div class="users-table-container">
+            <table class="users-table" *ngIf="(externalUsers$ | async) as users; else noExternalUsers">
+              <thead *ngIf="users.length > 0">
+                <tr>
+                  <th>Nombre</th>
+                  <th>Correo</th>
+                  <th>Entidad</th>
+                  <th>Pactos</th>
+                  <th>Proyectos</th>
+                  <th>Contratos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let user of users" class="user-row">
+                  <td>{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.entidadResponsable }}</td>
+                  <td>
+                    <div class="tags">
+                      <span class="tag" *ngFor="let pacto of user.pactos">{{ pacto }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="tags">
+                      <span class="tag" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="tags">
+                      <span class="tag" *ngFor="let contrato of user.contratos">{{ contrato }}</span>
+                    </div>
+                  </td>
+                  <td class="actions-cell">
+                    <button type="button" class="ghost small" (click)="removeExternalUser(user.id)">Eliminar</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <ng-template #noExternalUsers>
+              <div class="empty-state">
+                <p>No hay usuarios externos registrados</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

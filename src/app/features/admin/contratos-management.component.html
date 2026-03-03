@@ -1,0 +1,195 @@
+﻿<section class="contratos-container">
+  <header class="contratos-header">
+    <div>
+      <p class="eyebrow">Administración</p>
+      <h1>Gestión de Contratos</h1>
+      <p class="subtitle">Crea, administra y visualiza los contratos asociados a los proyectos del sistema.</p>
+    </div>
+    <div class="summary">
+      <div>
+        <span class="summary-label">Contratos activos</span>
+        <p>{{ (contratos$ | async)?.length ?? 0 }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Valor total</span>
+        <p>{{ formatCurrency(getTotalValorContratos()) }}</p>
+      </div>
+      <div>
+        <span class="summary-label">En ejecución</span>
+        <p>{{ getContratosPorEstado('En Ejecución') }}</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="contratos-grid">
+    <form class="contratos-form" (ngSubmit)="addContrato()">
+      <h2>Nuevo Contrato</h2>
+      
+      <div class="form-grid">
+        <label>
+          Número de Contrato
+          <input 
+            type="text" 
+            name="contratoNumero" 
+            [(ngModel)]="newContrato.numero" 
+            required 
+          />
+        </label>
+
+        <label>
+          Tipo de Contrato
+          <select 
+            name="contratoTipo" 
+            [(ngModel)]="newContrato.tipoContrato" 
+            required
+          >
+            <option *ngFor="let tipo of tiposContrato" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </label>
+
+        <label class="full-width">
+          Objeto Contractual
+          <textarea 
+            name="contratoObjeto" 
+            [(ngModel)]="newContrato.objeto" 
+            rows="3"
+            required
+          ></textarea>
+        </label>
+
+        <label class="full-width">
+          Contratista
+          <input 
+            type="text" 
+            name="contratoContratista" 
+            [(ngModel)]="newContrato.contratista" 
+            required 
+          />
+        </label>
+
+        <label>
+          Valor del Contrato (COP)
+          <input 
+            type="number" 
+            name="contratoValor" 
+            [(ngModel)]="newContrato.valorContrato" 
+            min="0"
+            step="1000000"
+            required 
+          />
+        </label>
+
+        <label>
+          Estado
+          <select 
+            name="contratoEstado" 
+            [(ngModel)]="newContrato.estado" 
+            required
+          >
+            <option *ngFor="let estado of estadosContrato" [value]="estado">
+              {{ estado }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Fecha Suscripción
+          <input 
+            type="date" 
+            name="contratoFechaSuscripcion" 
+            [(ngModel)]="newContrato.fechaSuscripcion" 
+            required 
+          />
+        </label>
+
+        <label>
+          Fecha Inicio
+          <input 
+            type="date" 
+            name="contratoFechaInicio" 
+            [(ngModel)]="newContrato.fechaInicio" 
+            required 
+          />
+        </label>
+
+        <label>
+          Fecha Terminación
+          <input 
+            type="date" 
+            name="contratoFechaTerminacion" 
+            [(ngModel)]="newContrato.fechaTerminacion" 
+            required 
+          />
+        </label>
+      </div>
+
+      <button type="submit" class="btn-submit">Agregar Contrato</button>
+    </form>
+
+    <div class="contratos-list">
+      <h2>Contratos Registrados</h2>
+      
+      <p *ngIf="(contratos$ | async)?.length === 0" class="empty-state">
+        Aún no hay contratos registrados. Usa el formulario para crear el primero.
+      </p>
+
+      <article *ngFor="let contrato of contratos$ | async" class="contrato-card">
+        <div class="card-header">
+          <div>
+            <h3>{{ contrato.numero }}</h3>
+            <p class="card-type">{{ contrato.tipoContrato }}</p>
+          </div>
+          <button 
+            type="button" 
+            class="btn-danger" 
+            (click)="deleteContrato(contrato.id)"
+            aria-label="Eliminar contrato"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+            Eliminar
+          </button>
+        </div>
+
+        <div class="card-objeto">
+          <span class="detail-label">Objeto:</span>
+          <p>{{ contrato.objeto }}</p>
+        </div>
+
+        <div class="card-details">
+          <div class="detail">
+            <span class="detail-label">Contratista:</span>
+            <strong>{{ contrato.contratista }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Valor:</span>
+            <strong>{{ formatCurrency(contrato.valorContrato) }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Estado:</span>
+            <span class="badge" [attr.data-estado]="contrato.estado">{{ contrato.estado }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Supervisor:</span>
+            <strong>{{ contrato.supervisor }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Suscripción:</span>
+            <strong>{{ formatDate(contrato.fechaSuscripcion) }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Vigencia:</span>
+            <strong>{{ formatDate(contrato.fechaInicio) }} - {{ formatDate(contrato.fechaTerminacion) }}</strong>
+          </div>
+        </div>
+
+        <p class="card-footer">
+          Registrado el {{ formatDate(contrato.fechaCreacion) }}
+        </p>
+      </article>
+    </div>
+  </div>
+</section>

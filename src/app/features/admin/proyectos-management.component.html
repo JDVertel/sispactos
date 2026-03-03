@@ -1,0 +1,192 @@
+﻿<section class="proyectos-container">
+  <header class="proyectos-header">
+    <div>
+      <p class="eyebrow">Administración</p>
+      <h1>Gestión de Proyectos</h1>
+      <p class="subtitle">Crea, administra y visualiza los proyectos asociados a los pactos territoriales.</p>
+    </div>
+    <div class="summary">
+      <div>
+        <span class="summary-label">Proyectos activos</span>
+        <p>{{ (proyectos$ | async)?.length ?? 0 }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Presupuesto total</span>
+        <p>{{ formatCurrency(getTotalPresupuesto()) }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Avance promedio</span>
+        <p>{{ getAvancePromedio() }}%</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="proyectos-grid">
+    <form class="proyectos-form" (ngSubmit)="addProyecto()">
+      <h2>Nuevo Proyecto</h2>
+      
+      <div class="form-grid">
+        <label>
+          Nombre del Proyecto
+          <input 
+            type="text" 
+            name="proyectoNombre" 
+            [(ngModel)]="newProyecto.nombre" 
+            required 
+          />
+        </label>
+
+        <label>
+          Código
+          <input 
+            type="text" 
+            name="proyectoCodigo" 
+            [(ngModel)]="newProyecto.codigo" 
+            required 
+          />
+        </label>
+
+        <label class="full-width">
+          Descripción
+          <textarea 
+            name="proyectoDescripcion" 
+            [(ngModel)]="newProyecto.descripcion" 
+            rows="3"
+            required
+          ></textarea>
+        </label>
+
+        <label>
+          Presupuesto (COP)
+          <input 
+            type="number" 
+            name="proyectoPresupuesto" 
+            [(ngModel)]="newProyecto.presupuesto" 
+            min="0"
+            step="1000000"
+            required 
+          />
+        </label>
+
+        <label>
+          Responsable
+          <input 
+            type="text" 
+            name="proyectoResponsable" 
+            [(ngModel)]="newProyecto.responsable" 
+            required 
+          />
+        </label>
+
+        <label>
+          Estado
+          <select 
+            name="proyectoEstado" 
+            [(ngModel)]="newProyecto.estado" 
+            required
+          >
+            <option *ngFor="let estado of estadosProyecto" [value]="estado">
+              {{ estado }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Fecha Inicio
+          <input 
+            type="date" 
+            name="proyectoFechaInicio" 
+            [(ngModel)]="newProyecto.fechaInicio" 
+            required 
+          />
+        </label>
+
+        <label>
+          Fecha Fin
+          <input 
+            type="date" 
+            name="proyectoFechaFin" 
+            [(ngModel)]="newProyecto.fechaFin" 
+            required 
+          />
+        </label>
+
+        <label>
+          Avance (%)
+          <input 
+            type="number" 
+            name="proyectoAvance" 
+            [(ngModel)]="newProyecto.avance" 
+            min="0"
+            max="100"
+            required 
+          />
+        </label>
+      </div>
+
+      <button type="submit" class="btn-submit">Agregar Proyecto</button>
+    </form>
+
+    <div class="proyectos-list">
+      <h2>Proyectos Registrados</h2>
+      
+      <p *ngIf="(proyectos$ | async)?.length === 0" class="empty-state">
+        Aún no hay proyectos registrados. Usa el formulario para crear el primero.
+      </p>
+
+      <article *ngFor="let proyecto of proyectos$ | async" class="proyecto-card">
+        <div class="card-header">
+          <div>
+            <h3>{{ proyecto.nombre }}</h3>
+            <p class="card-code">{{ proyecto.codigo }}</p>
+          </div>
+          <button 
+            type="button" 
+            class="btn-danger" 
+            (click)="deleteProyecto(proyecto.id)"
+            aria-label="Eliminar proyecto"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+            </svg>
+            Eliminar
+          </button>
+        </div>
+
+        <p class="card-description">{{ proyecto.descripcion }}</p>
+
+        <div class="card-details">
+          <div class="detail">
+            <span class="detail-label">Presupuesto:</span>
+            <strong>{{ formatCurrency(proyecto.presupuesto) }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Responsable:</span>
+            <strong>{{ proyecto.responsable }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Estado:</span>
+            <span class="badge" [attr.data-estado]="proyecto.estado">{{ proyecto.estado }}</span>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Período:</span>
+            <strong>{{ formatDate(proyecto.fechaInicio) }} - {{ formatDate(proyecto.fechaFin) }}</strong>
+          </div>
+          <div class="detail">
+            <span class="detail-label">Avance:</span>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill" [style.width.%]="proyecto.avance"></div>
+              </div>
+              <span class="progress-text">{{ proyecto.avance }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="card-footer">
+          Creado el {{ formatDate(proyecto.fechaCreacion) }}
+        </p>
+      </article>
+    </div>
+  </div>
+</section>

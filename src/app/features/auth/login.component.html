@@ -1,0 +1,76 @@
+﻿<div class="login-shell">
+	<section class="login-visual">
+	
+	</section>
+
+	<section class="login-panel">
+			<div class="visual-content">
+	
+			<h1>SISPACTOS</h1>
+			<h4>Una herramienta que facilita el seguimiento y monitoreo de los Pactos Territoriales, permitiendo gestionar y visualizar la información de los proyectos para el DNP y la ciudadanía.</h4>
+		</div>
+		<div class="panel-header">
+			<h2>Inicia sesion</h2>
+		
+		</div>
+
+		<form class="login-form" (ngSubmit)="onSubmit()" #loginForm="ngForm">
+			<div class="mode">
+				<label>
+					<input
+						type="radio"
+						name="mode"
+						value="guest"
+						[(ngModel)]="loginMode"
+					/>
+					Invitado
+				</label>
+				<label>
+					<input
+						type="radio"
+						name="mode"
+						value="local"
+						[(ngModel)]="loginMode"
+					/>
+					Usuario Registrado
+				</label>
+			</div>
+	<p *ngIf="loginMode === 'local'">Diligencia los siguientes datos</p>
+			<div class="field" *ngIf="loginMode === 'local'">
+				<label for="username">Usuario</label>
+				<input
+					id="username"
+					name="username"
+					type="text"
+					[(ngModel)]="username"
+					required
+					placeholder="Ingresa tu Email"
+				/>
+			</div>
+
+			<div class="field" *ngIf="loginMode === 'local'">
+				<label for="password">Contraseña</label>
+				<input
+					id="password"
+					name="password"
+					type="password"
+					[(ngModel)]="password"
+					required
+					placeholder="Ingresa tu Contraseña"
+				/>
+			</div>
+
+			<div class="actions">
+				<button type="submit" [disabled]="loginMode === 'local' && !loginForm.form.valid">
+					Ingresar
+				</button>
+			</div>
+		</form>
+
+		<ng-template #emptyState>
+			<div class="info empty">
+
+			</div>
+		</ng-template>
+	</section>
+</div>

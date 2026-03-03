@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b053e" />
+      <stop offset="0.35" stop-color="#ab2292" />
+      <stop offset="0.7" stop-color="#ff8d00" />
+      <stop offset="1" stop-color="#0051a5" />
+    </linearGradient>
+    <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1400" height="1200" fill="url(#bg)" />
+  <rect width="1400" height="1200" fill="url(#mist)" />
+
+  <circle cx="1050" cy="250" r="260" fill="#ffffff" fill-opacity="0.12" />
+  <circle cx="260" cy="980" r="320" fill="#0b053e" fill-opacity="0.28" />
+
+  <g opacity="0.95">
+    <g transform="translate(160 520)">
+      <circle cx="120" cy="120" r="85" fill="#f2c6a0" />
+      <path d="M40 120c10-60 150-60 160 0" fill="#2d1a12" />
+      <rect x="40" y="210" width="160" height="140" rx="70" fill="#f2c6a0" />
+      <rect x="20" y="250" width="200" height="160" rx="80" fill="#305d8a" />
+    </g>
+
+    <g transform="translate(540 420)">
+      <circle cx="120" cy="120" r="85" fill="#d09a6c" />
+      <path d="M50 90c30-80 150-60 160 10" fill="#1f1310" />
+      <rect x="40" y="210" width="160" height="140" rx="70" fill="#d09a6c" />
+      <rect x="20" y="250" width="200" height="160" rx="80" fill="#8f2c7c" />
+    </g>
+
+    <g transform="translate(940 520)">
+      <circle cx="120" cy="120" r="85" fill="#8d5a3a" />
+      <path d="M40 100c40-70 160-70 170 20" fill="#1a0f0a" />
+      <rect x="40" y="210" width="160" height="140" rx="70" fill="#8d5a3a" />
+      <rect x="20" y="250" width="200" height="160" rx="80" fill="#1c4a7e" />
+    </g>
+  </g>
+
+  <text x="140" y="300" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="140" font-weight="600" opacity="0.78" letter-spacing="6">Sispactos 2</text>
+</svg>

@@ -1,0 +1,16 @@
+<div class="dashboard-shell">
+  <app-sidebar
+    [menuItems]="menuItems"
+    [isSidebarOpen]="isSidebarOpen"
+    [activeSubmenu]="activeSubmenu"
+    (toggleSidebarEvent)="toggleSidebar()"
+    (toggleSubmenuEvent)="toggleSubmenu($event)"
+    (closeAllMenusEvent)="closeAllMenus()"
+    (closeSidebarEvent)="closeSidebar()"
+  ></app-sidebar>
+
+  <main class="content">
+    <router-outlet></router-outlet>
+  </main>
+</div>
+<app-footer></app-footer>
