@@ -7,8 +7,6 @@ import { Contrato } from '../../shared/models';
 import { Observable } from 'rxjs';
 
 interface ContratoExtended extends Contrato {
-  proyectoAsociado: string;
-  supervisor: string;
   fechaCreacion: Date;
 }
 
@@ -23,22 +21,25 @@ export class ContratosManagementComponent implements OnInit {
   contratos$: Observable<ContratoExtended[]>;
 
   newContrato: Omit<ContratoExtended, 'id' | 'fechaCreacion'> = {
-    numero: '',
-    objeto: '',
+    proyecto: '',
     contratista: '',
-    valorContrato: 0,
-    tipoContrato: 'Obra Pública',
-    estado: 'En Trámite',
-    fechaSuscripcion: new Date(),
     fechaInicio: new Date(),
-    fechaTerminacion: new Date(),
-    proyectoAsociado: '',
-    supervisor: ''
+    fechaFin: new Date(),
+    contratoPadre: '',
+    tipoContrato: '',
+    contratante: '',
+    valor: 0,
+    supervisor: '',
+    objeto: '',
+    urlSecop: ''
   };
 
   tiposContrato: string[] = [];
-  estadosContrato: string[] = [];
   proyectosDisponibles: string[] = [];
+  contratistasDisponibles: string[] = [];
+  contratosPadreDisponibles: string[] = [];
+  contratantesDisponibles: string[] = [];
+  supervisoresDisponibles: string[] = [];
 
   constructor(
     private contratosService: ContratosService,
@@ -49,17 +50,44 @@ export class ContratosManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.tiposContrato = this.contratosService.getTiposContrato();
-    this.estadosContrato = this.contratosService.getEstadosContrato();
+    this.proyectosDisponibles = this.contratosService.getProyectos();
+    this.contratistasDisponibles = this.contratosService.getContratistas();
+    this.contratosPadreDisponibles = this.contratosService.getContratosPadre();
+    this.contratantesDisponibles = this.contratosService.getContratantes();
+    this.supervisoresDisponibles = this.contratosService.getSupervisores();
+
+    this.newContrato.proyecto = this.proyectosDisponibles[0] ?? '';
+    this.newContrato.contratista = this.contratistasDisponibles[0] ?? '';
+    this.newContrato.contratoPadre = this.contratosPadreDisponibles[0] ?? '';
+    this.newContrato.tipoContrato = this.tiposContrato[0] ?? '';
+    this.newContrato.contratante = this.contratantesDisponibles[0] ?? '';
+    this.newContrato.supervisor = this.supervisoresDisponibles[0] ?? '';
   }
 
   addContrato(): void {
-    const { numero, objeto, contratista, valorContrato, tipoContrato, estado, fechaSuscripcion, fechaInicio, fechaTerminacion, proyectoAsociado, supervisor } = this.newContrato;
-    
-    if (!numero.trim() || !objeto.trim() || !contratista.trim() || valorContrato <= 0 || !proyectoAsociado || !supervisor.trim()) {
+    const { proyecto, contratista, fechaInicio, fechaFin, contratoPadre, tipoContrato, contratante, valor, supervisor, objeto, urlSecop } = this.newContrato;
+
+    if (
+      !proyecto ||
+      !contratista ||
+      !fechaInicio ||
+      !fechaFin ||
+      !contratoPadre ||
+      !tipoContrato ||
+      !contratante ||
+      valor <= 0 ||
+      !supervisor ||
+      !objeto.trim() ||
+      !urlSecop.trim()
+    ) {
       return;
     }
 
-    this.contratosService.addContrato(this.newContrato);
+    this.contratosService.addContrato({
+      ...this.newContrato,
+      objeto: objeto.trim(),
+      urlSecop: urlSecop.trim()
+    });
     this.resetForm();
   }
 
@@ -69,17 +97,17 @@ export class ContratosManagementComponent implements OnInit {
 
   resetForm(): void {
     this.newContrato = {
-      numero: '',
-      objeto: '',
-      contratista: '',
-      valorContrato: 0,
-      tipoContrato: 'Obra Pública',
-      estado: 'En Trámite',
-      fechaSuscripcion: new Date(),
+      proyecto: this.proyectosDisponibles[0] ?? '',
+      contratista: this.contratistasDisponibles[0] ?? '',
       fechaInicio: new Date(),
-      fechaTerminacion: new Date(),
-      proyectoAsociado: '',
-      supervisor: ''
+      fechaFin: new Date(),
+      contratoPadre: this.contratosPadreDisponibles[0] ?? '',
+      tipoContrato: this.tiposContrato[0] ?? '',
+      contratante: this.contratantesDisponibles[0] ?? '',
+      valor: 0,
+      supervisor: this.supervisoresDisponibles[0] ?? '',
+      objeto: '',
+      urlSecop: ''
     };
   }
 
@@ -95,11 +123,7 @@ export class ContratosManagementComponent implements OnInit {
     return this.contratosService.getTotalValorContratos();
   }
 
-  getContratosPorEstado(estado: string): number {
-    return this.contratosService.getContratosPorEstado(estado);
-  }
-
-  getContratosPorTipo(tipo: string): number {
-    return this.contratosService.getContratosPorTipo(tipo);
+  getContratosConSecop(): number {
+    return this.contratosService.getContratosConSecop();
   }
 }

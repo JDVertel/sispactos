@@ -1,7 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar.component';
+import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar/sidebar.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 
 const MENU_ITEMS: MenuItem[] = [

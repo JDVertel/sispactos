@@ -11,6 +11,57 @@ interface ProyectoExtended extends Proyecto {
   fechaCreacion: Date;
 }
 
+interface ProyectoFormData {
+  bpin: string;
+  nombreBpin: string;
+  codigo: string;
+  nombre: string;
+  actaCd: string;
+  areaInfluencia: string;
+  estadoProyecto: string;
+  condicionProyecto: string;
+  sector: string;
+  lineaTematica: string;
+  tipoProyecto: string;
+  fechaInicio: string;
+  fechaFin: string;
+  plazoEstimadoEjecucion: string;
+  fechaReporte: string;
+  numeroEmpleosDirectos: number;
+  numeroEmpleosIndirectos: number;
+  consecutivoConpes: number;
+  tieneViabilidad: boolean;
+  fechaViabilidad: string;
+  numeroContratoEspecifico: number;
+  fechaFinalizacionCe: string;
+  faseInversion: string;
+  aporteNacion: string;
+  entidadProyecto: string;
+  inversionClimatica: boolean;
+  derivado: boolean;
+  tipoOferta: string;
+  fondo: boolean;
+  identificacionProblemas: string;
+  objetivoGeneral: string;
+  alcance: string;
+  presupuestoDnp: number;
+  presupuestoSector: number;
+  presupuestoTerritorial: number;
+  presupuestoOtros: number;
+  presupuestoTotal: number;
+  aporteRealDnp: number;
+  aporteParcialIndicativo: number;
+  valorGestionar: number;
+  indicadorMedicionOg: string;
+  unidadMedidaOg: string;
+  metaIndicadorOg: string;
+  productoAlcance: string;
+  unidadMedida: string;
+  metaPa: string;
+  mecanismoInclusion: string;
+  sectorAdminNacional: string;
+}
+
 @Component({
   selector: 'app-proyectos-management',
   standalone: true,
@@ -21,21 +72,19 @@ interface ProyectoExtended extends Proyecto {
 export class ProyectosManagementComponent implements OnInit {
   proyectos$: Observable<Proyecto[]>;
 
-  newProyecto: Omit<ProyectoExtended, 'id' | 'fechaCreacion'> = {
-    nombre: '',
-    descripcion: '',
-    codigo: '',
-    presupuesto: 0,
-    responsable: '',
-    estado: 'Planeación',
-    fechaInicio: new Date(),
-    fechaFin: new Date(),
-    avance: 0,
-    pactoAsociado: ''
-  };
-
   estadosProyecto: string[] = [];
   pactosDisponibles: string[] = [];
+  areasInfluencia: string[] = ['Urbana', 'Rural', 'Mixta', 'Regional'];
+  condicionesProyecto: string[] = ['Nuevo', 'En curso', 'Viabilizado', 'Ajustado'];
+  sectores: string[] = ['Transporte', 'Educación', 'Salud', 'Ambiente', 'Vivienda', 'Agro'];
+  lineasTematicas: string[] = ['Infraestructura', 'Social', 'Productiva', 'Ambiental'];
+  tiposProyectoCatalogo: string[] = ['Estratégico', 'Misional', 'Infraestructura', 'Social'];
+  fasesInversion: string[] = ['Prefactibilidad', 'Factibilidad', 'Ejecución', 'Operación'];
+  aportesNacion: string[] = ['Total', 'Parcial', 'Sin aporte'];
+  tiposOferta: string[] = ['Oferta institucional', 'Oferta territorial', 'Oferta mixta'];
+  mecanismosInclusion: string[] = ['Consulta previa', 'Enfoque diferencial', 'Participación comunitaria'];
+  sectoresAdminNacional: string[] = ['DNP', 'MinTransporte', 'MinEducación', 'MinSalud', 'MinAmbiente'];
+  newProyecto: ProyectoFormData = this.getInitialFormData();
 
   constructor(
     private proyectosService: ProyectosService,
@@ -49,22 +98,67 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   addProyecto(): void {
-    const { nombre, descripcion, codigo, presupuesto, responsable, estado, fechaInicio, fechaFin, avance, pactoAsociado } = this.newProyecto;
-    
-    if (!nombre.trim() || !descripcion.trim() || !codigo.trim() || presupuesto <= 0 || !responsable.trim() || !pactoAsociado) {
+    const {
+      nombre,
+      codigo,
+      bpin,
+      sector,
+      lineaTematica,
+      tipoProyecto,
+      faseInversion,
+      fechaReporte,
+      numeroEmpleosDirectos,
+      numeroEmpleosIndirectos,
+      consecutivoConpes,
+      tieneViabilidad,
+      fechaViabilidad,
+      numeroContratoEspecifico,
+      fechaFinalizacionCe,
+      entidadProyecto,
+      estadoProyecto,
+      fechaInicio,
+      fechaFin,
+      presupuestoTotal,
+      objetivoGeneral,
+      identificacionProblemas,
+      alcance
+    } = this.newProyecto;
+
+    if (
+      !nombre.trim() ||
+      !codigo.trim() ||
+      !entidadProyecto.trim() ||
+      !estadoProyecto ||
+      !fechaInicio ||
+      !fechaFin ||
+      presupuestoTotal <= 0
+    ) {
       return;
     }
 
     const proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion'> = {
       nombre: nombre.trim(),
-      descripcion: descripcion.trim(),
+      descripcion: (objetivoGeneral || identificacionProblemas || alcance).trim(),
       codigo: codigo.trim(),
-      presupuesto,
-      responsable: responsable.trim(),
-      estado,
+      bpin: bpin.trim(),
+      sector,
+      lineaTematica,
+      tipoProyecto,
+      faseInversion,
+      fechaReporte: fechaReporte ? new Date(fechaReporte) : undefined,
+      numeroEmpleosDirectos,
+      numeroEmpleosIndirectos,
+      consecutivoConpes,
+      tieneViabilidad,
+      fechaViabilidad: fechaViabilidad ? new Date(fechaViabilidad) : undefined,
+      numeroContratoEspecifico,
+      fechaFinalizacionCe: fechaFinalizacionCe ? new Date(fechaFinalizacionCe) : undefined,
+      presupuesto: presupuestoTotal,
+      responsable: entidadProyecto.trim(),
+      estado: estadoProyecto,
       fechaInicio: new Date(fechaInicio),
       fechaFin: new Date(fechaFin),
-      avance
+      avance: 0
     };
 
     this.proyectosService.addProyecto(proyectoBase);
@@ -76,17 +170,59 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   resetForm(): void {
-    this.newProyecto = {
-      nombre: '',
-      descripcion: '',
+    this.newProyecto = this.getInitialFormData();
+  }
+
+  private getInitialFormData(): ProyectoFormData {
+    return {
+      bpin: '',
+      nombreBpin: '',
       codigo: '',
-      presupuesto: 0,
-      responsable: '',
-      estado: 'Planeación',
-      fechaInicio: new Date(),
-      fechaFin: new Date(),
-      avance: 0,
-      pactoAsociado: ''
+      nombre: '',
+      actaCd: '',
+      areaInfluencia: '',
+      estadoProyecto: this.estadosProyecto?.[0] ?? '',
+      condicionProyecto: '',
+      sector: '',
+      lineaTematica: '',
+      tipoProyecto: '',
+      fechaInicio: '',
+      fechaFin: '',
+      plazoEstimadoEjecucion: '',
+      fechaReporte: '',
+      numeroEmpleosDirectos: 0,
+      numeroEmpleosIndirectos: 0,
+      consecutivoConpes: 0,
+      tieneViabilidad: false,
+      fechaViabilidad: '',
+      numeroContratoEspecifico: 0,
+      fechaFinalizacionCe: '',
+      faseInversion: '',
+      aporteNacion: '',
+      entidadProyecto: '',
+      inversionClimatica: false,
+      derivado: false,
+      tipoOferta: '',
+      fondo: false,
+      identificacionProblemas: '',
+      objetivoGeneral: '',
+      alcance: '',
+      presupuestoDnp: 0,
+      presupuestoSector: 0,
+      presupuestoTerritorial: 0,
+      presupuestoOtros: 0,
+      presupuestoTotal: 0,
+      aporteRealDnp: 0,
+      aporteParcialIndicativo: 0,
+      valorGestionar: 0,
+      indicadorMedicionOg: '',
+      unidadMedidaOg: '',
+      metaIndicadorOg: '',
+      productoAlcance: '',
+      unidadMedida: '',
+      metaPa: '',
+      mecanismoInclusion: '',
+      sectorAdminNacional: ''
     };
   }
 
@@ -108,5 +244,13 @@ export class ProyectosManagementComponent implements OnInit {
 
   getAvancePromedio(): number {
     return this.proyectosService.getAvancePromedio();
+  }
+
+  getTotalEmpleosDirectos(): number {
+    return this.proyectosService.getTotalEmpleosDirectos();
+  }
+
+  getTotalEmpleosIndirectos(): number {
+    return this.proyectosService.getTotalEmpleosIndirectos();
   }
 }

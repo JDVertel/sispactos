@@ -1,12 +1,14 @@
 export interface Contrato {
   id: number;
-  numero: string;
+  proyecto: string;
   objeto: string;
   contratista: string;
-  valorContrato: number;
-  tipoContrato: string;
-  estado: string;
-  fechaSuscripcion: Date;
   fechaInicio: Date;
-  fechaTerminacion: Date;
+  fechaFin: Date;
+  contratoPadre: string;
+  tipoContrato: string;
+  contratante: string;
+  valor: number;
+  supervisor: string;
+  urlSecop: string;
 }

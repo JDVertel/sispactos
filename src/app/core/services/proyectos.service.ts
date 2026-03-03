@@ -26,7 +26,7 @@ export class ProyectosService {
   addProyecto(proyecto: Omit<Proyecto, 'id' | 'fechaCreacion'>): void {
     const currentProyectos = this.proyectos.value;
     const nextId = currentProyectos.length ? Math.max(...currentProyectos.map(p => p.id)) + 1 : 1;
-    
+
     const newProyecto: Proyecto = {
       id: nextId,
       ...proyecto,
@@ -41,7 +41,7 @@ export class ProyectosService {
   }
 
   updateProyecto(id: number, proyecto: Partial<Omit<Proyecto, 'id' | 'fechaCreacion'>>): void {
-    const proyectos = this.proyectos.value.map(p => 
+    const proyectos = this.proyectos.value.map(p =>
       p.id === id ? { ...p, ...proyecto } : p
     );
     this.proyectos.next(proyectos);
@@ -63,5 +63,13 @@ export class ProyectosService {
     if (this.proyectos.value.length === 0) return 0;
     const total = this.proyectos.value.reduce((sum, p) => sum + p.avance, 0);
     return Math.round(total / this.proyectos.value.length);
+  }
+
+  getTotalEmpleosDirectos(): number {
+    return this.proyectos.value.reduce((sum, p) => sum + (p.numeroEmpleosDirectos ?? 0), 0);
+  }
+
+  getTotalEmpleosIndirectos(): number {
+    return this.proyectos.value.reduce((sum, p) => sum + (p.numeroEmpleosIndirectos ?? 0), 0);
   }
 }

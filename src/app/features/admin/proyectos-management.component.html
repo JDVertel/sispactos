@@ -18,73 +18,94 @@
         <span class="summary-label">Avance promedio</span>
         <p>{{ getAvancePromedio() }}%</p>
       </div>
+      <div>
+        <span class="summary-label">Empleos directos</span>
+        <p>{{ getTotalEmpleosDirectos() }}</p>
+      </div>
+      <div>
+        <span class="summary-label">Empleos indirectos</span>
+        <p>{{ getTotalEmpleosIndirectos() }}</p>
+      </div>
     </div>
   </header>
 
   <div class="proyectos-grid">
     <form class="proyectos-form" (ngSubmit)="addProyecto()">
       <h2>Nuevo Proyecto</h2>
-      
+
       <div class="form-grid">
         <label>
-          Nombre del Proyecto
-          <input 
-            type="text" 
-            name="proyectoNombre" 
-            [(ngModel)]="newProyecto.nombre" 
-            required 
+          BPIN
+          <input
+            type="text"
+            name="proyectoBpin"
+            [(ngModel)]="newProyecto.bpin"
+            required
+          />
+        </label>
+
+        <label>
+          Nombre BPIN
+          <input
+            type="text"
+            name="proyectoNombreBpin"
+            [(ngModel)]="newProyecto.nombreBpin"
+            required
           />
         </label>
 
         <label>
           Código
-          <input 
-            type="text" 
-            name="proyectoCodigo" 
-            [(ngModel)]="newProyecto.codigo" 
-            required 
-          />
-        </label>
-
-        <label class="full-width">
-          Descripción
-          <textarea 
-            name="proyectoDescripcion" 
-            [(ngModel)]="newProyecto.descripcion" 
-            rows="3"
+          <input
+            type="text"
+            name="proyectoCodigo"
+            [(ngModel)]="newProyecto.codigo"
             required
-          ></textarea>
-        </label>
-
-        <label>
-          Presupuesto (COP)
-          <input 
-            type="number" 
-            name="proyectoPresupuesto" 
-            [(ngModel)]="newProyecto.presupuesto" 
-            min="0"
-            step="1000000"
-            required 
           />
         </label>
 
         <label>
-          Responsable
-          <input 
-            type="text" 
-            name="proyectoResponsable" 
-            [(ngModel)]="newProyecto.responsable" 
-            required 
+          Nombre
+          <input
+            type="text"
+            name="proyectoNombre"
+            [(ngModel)]="newProyecto.nombre"
+            required
           />
         </label>
 
         <label>
-          Estado
-          <select 
-            name="proyectoEstado" 
-            [(ngModel)]="newProyecto.estado" 
+          Acta CD
+          <input
+            type="text"
+            name="proyectoActaCd"
+            [(ngModel)]="newProyecto.actaCd"
+            required
+          />
+        </label>
+
+        <label>
+          Área de influencia
+          <select
+            name="proyectoAreaInfluencia"
+            [(ngModel)]="newProyecto.areaInfluencia"
             required
           >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let area of areasInfluencia" [value]="area">
+              {{ area }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Estado de proyecto
+          <select
+            name="proyectoEstado"
+            [(ngModel)]="newProyecto.estadoProyecto"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
             <option *ngFor="let estado of estadosProyecto" [value]="estado">
               {{ estado }}
             </option>
@@ -92,35 +113,456 @@
         </label>
 
         <label>
+          Condición de proyecto
+          <select
+            name="proyectoCondicion"
+            [(ngModel)]="newProyecto.condicionProyecto"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let condicion of condicionesProyecto" [value]="condicion">
+              {{ condicion }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Sector
+          <select
+            name="proyectoSector"
+            [(ngModel)]="newProyecto.sector"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let sector of sectores" [value]="sector">
+              {{ sector }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Línea temática
+          <select
+            name="proyectoLineaTematica"
+            [(ngModel)]="newProyecto.lineaTematica"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let linea of lineasTematicas" [value]="linea">
+              {{ linea }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Tipo de proyecto
+          <select
+            name="proyectoTipoProyecto"
+            [(ngModel)]="newProyecto.tipoProyecto"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let tipoProyecto of tiposProyectoCatalogo" [value]="tipoProyecto">
+              {{ tipoProyecto }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Fecha reporte
+          <input
+            type="date"
+            name="proyectoFechaReporte"
+            [(ngModel)]="newProyecto.fechaReporte"
+            required
+          />
+        </label>
+
+        <label>
           Fecha Inicio
-          <input 
-            type="date" 
-            name="proyectoFechaInicio" 
-            [(ngModel)]="newProyecto.fechaInicio" 
-            required 
+          <input
+            type="date"
+            name="proyectoFechaInicio"
+            [(ngModel)]="newProyecto.fechaInicio"
+            required
           />
         </label>
 
         <label>
           Fecha Fin
-          <input 
-            type="date" 
-            name="proyectoFechaFin" 
-            [(ngModel)]="newProyecto.fechaFin" 
-            required 
+          <input
+            type="date"
+            name="proyectoFechaFin"
+            [(ngModel)]="newProyecto.fechaFin"
+            required
           />
         </label>
 
         <label>
-          Avance (%)
-          <input 
-            type="number" 
-            name="proyectoAvance" 
-            [(ngModel)]="newProyecto.avance" 
-            min="0"
-            max="100"
-            required 
+          Plazo estimado ejecución
+          <input
+            type="date"
+            name="proyectoPlazoEstimado"
+            [(ngModel)]="newProyecto.plazoEstimadoEjecucion"
+            required
           />
+        </label>
+
+        <label>
+          Número empleos directos
+          <input
+            type="number"
+            name="proyectoEmpleosDirectos"
+            [(ngModel)]="newProyecto.numeroEmpleosDirectos"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Número empleos indirectos
+          <input
+            type="number"
+            name="proyectoEmpleosIndirectos"
+            [(ngModel)]="newProyecto.numeroEmpleosIndirectos"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Consecutivo CONPES
+          <input
+            type="number"
+            name="proyectoConsecutivoConpes"
+            [(ngModel)]="newProyecto.consecutivoConpes"
+            min="0"
+            required
+          />
+        </label>
+
+        <label class="full-width">
+          <span>Tiene viabilidad</span>
+          <input
+            type="checkbox"
+            name="proyectoTieneViabilidad"
+            [(ngModel)]="newProyecto.tieneViabilidad"
+          />
+        </label>
+
+        <label>
+          Fecha viabilidad
+          <input
+            type="date"
+            name="proyectoFechaViabilidad"
+            [(ngModel)]="newProyecto.fechaViabilidad"
+          />
+        </label>
+
+        <label>
+          Número contrato específico
+          <input
+            type="number"
+            name="proyectoNumeroContratoEspecifico"
+            [(ngModel)]="newProyecto.numeroContratoEspecifico"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Fecha finalización CE
+          <input
+            type="date"
+            name="proyectoFechaFinalizacionCe"
+            [(ngModel)]="newProyecto.fechaFinalizacionCe"
+            required
+          />
+        </label>
+
+        <label>
+          Fase inversión
+          <select
+            name="proyectoFaseInversion"
+            [(ngModel)]="newProyecto.faseInversion"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let fase of fasesInversion" [value]="fase">
+              {{ fase }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Aporte nación
+          <select
+            name="proyectoAporteNacion"
+            [(ngModel)]="newProyecto.aporteNacion"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let aporte of aportesNacion" [value]="aporte">
+              {{ aporte }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Entidad proyecto
+          <input
+            type="text"
+            name="proyectoEntidad"
+            [(ngModel)]="newProyecto.entidadProyecto"
+            required
+          />
+        </label>
+
+        <label class="full-width">
+          <span>Inversión climática</span>
+          <input
+            type="checkbox"
+            name="proyectoInversionClimatica"
+            [(ngModel)]="newProyecto.inversionClimatica"
+          />
+        </label>
+
+        <label class="full-width">
+          <span>Derivado</span>
+          <input
+            type="checkbox"
+            name="proyectoDerivado"
+            [(ngModel)]="newProyecto.derivado"
+          />
+        </label>
+
+        <label>
+          Tipo oferta
+          <select
+            name="proyectoTipoOferta"
+            [(ngModel)]="newProyecto.tipoOferta"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let tipo of tiposOferta" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </label>
+
+        <label class="full-width">
+          <span>Fondo</span>
+          <input
+            type="checkbox"
+            name="proyectoFondo"
+            [(ngModel)]="newProyecto.fondo"
+          />
+        </label>
+
+        <label class="full-width">
+          Identificación de problemas
+          <textarea
+            name="proyectoIdentificacionProblemas"
+            [(ngModel)]="newProyecto.identificacionProblemas"
+            rows="3"
+            required
+          ></textarea>
+        </label>
+
+        <label class="full-width">
+          Objetivo general
+          <textarea
+            name="proyectoObjetivoGeneral"
+            [(ngModel)]="newProyecto.objetivoGeneral"
+            rows="3"
+            required
+          ></textarea>
+        </label>
+
+        <label class="full-width">
+          Alcance
+          <textarea
+            name="proyectoAlcance"
+            [(ngModel)]="newProyecto.alcance"
+            rows="3"
+            required
+          ></textarea>
+        </label>
+
+        <label>
+          Presupuesto DNP
+          <input
+            type="number"
+            name="proyectoPresupuestoDnp"
+            [(ngModel)]="newProyecto.presupuestoDnp"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Presupuesto Sector
+          <input
+            type="number"
+            name="proyectoPresupuestoSector"
+            [(ngModel)]="newProyecto.presupuestoSector"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Presupuesto Territorial
+          <input
+            type="number"
+            name="proyectoPresupuestoTerritorial"
+            [(ngModel)]="newProyecto.presupuestoTerritorial"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Presupuesto Otros
+          <input
+            type="number"
+            name="proyectoPresupuestoOtros"
+            [(ngModel)]="newProyecto.presupuestoOtros"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Presupuesto total
+          <input
+            type="number"
+            name="proyectoPresupuestoTotal"
+            [(ngModel)]="newProyecto.presupuestoTotal"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Aporte real DNP
+          <input
+            type="number"
+            name="proyectoAporteRealDnp"
+            [(ngModel)]="newProyecto.aporteRealDnp"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Aporte parcial indicativo
+          <input
+            type="number"
+            name="proyectoAporteParcialIndicativo"
+            [(ngModel)]="newProyecto.aporteParcialIndicativo"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Valor gestionar
+          <input
+            type="number"
+            name="proyectoValorGestionar"
+            [(ngModel)]="newProyecto.valorGestionar"
+            min="0"
+            required
+          />
+        </label>
+
+        <label>
+          Indicador medición OG
+          <input
+            type="text"
+            name="proyectoIndicadorMedicionOg"
+            [(ngModel)]="newProyecto.indicadorMedicionOg"
+            required
+          />
+        </label>
+
+        <label>
+          Unidad de medida OG
+          <input
+            type="text"
+            name="proyectoUnidadMedidaOg"
+            [(ngModel)]="newProyecto.unidadMedidaOg"
+            required
+          />
+        </label>
+
+        <label>
+          Meta indicador OG
+          <input
+            type="text"
+            name="proyectoMetaIndicadorOg"
+            [(ngModel)]="newProyecto.metaIndicadorOg"
+            required
+          />
+        </label>
+
+        <label>
+          Producto alcance
+          <input
+            type="text"
+            name="proyectoProductoAlcance"
+            [(ngModel)]="newProyecto.productoAlcance"
+            required
+          />
+        </label>
+
+        <label>
+          Unidad de medida
+          <input
+            type="text"
+            name="proyectoUnidadMedida"
+            [(ngModel)]="newProyecto.unidadMedida"
+            required
+          />
+        </label>
+
+        <label>
+          Meta PA
+          <input
+            type="text"
+            name="proyectoMetaPa"
+            [(ngModel)]="newProyecto.metaPa"
+            required
+          />
+        </label>
+
+        <label>
+          Mecanismo de inclusión
+          <select
+            name="proyectoMecanismoInclusion"
+            [(ngModel)]="newProyecto.mecanismoInclusion"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let mecanismo of mecanismosInclusion" [value]="mecanismo">
+              {{ mecanismo }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Sector Admin Nacional
+          <select
+            name="proyectoSectorAdminNacional"
+            [(ngModel)]="newProyecto.sectorAdminNacional"
+            required
+          >
+            <option value="" disabled>Seleccione...</option>
+            <option *ngFor="let sectorAdmin of sectoresAdminNacional" [value]="sectorAdmin">
+              {{ sectorAdmin }}
+            </option>
+          </select>
         </label>
       </div>
 
@@ -129,7 +571,7 @@
 
     <div class="proyectos-list">
       <h2>Proyectos Registrados</h2>
-      
+
       <p *ngIf="(proyectos$ | async)?.length === 0" class="empty-state">
         Aún no hay proyectos registrados. Usa el formulario para crear el primero.
       </p>
@@ -140,9 +582,9 @@
             <h3>{{ proyecto.nombre }}</h3>
             <p class="card-code">{{ proyecto.codigo }}</p>
           </div>
-          <button 
-            type="button" 
-            class="btn-danger" 
+          <button
+            type="button"
+            class="btn-danger"
             (click)="deleteProyecto(proyecto.id)"
             aria-label="Eliminar proyecto"
           >
@@ -156,6 +598,58 @@
         <p class="card-description">{{ proyecto.descripcion }}</p>
 
         <div class="card-details">
+          <div class="detail" *ngIf="proyecto.bpin">
+            <span class="detail-label">BPIN:</span>
+            <strong>{{ proyecto.bpin }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.sector">
+            <span class="detail-label">Sector:</span>
+            <strong>{{ proyecto.sector }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.lineaTematica">
+            <span class="detail-label">Línea temática:</span>
+            <strong>{{ proyecto.lineaTematica }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.faseInversion">
+            <span class="detail-label">Fase inversión:</span>
+            <strong>{{ proyecto.faseInversion }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.tipoProyecto">
+            <span class="detail-label">Tipo proyecto:</span>
+            <strong>{{ proyecto.tipoProyecto }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.fechaReporte">
+            <span class="detail-label">Fecha reporte:</span>
+            <strong>{{ formatDate(proyecto.fechaReporte) }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.numeroEmpleosDirectos !== undefined">
+            <span class="detail-label">Empleos directos:</span>
+            <strong>{{ proyecto.numeroEmpleosDirectos }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.numeroEmpleosIndirectos !== undefined">
+            <span class="detail-label">Empleos indirectos:</span>
+            <strong>{{ proyecto.numeroEmpleosIndirectos }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.consecutivoConpes !== undefined">
+            <span class="detail-label">Consecutivo CONPES:</span>
+            <strong>{{ proyecto.consecutivoConpes }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.tieneViabilidad !== undefined">
+            <span class="detail-label">Tiene viabilidad:</span>
+            <strong>{{ proyecto.tieneViabilidad ? 'Sí' : 'No' }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.fechaViabilidad">
+            <span class="detail-label">Fecha viabilidad:</span>
+            <strong>{{ formatDate(proyecto.fechaViabilidad) }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.numeroContratoEspecifico !== undefined">
+            <span class="detail-label">Nro contrato específico:</span>
+            <strong>{{ proyecto.numeroContratoEspecifico }}</strong>
+          </div>
+          <div class="detail" *ngIf="proyecto.fechaFinalizacionCe">
+            <span class="detail-label">Fecha finalización CE:</span>
+            <strong>{{ formatDate(proyecto.fechaFinalizacionCe) }}</strong>
+          </div>
           <div class="detail">
             <span class="detail-label">Presupuesto:</span>
             <strong>{{ formatCurrency(proyecto.presupuesto) }}</strong>

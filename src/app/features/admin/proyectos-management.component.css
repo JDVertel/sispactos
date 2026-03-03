@@ -10,6 +10,7 @@
 .proyectos-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 1.25rem;
   flex-wrap: wrap;
 }
@@ -36,13 +37,22 @@
 }
 
 .summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
   background: #ffffff;
-  padding: 0.9rem 1.1rem;
+  padding: 0.5rem;
   border: 1px solid rgba(148, 163, 184, 0.3);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+  max-width: 34rem;
+}
+
+.summary > div {
+  min-width: 8.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: #f8fafc;
 }
 
 .summary-label {
@@ -56,7 +66,7 @@
 
 .summary p {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #0f172a;
 }
@@ -73,8 +83,9 @@
   padding: 1.5rem;
   border: 1px solid rgba(148, 163, 184, 0.3);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
-  position: sticky;
-  top: 1rem;
+  position: static;
+  max-height: none;
+  overflow: visible;
 }
 
 .proyectos-form h2 {
@@ -111,7 +122,9 @@
   background: #ffffff;
   color: #0f172a;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .proyectos-form input:focus,
@@ -189,7 +202,7 @@
 .card-code {
   margin: 0;
   font-size: 0.75rem;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   color: #64748b;
 }
 
@@ -328,7 +341,8 @@
   }
 
   .summary {
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    max-width: 100%;
+    justify-content: flex-start;
   }
 }
 
@@ -338,7 +352,7 @@
   }
 
   .summary {
-    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .card-header {
@@ -348,34 +362,4 @@
   .btn-danger {
     align-self: start;
   }
-}
-
-th {
-  font-weight: 600;
-  background: #f5f5f5;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  background: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-button:hover {
-  background: #c82333;
-}
-
-.summary {
-  padding: 1rem;
-  background: #f9f9f9;
-  border-radius: 4px;
-  margin-top: 1rem;
-}
-
-.summary p {
-  margin: 0.5rem 0;
 }

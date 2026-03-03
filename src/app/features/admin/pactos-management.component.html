@@ -20,7 +20,7 @@
   <div class="pactos-grid">
     <form class="pactos-form" (ngSubmit)="addPacto()">
       <h2>Nuevo Pacto Territorial</h2>
-      
+
       <div class="form-grid">
         <label>
           Tipo de Pacto
@@ -32,30 +32,30 @@
 
         <label>
           Nombre
-          <input 
-            type="text" 
-            name="nombre" 
-            [(ngModel)]="newPacto.nombre" 
-            required 
+          <input
+            type="text"
+            name="nombre"
+            [(ngModel)]="newPacto.nombre"
+            required
           />
         </label>
 
         <label class="full-width">
           Descripción
-          <textarea 
-            name="descripcion" 
-            [(ngModel)]="newPacto.descripcion" 
-            rows="3" 
+          <textarea
+            name="descripcion"
+            [(ngModel)]="newPacto.descripcion"
+            rows="3"
             required
           ></textarea>
         </label>
 
         <label class="full-width">
           Objetivo
-          <textarea 
-            name="objetivo" 
-            [(ngModel)]="newPacto.objetivo" 
-            rows="3" 
+          <textarea
+            name="objetivo"
+            [(ngModel)]="newPacto.objetivo"
+            rows="3"
             required
           ></textarea>
         </label>
@@ -69,130 +69,85 @@
 
         <label>
           Fecha de Suscripción
-          <input 
-            type="date" 
-            name="fechaSuscripcion" 
+          <input
+            type="date"
+            name="fechaSuscripcion"
             [(ngModel)]="newPacto.fechaSuscripcion"
           />
         </label>
 
         <label>
           Fecha de Negociación
-          <input 
-            type="date" 
-            name="fechaNegociacion" 
+          <input
+            type="date"
+            name="fechaNegociacion"
             [(ngModel)]="newPacto.fechaNegociacion"
           />
         </label>
 
-        <label>
-          Valor Estimado (COP)
-          <input 
-            type="number" 
-            name="valorEstimado" 
-            [(ngModel)]="newPacto.valorEstimado" 
-            min="0"
-          />
-        </label>
+   
 
-        <label>
-          Valor Estimado Otros
-          <input 
-            type="number" 
-            name="valorEstimadoOtros" 
-            [(ngModel)]="newPacto.valorEstimadoOtros" 
-            min="0"
-          />
-        </label>
 
-  <!--       <label>
-          Porcentaje Estimado (%)
-          <input 
-            type="number" 
-            name="porcentajeEstimado" 
-            [(ngModel)]="newPacto.porcentajeEstimado" 
-            min="0"
-            max="100"
-          />
-        </label> 
-
-        <label>
-          Usuario Creó
-          <input 
-            type="text" 
-            name="usuarioCreo" 
-            [(ngModel)]="newPacto.usuarioCreo"
-          />
-        </label>
-
-        <label>
-          Usuario Modificó
-          <input 
-            type="text" 
-            name="usuarioModifico" 
-            [(ngModel)]="newPacto.usuarioModifico"
-          />
-        </label>
 
         <label>
           ID Etapa
-          <input 
-            type="text" 
-            name="idEtapa" 
+          <input
+            type="text"
+            name="idEtapa"
             [(ngModel)]="newPacto.idEtapa"
           />
         </label>
--->
+
         <label>
           Fecha de Vencimiento
-          <input 
-            type="date" 
-            name="fechaVencimiento" 
+          <input
+            type="date"
+            name="fechaVencimiento"
             [(ngModel)]="newPacto.fechaVencimiento"
           />
         </label>
 
         <label class="full-width">
           Alcance
-          <textarea 
-            name="alcance" 
-            [(ngModel)]="newPacto.alcance" 
+          <textarea
+            name="alcance"
+            [(ngModel)]="newPacto.alcance"
             rows="3"
           ></textarea>
         </label>
 
         <label>
           Documento Pacto
-          <input 
-            type="file" 
-            name="urlDocPacto" 
+          <input
+            type="file"
+            name="urlDocPacto"
             (change)="onFileSelected($event, 'urlDocPacto')"
           />
         </label>
 
         <label>
           Documento Minuta
-          <input 
-            type="file" 
-            name="urlDocMinuta" 
+          <input
+            type="file"
+            name="urlDocMinuta"
             (change)="onFileSelected($event, 'urlDocMinuta')"
           />
         </label>
 
         <label>
           Documento PEI
-          <input 
-            type="file" 
-            name="urlDocPEI" 
+          <input
+            type="file"
+            name="urlDocPEI"
             (change)="onFileSelected($event, 'urlDocPEI')"
           />
         </label>
 
         <label>
           Documento Ficha
-          <input 
-            type="file" 
-            name="urlDocFicha" 
+          <input
+            type="file"
+            name="urlDocFicha"
             (change)="onFileSelected($event, 'urlDocFicha')"
           />
         </label>
@@ -217,7 +172,7 @@
                 Eliminar
               </button>
             </div>
-            
+
             <div class="pacto-info">
               <div class="info-item">
                 <span class="info-label">Descripción</span>
@@ -265,7 +220,7 @@
                 <span class="info-label">Alcance</span>
                 <p>{{ pacto.alcance }}</p>
               </div>
-              
+
               <div class="pacto-meta">
                 <span class="creation-date">Creado por: {{ pacto.usuarioCreo }}</span>
                 <span class="modification-date">Modificado: {{ pacto.fechaModificacion }}</span>
@@ -278,7 +233,7 @@
           <p>Utiliza el formulario para crear el primer pacto territorial.</p>
         </div>
       </ng-container>
-      
+
       <ng-template #noPactos>
         <div class="empty-state">
           <h3>No hay pactos registrados</h3>
