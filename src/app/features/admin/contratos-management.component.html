@@ -1,231 +1,150 @@
-﻿<section class="contratos-container">
-  <header class="contratos-header">
+<section class="container-fluid px-0">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
-      <p class="eyebrow">Administración</p>
-      <h1>Gestión de Contratos</h1>
-      <p class="subtitle">Crea, administra y visualiza los contratos asociados a los proyectos del sistema.</p>
+      <h1 class="h3 mb-1">Gestion de Contratos</h1>
+      <p class="text-secondary mb-0">Crea, administra y visualiza los contratos asociados a los proyectos del sistema.</p>
     </div>
-    <div class="summary">
-      <div>
-        <span class="summary-label">Contratos activos</span>
-        <p>{{ (contratos$ | async)?.length ?? 0 }}</p>
-      </div>
-      <div>
-        <span class="summary-label">Valor total</span>
-        <p>{{ formatCurrency(getTotalValorContratos()) }}</p>
-      </div>
-      <div>
-        <span class="summary-label">Con URL SECOP</span>
-        <p>{{ getContratosConSecop() }}</p>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoContratoModal">
+      + Nuevo Contrato
+    </button>
+  </div>
+
+  <div class="row g-2 mb-3">
+    <div class="col-12 col-md-4">
+      <div class="badge text-bg-light border w-100 text-start p-3">
+        <div class="small text-secondary">Contratos activos</div>
+        <div class="h5 mb-0">{{ (contratos$ | async)?.length ?? 0 }}</div>
       </div>
     </div>
-  </header>
+    <div class="col-12 col-md-4">
+      <div class="badge text-bg-light border w-100 text-start p-3">
+        <div class="small text-secondary">Valor total</div>
+        <div class="h5 mb-0">{{ formatCurrency(getTotalValorContratos()) }}</div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="badge text-bg-light border w-100 text-start p-3">
+        <div class="small text-secondary">Con URL SECOP</div>
+        <div class="h5 mb-0">{{ getContratosConSecop() }}</div>
+      </div>
+    </div>
+  </div>
 
-  <div class="contratos-grid">
-    <form class="contratos-form" (ngSubmit)="addContrato()">
-      <h2>Nuevo Contrato</h2>
-
-      <div class="form-grid">
-        <label>
-          Proyecto
-          <select
-            name="contratoProyecto"
-            [(ngModel)]="newContrato.proyecto"
-            required
-          >
-            <option *ngFor="let proyecto of proyectosDisponibles" [value]="proyecto">
-              {{ proyecto }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Contratista
-          <select
-            name="contratoContratista"
-            [(ngModel)]="newContrato.contratista"
-            required
-          >
-            <option *ngFor="let contratista of contratistasDisponibles" [value]="contratista">
-              {{ contratista }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Fecha Inicio
-          <input
-            type="date"
-            name="contratoFechaInicio"
-            [(ngModel)]="newContrato.fechaInicio"
-            required
-          />
-        </label>
-
-        <label>
-          Fecha Fin
-          <input
-            type="date"
-            name="contratoFechaFin"
-            [(ngModel)]="newContrato.fechaFin"
-            required
-          />
-        </label>
-
-        <label>
-          Contrato padre
-          <select
-            name="contratoPadre"
-            [(ngModel)]="newContrato.contratoPadre"
-            required
-          >
-            <option *ngFor="let padre of contratosPadreDisponibles" [value]="padre">
-              {{ padre }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Tipo contrato
-          <select
-            name="contratoTipo"
-            [(ngModel)]="newContrato.tipoContrato"
-            required
-          >
-            <option *ngFor="let tipo of tiposContrato" [value]="tipo">
-              {{ tipo }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Contratante
-          <select
-            name="contratoContratante"
-            [(ngModel)]="newContrato.contratante"
-            required
-          >
-            <option *ngFor="let contratante of contratantesDisponibles" [value]="contratante">
-              {{ contratante }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Valor
-          <input
-            type="number"
-            name="contratoValor"
-            [(ngModel)]="newContrato.valor"
-            min="0"
-            step="1000000"
-            required
-          />
-        </label>
-
-        <label>
-          Supervisor
-          <select
-            name="contratoSupervisor"
-            [(ngModel)]="newContrato.supervisor"
-            required
-          >
-            <option *ngFor="let supervisor of supervisoresDisponibles" [value]="supervisor">
-              {{ supervisor }}
-            </option>
-          </select>
-        </label>
-
-        <label class="full-width">
-          Objeto
-          <textarea
-            name="contratoObjeto"
-            [(ngModel)]="newContrato.objeto"
-            rows="3"
-            required
-          ></textarea>
-        </label>
-
-        <label class="full-width">
-          URL SECOP
-          <input
-            type="text"
-            name="contratoUrlSecop"
-            [(ngModel)]="newContrato.urlSecop"
-            required
-          />
-        </label>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-body-tertiary py-3">
+      <h2 class="h5 mb-0">Contratos Registrados</h2>
+    </div>
+    <div class="card-body p-2 p-md-3">
+      <div class="alert alert-light border text-center mb-3" *ngIf="(contratos$ | async)?.length === 0">
+        Aun no hay contratos registrados. Usa el boton para crear el primero.
       </div>
 
-      <button type="submit" class="btn-submit">Agregar Contrato</button>
-    </form>
-
-    <div class="contratos-list">
-      <h2>Contratos Registrados</h2>
-
-      <p *ngIf="(contratos$ | async)?.length === 0" class="empty-state">
-        Aún no hay contratos registrados. Usa el formulario para crear el primero.
-      </p>
-
-      <article *ngFor="let contrato of contratos$ | async" class="contrato-card">
-        <div class="card-header">
-          <div>
-            <h3>{{ contrato.proyecto }}</h3>
-            <p class="card-type">{{ contrato.tipoContrato }}</p>
+      <article *ngFor="let contrato of contratos$ | async" class="card mb-3 border">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
+            <div>
+              <h3 class="h5 mb-1">{{ contrato.proyecto }}</h3>
+              <span class="badge text-bg-secondary">{{ contrato.tipoContrato }}</span>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteContrato(contrato.id)">Eliminar</button>
           </div>
-          <button
-            type="button"
-            class="btn-danger"
-            (click)="deleteContrato(contrato.id)"
-            aria-label="Eliminar contrato"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-            </svg>
-            Eliminar
-          </button>
+
+          <p class="mb-3"><span class="small text-uppercase text-secondary fw-semibold">Objeto:</span> {{ contrato.objeto }}</p>
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6"><div class="small text-secondary">Contrato padre</div><strong>{{ contrato.contratoPadre }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Contratista</div><strong>{{ contrato.contratista }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Contratante</div><strong>{{ contrato.contratante }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Valor</div><strong>{{ formatCurrency(contrato.valor) }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Supervisor</div><strong>{{ contrato.supervisor }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Vigencia</div><strong>{{ formatDate(contrato.fechaInicio) }} - {{ formatDate(contrato.fechaFin) }}</strong></div>
+            <div class="col-12"><div class="small text-secondary">URL SECOP</div><strong>{{ contrato.urlSecop }}</strong></div>
+          </div>
+
+          <p class="small text-secondary border-top pt-2 mt-3 mb-0">Registrado el {{ formatDate(contrato.fechaCreacion) }}</p>
         </div>
-
-        <div class="card-objeto">
-          <span class="detail-label">Objeto:</span>
-          <p>{{ contrato.objeto }}</p>
-        </div>
-
-        <div class="card-details">
-          <div class="detail">
-            <span class="detail-label">Contrato padre:</span>
-            <strong>{{ contrato.contratoPadre }}</strong>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Contratista:</span>
-            <strong>{{ contrato.contratista }}</strong>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Contratante:</span>
-            <strong>{{ contrato.contratante }}</strong>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Valor:</span>
-            <strong>{{ formatCurrency(contrato.valor) }}</strong>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Supervisor:</span>
-            <strong>{{ contrato.supervisor }}</strong>
-          </div>
-          <div class="detail">
-            <span class="detail-label">Vigencia:</span>
-            <strong>{{ formatDate(contrato.fechaInicio) }} - {{ formatDate(contrato.fechaFin) }}</strong>
-          </div>
-          <div class="detail">
-            <span class="detail-label">URL SECOP:</span>
-            <strong>{{ contrato.urlSecop }}</strong>
-          </div>
-        </div>
-
-        <p class="card-footer">
-          Registrado el {{ formatDate(contrato.fechaCreacion) }}
-        </p>
       </article>
     </div>
   </div>
 </section>
+
+<div class="modal fade" id="nuevoContratoModal" tabindex="-1" aria-labelledby="nuevoContratoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
+    <div class="modal-content">
+      <form class="d-flex flex-column h-100" (ngSubmit)="addContrato()">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel">Nuevo Contrato</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Proyecto</label>
+              <select class="form-select" name="contratoProyecto" [(ngModel)]="newContrato.proyecto" required>
+                <option *ngFor="let proyecto of proyectosDisponibles" [value]="proyecto">{{ proyecto }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Contratista</label>
+              <select class="form-select" name="contratoContratista" [(ngModel)]="newContrato.contratista" required>
+                <option *ngFor="let contratista of contratistasDisponibles" [value]="contratista">{{ contratista }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Fecha Inicio</label>
+              <input class="form-control" type="date" name="contratoFechaInicio" [(ngModel)]="newContrato.fechaInicio" required />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Fecha Fin</label>
+              <input class="form-control" type="date" name="contratoFechaFin" [(ngModel)]="newContrato.fechaFin" required />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Contrato padre</label>
+              <select class="form-select" name="contratoPadre" [(ngModel)]="newContrato.contratoPadre" required>
+                <option *ngFor="let padre of contratosPadreDisponibles" [value]="padre">{{ padre }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Tipo contrato</label>
+              <select class="form-select" name="contratoTipo" [(ngModel)]="newContrato.tipoContrato" required>
+                <option *ngFor="let tipo of tiposContrato" [value]="tipo">{{ tipo }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Contratante</label>
+              <select class="form-select" name="contratoContratante" [(ngModel)]="newContrato.contratante" required>
+                <option *ngFor="let contratante of contratantesDisponibles" [value]="contratante">{{ contratante }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Valor</label>
+              <input class="form-control" type="number" name="contratoValor" [(ngModel)]="newContrato.valor" min="0" step="1000000" required />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Supervisor</label>
+              <select class="form-select" name="contratoSupervisor" [(ngModel)]="newContrato.supervisor" required>
+                <option *ngFor="let supervisor of supervisoresDisponibles" [value]="supervisor">{{ supervisor }}</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Objeto</label>
+              <textarea class="form-control" name="contratoObjeto" [(ngModel)]="newContrato.objeto" rows="3" required></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">URL SECOP</label>
+              <input class="form-control" type="text" name="contratoUrlSecop" [(ngModel)]="newContrato.urlSecop" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer bg-body sticky-bottom">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Guardar Contrato</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+

@@ -35,7 +35,9 @@ export class SidebarComponent {
   @Input() menuItems: MenuItem[] = [];
   @Input() isSidebarOpen = false;
   @Input() activeSubmenu: string | null = null;
-  
+  @Input() sessionUserName = 'Usuario';
+  @Input() sessionUserRole = 'Sin rol';
+
   @Output() toggleSidebarEvent = new EventEmitter<void>();
   @Output() toggleSubmenuEvent = new EventEmitter<string>();
   @Output() closeAllMenusEvent = new EventEmitter<void>();
@@ -55,5 +57,43 @@ export class SidebarComponent {
 
   closeAllMenus(): void {
     this.closeAllMenusEvent.emit();
+  }
+
+  get sessionUserInitial(): string {
+    return this.sessionUserName.trim().charAt(0).toUpperCase() || 'U';
+  }
+
+  formatLabel(label: string): string {
+    return label
+      .replace(/[-_]+/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  getBootstrapIconClass(icon: string): string {
+    const icons: Record<string, string> = {
+      home: 'bi-house-door',
+      pin: 'bi-geo-alt',
+      folder: 'bi-folder2-open',
+      file: 'bi-file-earmark-text',
+      bell: 'bi-bell',
+      wallet: 'bi-wallet2',
+      document: 'bi-file-earmark-richtext',
+      checklist: 'bi-card-checklist',
+      trend: 'bi-graph-up-arrow',
+      check: 'bi-check2-square',
+      map: 'bi-map',
+      chart: 'bi-bar-chart-line',
+      gauge: 'bi-speedometer2',
+      settings: 'bi-sliders',
+      config: 'bi-gear',
+      info: 'bi-info-circle',
+      help: 'bi-question-circle',
+      logout: 'bi-box-arrow-right'
+    };
+
+    return icons[icon] ?? 'bi-circle';
   }
 }

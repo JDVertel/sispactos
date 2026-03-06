@@ -2,22 +2,21 @@
   display: block;
   min-height: 100vh;
   font-family: inherit;
-  color: #0f172a;
-  background: #f5f7fb;
+  color: #4d4d4d;
+  background: #ebebeb;
 }
 
 .dashboard-shell {
   min-height: 100vh;
   display: grid;
   grid-template-columns: auto 1fr;
-  background: #f5f7fb;
+  background: #ebebeb;
 }
 
 .content {
   padding: 2.2rem;
   background: #ffffff;
   position: relative;
-  z-index: 1;
 }
 
 @media (max-width: 980px) {

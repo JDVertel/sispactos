@@ -1,245 +1,258 @@
-﻿<section class="pactos-container">
-  <header class="pactos-header">
+<section class="container-fluid px-0">
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
-      <p class="eyebrow">Administración</p>
-      <h1>Gestión de Pactos</h1>
-      <p class="subtitle">Crea, administra y visualiza los pactos territoriales del sistema SISPACTOS.</p>
+      <h1 class="h3 mb-1">Gestión de Pactos</h1>
+      <p class="text-secondary mb-0">Crea, administra y visualiza los pactos territoriales del sistema SISPACTOS.</p>
     </div>
-    <div class="summary">
-      <div>
-        <span class="summary-label">Pactos activos</span>
-        <p>{{ (pactos$ | async)?.length ?? 0 }}</p>
-      </div>
-      <div>
-        <span class="summary-label">Monto total</span>
-          <p>{{ formatCurrency(getTotalValorEstimado()) }}</p>
-      </div>
-    </div>
-  </header>
 
-  <div class="pactos-grid">
-    <form class="pactos-form" (ngSubmit)="addPacto()">
-      <h2>Nuevo Pacto Territorial</h2>
-
-      <div class="form-grid">
-        <label>
-          Tipo de Pacto
-          <select name="tipoPacto" [(ngModel)]="newPacto.tipoPacto" required>
-            <option value="">Seleccionar tipo</option>
-            <option *ngFor="let tipo of tiposPactos" [value]="tipo">{{ tipo }}</option>
-          </select>
-        </label>
-
-        <label>
-          Nombre
-          <input
-            type="text"
-            name="nombre"
-            [(ngModel)]="newPacto.nombre"
-            required
-          />
-        </label>
-
-        <label class="full-width">
-          Descripción
-          <textarea
-            name="descripcion"
-            [(ngModel)]="newPacto.descripcion"
-            rows="3"
-            required
-          ></textarea>
-        </label>
-
-        <label class="full-width">
-          Objetivo
-          <textarea
-            name="objetivo"
-            [(ngModel)]="newPacto.objetivo"
-            rows="3"
-            required
-          ></textarea>
-        </label>
-
-        <label class="full-width">
-          Líneas Temáticas
-          <select name="lineasTematicas" [(ngModel)]="newPacto.lineasTematicas" multiple required>
-            <option *ngFor="let linea of lineasTematicasOptions" [value]="linea">{{ linea }}</option>
-          </select>
-        </label>
-
-        <label>
-          Fecha de Suscripción
-          <input
-            type="date"
-            name="fechaSuscripcion"
-            [(ngModel)]="newPacto.fechaSuscripcion"
-          />
-        </label>
-
-        <label>
-          Fecha de Negociación
-          <input
-            type="date"
-            name="fechaNegociacion"
-            [(ngModel)]="newPacto.fechaNegociacion"
-          />
-        </label>
-
-   
-
-
-
-        <label>
-          ID Etapa
-          <input
-            type="text"
-            name="idEtapa"
-            [(ngModel)]="newPacto.idEtapa"
-          />
-        </label>
-
-        <label>
-          Fecha de Vencimiento
-          <input
-            type="date"
-            name="fechaVencimiento"
-            [(ngModel)]="newPacto.fechaVencimiento"
-          />
-        </label>
-
-        <label class="full-width">
-          Alcance
-          <textarea
-            name="alcance"
-            [(ngModel)]="newPacto.alcance"
-            rows="3"
-          ></textarea>
-        </label>
-
-        <label>
-          Documento Pacto
-          <input
-            type="file"
-            name="urlDocPacto"
-            (change)="onFileSelected($event, 'urlDocPacto')"
-          />
-        </label>
-
-        <label>
-          Documento Minuta
-          <input
-            type="file"
-            name="urlDocMinuta"
-            (change)="onFileSelected($event, 'urlDocMinuta')"
-          />
-        </label>
-
-        <label>
-          Documento PEI
-          <input
-            type="file"
-            name="urlDocPEI"
-            (change)="onFileSelected($event, 'urlDocPEI')"
-          />
-        </label>
-
-        <label>
-          Documento Ficha
-          <input
-            type="file"
-            name="urlDocFicha"
-            (change)="onFileSelected($event, 'urlDocFicha')"
-          />
-        </label>
-      </div>
-
-      <button type="submit" [disabled]="!newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim()">
-        Crear Pacto
+    <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#nuevoPactoModal"
+      >
+        <span class="me-1">+</span> Nuevo Pacto
       </button>
-    </form>
+      <div class="badge text-bg-light border px-3 py-2 text-start">
+        <div class="small text-secondary">Pactos activos: <strong>{{ (pactos$ | async)?.length ?? 0 }}</strong></div>
+        <div class="small text-secondary">Monto total: <strong>{{ formatCurrency(getTotalValorEstimado()) }}</strong></div>
+      </div>
+    </div>
+  </div>
 
-    <div class="pactos-list">
-      <h2>Listado de Pactos Territoriales</h2>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-body-tertiary py-3">
+      <h2 class="h5 mb-0">Listado de Pactos Territoriales</h2>
+    </div>
+
+    <div class="card-body p-2 p-md-3">
       <ng-container *ngIf="(pactos$ | async) as pactos; else noPactos">
-        <div class="pactos-cards" *ngIf="pactos.length > 0">
-          <div class="pacto-card" *ngFor="let pacto of pactos">
-            <div class="pacto-header">
-              <div>
-                <h3>{{ pacto.nombre }}</h3>
-                <span class="pacto-tipo">{{ pacto.tipoPacto }}</span>
-              </div>
-              <button type="button" class="ghost" (click)="removePacto(pacto.id)" title="Eliminar pacto">
-                Eliminar
-              </button>
-            </div>
-
-            <div class="pacto-info">
-              <div class="info-item">
-                <span class="info-label">Descripción</span>
-                <p>{{ pacto.descripcion }}</p>
+        <div class="overflow-auto" style="max-height: 65vh;">
+          <div class="card mb-3 border" *ngFor="let pacto of pactos">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
+                <div>
+                  <h3 class="h5 mb-1">{{ pacto.nombre }}</h3>
+                  <span class="badge text-bg-secondary">{{ pacto.tipoPacto }}</span>
+                </div>
+                <button type="button" class="btn btn-outline-danger btn-sm" (click)="removePacto(pacto.id)">
+                  Eliminar
+                </button>
               </div>
 
-              <div class="info-item">
-                <span class="info-label">Objetivo</span>
-                <p>{{ pacto.objetivo }}</p>
+              <div class="mb-3">
+                <div class="small text-uppercase text-secondary fw-semibold">Descripción</div>
+                <p class="mb-0">{{ pacto.descripcion }}</p>
               </div>
 
-              <div class="info-grid">
-                <div class="info-item" *ngIf="pacto.lineasTematicas.length">
-                  <span class="info-label">Líneas Temáticas</span>
-                  <p>{{ pacto.lineasTematicas.join(', ') }}</p>
+              <div class="mb-3">
+                <div class="small text-uppercase text-secondary fw-semibold">Objetivo</div>
+                <p class="mb-0">{{ pacto.objetivo }}</p>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6" *ngIf="pacto.lineasTematicas.length">
+                  <div class="small text-uppercase text-secondary fw-semibold">Líneas Temáticas</div>
+                  <p class="mb-0">{{ pacto.lineasTematicas.join(', ') }}</p>
                 </div>
 
-                <div class="info-item" *ngIf="pacto.valorEstimado">
-                  <span class="info-label">Valor Estimado</span>
-                  <p>{{ formatCurrency(pacto.valorEstimado) }}</p>
+                <div class="col-12 col-md-6" *ngIf="pacto.valorEstimado">
+                  <div class="small text-uppercase text-secondary fw-semibold">Valor Estimado</div>
+                  <p class="mb-0">{{ formatCurrency(pacto.valorEstimado) }}</p>
                 </div>
 
-                <div class="info-item" *ngIf="pacto.porcentajeEstimado">
-                  <span class="info-label">Porcentaje Estimado</span>
-                  <p>{{ pacto.porcentajeEstimado }}%</p>
+                <div class="col-12 col-md-6" *ngIf="pacto.porcentajeEstimado">
+                  <div class="small text-uppercase text-secondary fw-semibold">Porcentaje Estimado</div>
+                  <p class="mb-0">{{ pacto.porcentajeEstimado }}%</p>
                 </div>
 
-                <div class="info-item" *ngIf="pacto.fechaSuscripcion">
-                  <span class="info-label">Fecha Suscripción</span>
-                  <p>{{ pacto.fechaSuscripcion }}</p>
+                <div class="col-12 col-md-6" *ngIf="pacto.fechaSuscripcion">
+                  <div class="small text-uppercase text-secondary fw-semibold">Fecha Suscripción</div>
+                  <p class="mb-0">{{ pacto.fechaSuscripcion }}</p>
                 </div>
 
-                <div class="info-item" *ngIf="pacto.fechaVencimiento">
-                  <span class="info-label">Fecha Vencimiento</span>
-                  <p>{{ pacto.fechaVencimiento }}</p>
+                <div class="col-12 col-md-6" *ngIf="pacto.fechaVencimiento">
+                  <div class="small text-uppercase text-secondary fw-semibold">Fecha Vencimiento</div>
+                  <p class="mb-0">{{ pacto.fechaVencimiento }}</p>
                 </div>
 
-                <div class="info-item" *ngIf="pacto.idEtapa">
-                  <span class="info-label">ID Etapa</span>
-                  <p>{{ pacto.idEtapa }}</p>
+                <div class="col-12 col-md-6" *ngIf="pacto.idEtapa">
+                  <div class="small text-uppercase text-secondary fw-semibold">ID Etapa</div>
+                  <p class="mb-0">{{ pacto.idEtapa }}</p>
                 </div>
               </div>
 
-              <div class="info-item" *ngIf="pacto.alcance">
-                <span class="info-label">Alcance</span>
-                <p>{{ pacto.alcance }}</p>
+              <div class="mb-3" *ngIf="pacto.alcance">
+                <div class="small text-uppercase text-secondary fw-semibold">Alcance</div>
+                <p class="mb-0">{{ pacto.alcance }}</p>
               </div>
 
-              <div class="pacto-meta">
-                <span class="creation-date">Creado por: {{ pacto.usuarioCreo }}</span>
-                <span class="modification-date">Modificado: {{ pacto.fechaModificacion }}</span>
+              <div class="d-flex flex-column flex-md-row gap-2 pt-2 border-top small text-secondary">
+                <span>Creado por: {{ pacto.usuarioCreo || 'N/A' }}</span>
+                <span>Modificado: {{ pacto.fechaModificacion }}</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="empty-state" *ngIf="pactos.length === 0">
-          <h3>No hay pactos registrados</h3>
-          <p>Utiliza el formulario para crear el primer pacto territorial.</p>
+
+        <div class="alert alert-light border text-center mb-0" *ngIf="pactos.length === 0">
+          No hay pactos registrados. Usa el botón <strong>Nuevo Pacto</strong> para crear el primero.
         </div>
       </ng-container>
 
       <ng-template #noPactos>
-        <div class="empty-state">
-          <h3>No hay pactos registrados</h3>
-          <p>Utiliza el formulario para crear el primer pacto territorial.</p>
+        <div class="alert alert-light border text-center mb-0">
+          No hay pactos registrados. Usa el botón <strong>Nuevo Pacto</strong> para crear el primero.
         </div>
       </ng-template>
     </div>
   </div>
 </section>
+
+<div class="modal fade" id="nuevoPactoModal" tabindex="-1" aria-labelledby="nuevoPactoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
+    <div class="modal-content">
+      <form class="d-flex flex-column h-100" (ngSubmit)="addPacto()">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="nuevoPactoModalLabel">Nuevo Pacto Territorial</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Tipo de Pacto</label>
+              <select class="form-select" name="tipoPacto" [(ngModel)]="newPacto.tipoPacto" required>
+                <option value="">Seleccionar tipo</option>
+                <option *ngFor="let tipo of tiposPactos" [value]="tipo">{{ tipo }}</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Nombre del pacto</label>
+              <input class="form-control" type="text" name="nombre" [(ngModel)]="newPacto.nombre" required />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Suscribientes o integrantes</label>
+              <textarea class="form-control" name="descripcion" [(ngModel)]="newPacto.descripcion" rows="3" required></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Objetivo</label>
+              <textarea class="form-control" name="objetivo" [(ngModel)]="newPacto.objetivo" rows="3" required></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Líneas Temáticas</label>
+              <input
+                class="form-control"
+                type="text"
+                name="lineaTematicaInput"
+                [(ngModel)]="lineaTematicaInput"
+                (keydown.enter)="$event.preventDefault(); addLineaTematicaFromInput()"
+                placeholder="Escribe una línea temática y presiona Enter"
+              />
+
+              <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="newPacto.lineasTematicas.length > 0">
+                <span *ngFor="let linea of newPacto.lineasTematicas; let i = index" class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3">
+                  {{ linea }}
+                  <button
+                    type="button"
+                    class="btn-close btn-close-white btn-sm"
+                    aria-label="Eliminar línea temática"
+                    (click)="removeLineaTematica(i)"
+                  ></button>
+                </span>
+              </div>
+
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Fecha de Suscripción</label>
+              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="newPacto.fechaSuscripcion" />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">ID Etapa</label>
+              <select class="form-select" name="idEtapa" [(ngModel)]="newPacto.idEtapa">
+                <option value="" disabled>Seleccione una etapa</option>
+                <option *ngFor="let etapa of etapasPacto" [value]="etapa">{{ etapa }}</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Fecha de Vencimiento</label>
+              <input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="newPacto.fechaVencimiento" />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Departamento de Alcance</label>
+              <select
+                class="form-select"
+                name="departamentoSeleccionado"
+                [(ngModel)]="departamentoSeleccionado"
+                (ngModelChange)="onDepartamentoChange()"
+              >
+                <option value="">Seleccione departamento</option>
+                <option *ngFor="let departamento of departamentosDisponibles" [value]="departamento">
+                  {{ departamento }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Municipio de Alcance</label>
+              <select
+                class="form-select"
+                name="municipioSeleccionado"
+                [(ngModel)]="municipioSeleccionado"
+                [disabled]="!departamentoSeleccionado"
+              >
+                <option value="">Seleccione municipio</option>
+                <option *ngFor="let municipio of municipiosDisponibles" [value]="municipio">
+                  {{ municipio }}
+                </option>
+              </select>
+            </div>
+
+            <div class="col-12" *ngIf="municipioSeleccionado">
+              <label class="form-label">Detalle de Alcance</label>
+              <textarea
+                class="form-control"
+                name="alcanceDetalle"
+                [(ngModel)]="alcanceDetalle"
+                rows="3"
+                placeholder="Agrega el detalle del alcance para el departamento y municipio seleccionados"
+              ></textarea>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Documento Pacto</label>
+              <input class="form-control" type="file" name="urlDocPacto" (change)="onFileSelected($event, 'urlDocPacto')" />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Documento Minuta</label>
+              <input class="form-control" type="file" name="urlDocMinuta" (change)="onFileSelected($event, 'urlDocMinuta')" />
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer bg-body sticky-bottom">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            data-bs-dismiss="modal"
+            [disabled]="!newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim()"
+          >
+            Crear Pacto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

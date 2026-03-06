@@ -1,37 +1,44 @@
-<footer class="gov-footer" role="contentinfo">
-  <div class="gov-strip" aria-hidden="true"></div>
+<footer class="footer-bootstrap border-top mt-4" role="contentinfo">
+  <div class="container-fluid py-4">
+    <div class="row g-3 align-items-start">
+      <div class="col-12 col-md-4">
+        <h3 class="h6 mb-2">SISPACTOS</h3>
+        <p class="mb-0 small text-secondary">Sistema de Informacion para el seguimiento de Pactos Territoriales.</p>
+      </div>
 
-  <div class="gov-footer__main">
-    <div class="gov-footer__brand">
-      <h3>SISPACTOS</h3>
-      <p>Sistema de Información para el seguimiento de Pactos Territoriales.</p>
+      <div class="col-6 col-md-2">
+        <h4 class="h6 mb-2">Enlaces</h4>
+        <nav class="nav flex-column gap-1" aria-label="Enlaces del sitio">
+          <a class="nav-link p-0" routerLink="/dashboard">Inicio</a>
+          <a class="nav-link p-0" routerLink="/dashboard/pactos">Pactos</a>
+          <a class="nav-link p-0" routerLink="/dashboard/proyectos">Proyectos</a>
+          <a class="nav-link p-0" routerLink="/dashboard/contratos">Contratos</a>
+        </nav>
+      </div>
+
+      <div class="col-6 col-md-4">
+        <h4 class="h6 mb-2">Contacto</h4>
+        <p class="small mb-1"><strong>Email:</strong> info&#64;sispactos.gov.co</p>
+        <p class="small mb-1"><strong>Tel:</strong> +57 (601) 000 0000</p>
+        <p class="small mb-0"><strong>Direccion:</strong> Bogota D.C., Colombia</p>
+      </div>
+
+      <div class="col-12 col-md-2">
+        <h4 class="h6 mb-2">Redes</h4>
+        <div class="d-flex gap-2" aria-label="Redes sociales">
+          <a class="btn btn-outline-secondary btn-sm" href="#" aria-label="Facebook">FB</a>
+          <a class="btn btn-outline-secondary btn-sm" href="#" aria-label="X">X</a>
+          <a class="btn btn-outline-secondary btn-sm" href="#" aria-label="LinkedIn">IN</a>
+        </div>
+      </div>
     </div>
 
-    <nav class="gov-footer__links" aria-label="Enlaces del sitio">
-      <a routerLink="/dashboard">Inicio</a>
-      <a routerLink="/dashboard/pactos">Pactos</a>
-      <a routerLink="/dashboard/proyectos">Proyectos</a>
-      <a routerLink="/dashboard/contratos">Contratos</a>
-    </nav>
-
-    <div class="gov-footer__contact">
-      <p><strong>Contacto:</strong> info&#64;sispactos.gov.co</p>
-      <p><strong>Tel:</strong> +57 (601) 000 0000</p>
-      <p><strong>Dirección:</strong> Bogotá D.C., Colombia</p>
-    </div>
-
-    <div class="gov-footer__social" aria-label="Redes sociales">
-      <a href="#" aria-label="Facebook">FB</a>
-      <a href="#" aria-label="X">X</a>
-      <a href="#" aria-label="LinkedIn">IN</a>
-    </div>
-  </div>
-
-  <div class="gov-footer__bottom">
-    <span>© {{ currentYear }} SISPACTOS - Todos los derechos reservados</span>
-    <div class="gov-footer__legal">
-      <a href="#">Política de privacidad</a>
-      <a href="#">Términos de uso</a>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 border-top pt-3 mt-3 small text-secondary">
+      <span>© {{ currentYear }} SISPACTOS - Todos los derechos reservados</span>
+      <div class="d-flex gap-3">
+        <a class="link-secondary text-decoration-none" href="#">Politica de privacidad</a>
+        <a class="link-secondary text-decoration-none" href="#">Terminos de uso</a>
+      </div>
     </div>
   </div>
 </footer>

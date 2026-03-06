@@ -1,76 +1,49 @@
-﻿<div class="login-shell">
-	<section class="login-visual">
-	
-	</section>
+<section class="login-shell min-vh-100 d-flex align-items-center justify-content-center py-4 px-3">
+  <div class="row g-0 w-100 border bg-white rounded-3 overflow-hidden login-card">
+    <div class="col-12 col-lg-6 login-media">
+      <img src="/dnp.jpg" alt="Departamento Nacional de Planeacion" class="login-media-image" />
+      <div class="login-media-overlay">
+       
+        <p class="mb-0 text-white small">Seguimiento y monitoreo de Pactos Territoriales</p>
+      </div>
+    </div>
 
-	<section class="login-panel">
-			<div class="visual-content">
-	
-			<h1>SISPACTOS</h1>
-			<h4>Una herramienta que facilita el seguimiento y monitoreo de los Pactos Territoriales, permitiendo gestionar y visualizar la información de los proyectos para el DNP y la ciudadanía.</h4>
-		</div>
-		<div class="panel-header">
-			<h2>Inicia sesion</h2>
-		
-		</div>
+    <div class="col-12 col-lg-6 p-4 p-lg-5 d-flex align-items-center">
+      <div class="w-100">
+      <h2 class="h4 mb-3">Inicia sesion</h2>
 
-		<form class="login-form" (ngSubmit)="onSubmit()" #loginForm="ngForm">
-			<div class="mode">
-				<label>
-					<input
-						type="radio"
-						name="mode"
-						value="guest"
-						[(ngModel)]="loginMode"
-					/>
-					Invitado
-				</label>
-				<label>
-					<input
-						type="radio"
-						name="mode"
-						value="local"
-						[(ngModel)]="loginMode"
-					/>
-					Usuario Registrado
-				</label>
-			</div>
-	<p *ngIf="loginMode === 'local'">Diligencia los siguientes datos</p>
-			<div class="field" *ngIf="loginMode === 'local'">
-				<label for="username">Usuario</label>
-				<input
-					id="username"
-					name="username"
-					type="text"
-					[(ngModel)]="username"
-					required
-					placeholder="Ingresa tu Email"
-				/>
-			</div>
+      <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="vstack gap-3">
+        <div>
+          <label class="form-label d-block">Tipo de acceso</label>
+          <div class="d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="mode" id="modeGuest" value="guest" [(ngModel)]="loginMode" />
+              <label class="form-check-label" for="modeGuest">Invitado</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="mode" id="modeLocal" value="local" [(ngModel)]="loginMode" />
+              <label class="form-check-label" for="modeLocal">Usuario Registrado</label>
+            </div>
+          </div>
+        </div>
 
-			<div class="field" *ngIf="loginMode === 'local'">
-				<label for="password">Contraseña</label>
-				<input
-					id="password"
-					name="password"
-					type="password"
-					[(ngModel)]="password"
-					required
-					placeholder="Ingresa tu Contraseña"
-				/>
-			</div>
+        <p class="small text-secondary mb-0" *ngIf="loginMode === 'local'">Diligencia los siguientes datos</p>
 
-			<div class="actions">
-				<button type="submit" [disabled]="loginMode === 'local' && !loginForm.form.valid">
-					Ingresar
-				</button>
-			</div>
-		</form>
+        <div *ngIf="loginMode === 'local'">
+          <label for="username" class="form-label">Usuario</label>
+          <input id="username" name="username" type="text" class="form-control" [(ngModel)]="username" required placeholder="Ingresa tu Email" />
+        </div>
 
-		<ng-template #emptyState>
-			<div class="info empty">
+        <div *ngIf="loginMode === 'local'">
+          <label for="password" class="form-label">Contrasena</label>
+          <input id="password" name="password" type="password" class="form-control" [(ngModel)]="password" required placeholder="Ingresa tu Contrasena" />
+        </div>
 
-			</div>
-		</ng-template>
-	</section>
-</div>
+        <button type="submit" class="btn btn-primary w-100" [disabled]="loginMode === 'local' && !loginForm.form.valid">Ingresar</button>
+      </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+

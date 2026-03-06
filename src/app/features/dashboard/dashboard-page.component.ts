@@ -92,85 +92,89 @@ export class DashboardPageComponent {
   pageTitle = 'SISPACTOS';
   pageDescription = 'Resumen general.';
   currentPage = 'home';
+  selectedCardLabel = 'Pactos Territoriales';
+
+  iconClassMap: Partial<Record<string, string>> = {
+    handshake: 'bi-handshake-fill',
+    currency: 'bi-cash-stack',
+    building: 'bi-buildings-fill',
+    'map-marker': 'bi-geo-alt-fill',
+    city: 'bi-building-fill',
+    'folder-open': 'bi-folder2-open',
+    'check-circle': 'bi-check-circle-fill',
+    users: 'bi-people-fill',
+    progress: 'bi-graph-up-arrow',
+    'wallet-check': 'bi-wallet2'
+  };
 
   dashboardCards = [
-    { 
-      icon: 'handshake', 
-      label: 'Pactos Territoriales', 
+    {
+      icon: 'handshake',
+      label: 'Pactos Territoriales',
       value: '16',
-      color: '#3b82f6',
       size: 'medium',
       isWide: false
     },
-    { 
-      icon: 'currency', 
-      label: 'Valor Indicativo', 
+    {
+      icon: 'currency',
+      label: 'Valor Indicativo',
       value: '$2.5B',
-      color: '#10b981',
       size: 'medium',
       isWide: false
     },
-    { 
-      icon: 'building', 
-      label: 'Área Metropolitana', 
+    {
+      icon: 'building',
+      label: 'Área Metropolitana',
       value: '8',
-      color: '#6366f1',
       size: 'small',
       isWide: false
     },
-    { 
-      icon: 'map-marker', 
-      label: 'Departamentos', 
+    {
+      icon: 'map-marker',
+      label: 'Departamentos',
       value: '32',
-      color: '#8b5cf6',
       size: 'small',
       isWide: false
     },
-    { 
-      icon: 'city', 
-      label: 'Municipios', 
+    {
+      icon: 'city',
+      label: 'Municipios',
       value: '1,103',
-      color: '#ec4899',
       size: 'small',
       isWide: false
     },
-    { 
-      icon: 'folder-open', 
-      label: 'Proyectos', 
+    {
+      icon: 'folder-open',
+      label: 'Proyectos',
       value: '247',
-      color: '#f59e0b',
       size: 'medium',
       isWide: false
     },
-    { 
-      icon: 'check-circle', 
-      label: 'Proyectos en Ejecución/Terminados', 
+    {
+      icon: 'check-circle',
+      label: 'Proyectos en Ejecución/Terminados',
       value: '156',
-      color: '#14b8a6',
       size: 'wide',
       isWide: true
     },
-    { 
-      icon: 'users', 
-      label: 'Habitantes del Área de Influencia', 
+    {
+      icon: 'users',
+      label: 'Habitantes del Área de Influencia',
       value: '24.5M',
-      color: '#06b6d4',
       size: 'large',
       isWide: true
     },
-    { 
-      icon: 'progress', 
-      label: 'Avance Comprometido/Indicativo', 
+    {
+      icon: 'progress',
+      label: 'Avance Comprometido/Indicativo',
       value: '68%',
-      color: '#84cc16',
       size: 'medium',
       isWide: true
     },
-    { 
-      icon: 'wallet-check', 
-      label: 'Presupuesto Comprometido', 
+    {
+      icon: 'wallet-check',
+      label: 'Presupuesto Comprometido',
       value: '$1.7B',
-      color: '#22c55e',
       size: 'medium',
       isWide: true
     }
@@ -187,13 +191,14 @@ export class DashboardPageComponent {
       this.pageTitle = data.title;
       this.pageDescription = data.description;
     });
-    
-    this.dashboardCards.forEach(card => {
-      const labelLength = card.label.length;
-      const valueLength = card.value.length;
-      if (labelLength > 25 || valueLength > 6) {
-        card.isWide = true;
-      }
-    });
+
+  }
+
+  selectCard(label: string): void {
+    this.selectedCardLabel = label;
+  }
+
+  getIconClass(iconName: string): string {
+    return this.iconClassMap[iconName] ?? 'bi-bar-chart-fill';
   }
 }

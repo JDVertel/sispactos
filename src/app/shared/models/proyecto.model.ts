@@ -2,6 +2,7 @@ export interface Proyecto {
   id: number;
   nombre: string;
   descripcion: string;
+  pactoAsociado?: string;
   codigo: string;
   bpin?: string;
   sector?: string;

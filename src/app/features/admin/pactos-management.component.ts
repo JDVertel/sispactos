@@ -14,6 +14,18 @@ import { Observable } from 'rxjs';
 })
 export class PactosManagementComponent implements OnInit {
   pactos$: Observable<Pacto[]>;
+  lineaTematicaInput = '';
+  departamentoSeleccionado = '';
+  municipioSeleccionado = '';
+  alcanceDetalle = '';
+
+  readonly departamentosMunicipios: Record<string, string[]> = {
+    Antioquia: ['Medellin', 'Bello', 'Itagui', 'Rionegro'],
+    Atlantico: ['Barranquilla', 'Soledad', 'Malambo'],
+    Cundinamarca: ['Bogota D.C.', 'Soacha', 'Zipaquira', 'Facatativa'],
+    ValleDelCauca: ['Cali', 'Palmira', 'Buenaventura'],
+    Santander: ['Bucaramanga', 'Floridablanca', 'Barrancabermeja']
+  };
 
   newPacto: Omit<Pacto, 'id'> = {
     tipoPacto: '',
@@ -39,18 +51,8 @@ export class PactosManagementComponent implements OnInit {
     urlDocFicha: ''
   };
 
-  lineasTematicasOptions: string[] = [
-    'Educación',
-    'Salud',
-    'Agricultura',
-    'Infraestructura',
-    'Medio Ambiente',
-    'Seguridad',
-    'Vivienda',
-    'Empleo'
-  ];
-
   tiposPactos = ['Territorio', 'Nación'];
+  etapasPacto = ['Construccion y suscripcion', 'Implementacion', 'Cierre'];
 
   constructor(private pactosService: PactosService) {
     this.pactos$ = this.pactosService.getPactos();
@@ -67,13 +69,59 @@ export class PactosManagementComponent implements OnInit {
 
   addPacto(): void {
     const { nombre, descripcion, objetivo, tipoPacto } = this.newPacto;
-    
+
     if (!nombre.trim() || !descripcion.trim() || !objetivo.trim() || !tipoPacto.trim()) {
       return;
     }
 
+    const territorio = this.departamentoSeleccionado && this.municipioSeleccionado
+      ? `${this.departamentoSeleccionado} - ${this.municipioSeleccionado}`
+      : '';
+    const detalle = this.alcanceDetalle.trim();
+    this.newPacto.alcance = [
+      territorio ? `Dptos de intervencion del pacto - municipio: ${territorio}` : '',
+      detalle ? `Detalle: ${detalle}` : ''
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
     this.pactosService.addPacto(this.newPacto);
     this.resetForm();
+  }
+
+  addLineaTematicaFromInput(): void {
+    const nuevaLinea = this.lineaTematicaInput.trim();
+
+    if (!nuevaLinea) {
+      return;
+    }
+
+    const existe = this.newPacto.lineasTematicas.some(
+      (linea) => linea.toLowerCase() === nuevaLinea.toLowerCase()
+    );
+
+    if (!existe) {
+      this.newPacto.lineasTematicas = [...this.newPacto.lineasTematicas, nuevaLinea];
+    }
+
+    this.lineaTematicaInput = '';
+  }
+
+  removeLineaTematica(index: number): void {
+    this.newPacto.lineasTematicas = this.newPacto.lineasTematicas.filter((_, i) => i !== index);
+  }
+
+  get departamentosDisponibles(): string[] {
+    return Object.keys(this.departamentosMunicipios);
+  }
+
+  get municipiosDisponibles(): string[] {
+    return this.departamentosMunicipios[this.departamentoSeleccionado] ?? [];
+  }
+
+  onDepartamentoChange(): void {
+    this.municipioSeleccionado = '';
+    this.alcanceDetalle = '';
   }
 
   removePacto(id: number): void {
@@ -93,6 +141,10 @@ export class PactosManagementComponent implements OnInit {
   }
 
   private resetForm(): void {
+    this.lineaTematicaInput = '';
+    this.departamentoSeleccionado = '';
+    this.municipioSeleccionado = '';
+    this.alcanceDetalle = '';
     this.newPacto = {
       tipoPacto: '',
       nombre: '',

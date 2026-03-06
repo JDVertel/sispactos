@@ -3,15 +3,12 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProyectosService } from '../../core/services/proyectos.service';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { Proyecto } from '../../shared/models';
+import { Pacto, Proyecto } from '../../shared/models';
 import { Observable } from 'rxjs';
-
-interface ProyectoExtended extends Proyecto {
-  pactoAsociado: string;
-  fechaCreacion: Date;
-}
+import { PactosService } from '../../core/services/pactos.service';
 
 interface ProyectoFormData {
+  pactoAsociado: string;
   bpin: string;
   nombreBpin: string;
   codigo: string;
@@ -88,18 +85,23 @@ export class ProyectosManagementComponent implements OnInit {
 
   constructor(
     private proyectosService: ProyectosService,
-    private dashboardService: DashboardService
+    private dashboardService: DashboardService,
+    private pactosService: PactosService
   ) {
     this.proyectos$ = this.proyectosService.getProyectos();
   }
 
   ngOnInit(): void {
     this.estadosProyecto = this.proyectosService.getEstadosProyecto();
+    this.pactosService.getPactos().subscribe((pactos: Pacto[]) => {
+      this.pactosDisponibles = pactos.map((pacto) => pacto.nombre).filter(Boolean);
+    });
   }
 
   addProyecto(): void {
     const {
       nombre,
+      pactoAsociado,
       codigo,
       bpin,
       sector,
@@ -124,9 +126,13 @@ export class ProyectosManagementComponent implements OnInit {
       alcance
     } = this.newProyecto;
 
+    const bpinValido = /^\d{13}$/.test(bpin.trim());
+
     if (
       !nombre.trim() ||
+      !pactoAsociado.trim() ||
       !codigo.trim() ||
+      !bpinValido ||
       !entidadProyecto.trim() ||
       !estadoProyecto ||
       !fechaInicio ||
@@ -139,6 +145,7 @@ export class ProyectosManagementComponent implements OnInit {
     const proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion'> = {
       nombre: nombre.trim(),
       descripcion: (objetivoGeneral || identificacionProblemas || alcance).trim(),
+      pactoAsociado: pactoAsociado.trim(),
       codigo: codigo.trim(),
       bpin: bpin.trim(),
       sector,
@@ -175,6 +182,7 @@ export class ProyectosManagementComponent implements OnInit {
 
   private getInitialFormData(): ProyectoFormData {
     return {
+      pactoAsociado: '',
       bpin: '',
       nombreBpin: '',
       codigo: '',
@@ -252,5 +260,11 @@ export class ProyectosManagementComponent implements OnInit {
 
   getTotalEmpleosIndirectos(): number {
     return this.proyectosService.getTotalEmpleosIndirectos();
+  }
+
+  onBpinInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.replace(/\D/g, '').slice(0, 13);
+    this.newProyecto.bpin = value;
   }
 }

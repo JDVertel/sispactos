@@ -1,9 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400&display=swap");
+
 /* Global theme */
 :root {
-  --brand-1: #0b053e;
-  --brand-2: #ab2292;
-  --brand-3: #ff8d00;
-  --brand-4: #0051a5;
+  --inst-cyan: #00c3c1;
+  --inst-pink: #fe1b7b;
+  --inst-yellow: #ffca00;
+  --inst-gray-light: #ebebeb;
+  --inst-gray-dark: #4d4d4d;
+  --inst-white: #ffffff;
+
+  --app-font-family: "Nunito Sans", sans-serif;
+
+  /* Bootstrap color system overrides */
+  --bs-primary: var(--inst-cyan);
+  --bs-secondary: var(--inst-pink);
+  --bs-success: var(--inst-cyan);
+  --bs-info: var(--inst-cyan);
+  --bs-warning: var(--inst-yellow);
+  --bs-danger: var(--inst-pink);
+  --bs-light: var(--inst-gray-light);
+  --bs-dark: var(--inst-gray-dark);
+  --bs-body-color: var(--inst-gray-dark);
+  --bs-body-bg: var(--inst-white);
+  --bs-border-color: var(--inst-gray-light);
+  --bs-link-color: var(--inst-cyan);
+  --bs-link-hover-color: var(--inst-pink);
+  --bs-body-font-family: var(--app-font-family);
 }
 
 * {
@@ -14,26 +36,31 @@ html,
 body {
   min-height: 100%;
   margin: 0;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color: #0f172a;
+  font-family: var(--app-font-family);
+  color: var(--inst-gray-dark);
   background:
     radial-gradient(
-      circle at 10% 15%,
-      rgba(255, 141, 0, 0.25),
-      transparent 45%
+      circle at 12% 12%,
+      rgba(0, 195, 193, 0.14),
+      transparent 38%
     ),
     radial-gradient(
-      circle at 85% 20%,
-      rgba(171, 34, 146, 0.22),
-      transparent 45%
+      circle at 88% 18%,
+      rgba(254, 27, 123, 0.14),
+      transparent 40%
     ),
-    radial-gradient(circle at 85% 85%, rgba(0, 81, 165, 0.22), transparent 50%),
-    linear-gradient(
-      135deg,
-      var(--brand-1),
-      var(--brand-2) 40%,
-      var(--brand-3) 70%,
-      var(--brand-4)
-    );
+    radial-gradient(
+      circle at 82% 84%,
+      rgba(255, 202, 0, 0.14),
+      transparent 42%
+    ),
+    linear-gradient(145deg, #ffffff, #f7f7f7 60%, #f2f2f2);
   background-attachment: fixed;
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
 }

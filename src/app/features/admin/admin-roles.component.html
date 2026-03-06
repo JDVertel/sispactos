@@ -1,347 +1,212 @@
-﻿<section class="admin-container">
-  <header class="admin-header">
-    <div>
-      <p class="eyebrow">Configuracion</p>
-      <h1>Gestion de usuarios y roles</h1>
-      <p class="subtitle">Administra roles, usuarios locales y usuarios externos para Sispactos.</p>
-    </div>
+<section class="container-fluid px-0">
+  <header class="mb-4">
+    <h1 class="h3 mb-1">Gestion de usuarios y roles</h1>
+    <p class="text-secondary mb-0">Administra roles, usuarios locales y usuarios externos para Sispactos.</p>
   </header>
 
-  <!-- Sistema de pestañas -->
-  <div class="tabs-container">
-    <nav class="tabs-nav">
-      <button 
-        class="tab-button" 
-        [class.active]="activeTab === 'roles'" 
-        (click)="setActiveTab('roles')"
-      >
-        Gestión de Roles
-      </button>
-      <button 
-        class="tab-button" 
-        [class.active]="activeTab === 'local'" 
-        (click)="setActiveTab('local')"
-      >
-        Usuarios Locales
-      </button>
-      <button 
-        class="tab-button" 
-        [class.active]="activeTab === 'external'" 
-        (click)="setActiveTab('external')"
-      >
-        Usuarios Externos
-      </button>
-    </nav>
+  <ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'roles'" (click)="setActiveTab('roles')" type="button">Gestion de Roles</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'local'" (click)="setActiveTab('local')" type="button">Usuarios Locales</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'external'" (click)="setActiveTab('external')" type="button">Usuarios Externos</button>
+    </li>
+  </ul>
 
-    <!-- Contenido de la pestaña Gestión de Roles -->
-    <div class="tab-content" *ngIf="activeTab === 'roles'">
-      <div class="roles-grid">
-        <form class="roles-form" (ngSubmit)="addRole()">
-          <h2>Nuevo rol</h2>
-          <label>
-            Nombre del rol
-            <input type="text" name="roleName" [(ngModel)]="newRoleName" required />
-          </label>
-          <label>
-            Descripcion
-            <textarea name="roleDescription" [(ngModel)]="newRoleDescription" rows="4" required></textarea>
-          </label>
-          <label>
-            Permisos
-            <div class="permissions-checkboxes">
-              <span class="permission-item" 
-                    [class.selected]="newRolePermissions.includes(module.value)" 
-                    *ngFor="let module of availableModules"
-                    (click)="togglePermission(module.value)">
-                {{ module.label }}
-              </span>
+  <div class="row g-3" *ngIf="activeTab === 'roles'">
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-body-tertiary"><h2 class="h6 mb-0">Nuevo rol</h2></div>
+        <div class="card-body">
+          <form class="vstack gap-3" (ngSubmit)="addRole()">
+            <div>
+              <label class="form-label">Nombre del rol</label>
+              <input class="form-control" type="text" name="roleName" [(ngModel)]="newRoleName" required />
             </div>
-          </label>
-          <button type="submit" [disabled]="!newRoleName.trim() || !newRoleDescription.trim() || newRolePermissions.length === 0">Agregar rol</button>
-        </form>
+            <div>
+              <label class="form-label">Descripcion</label>
+              <textarea class="form-control" name="roleDescription" [(ngModel)]="newRoleDescription" rows="3" required></textarea>
+            </div>
+            <div>
+              <label class="form-label">Permisos</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  [class.btn-primary]="newRolePermissions.includes(module.value)"
+                  [class.btn-outline-secondary]="!newRolePermissions.includes(module.value)"
+                  *ngFor="let module of availableModules"
+                  (click)="togglePermission(module.value)"
+                >
+                  {{ module.label }}
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" [disabled]="!newRoleName.trim() || !newRoleDescription.trim() || newRolePermissions.length === 0">Agregar rol</button>
+          </form>
+        </div>
+      </div>
+    </div>
 
-        <div class="roles-list">
-          <h2>Roles existentes</h2>
-          <div class="roles-table-container">
-            <table class="roles-table">
+    <div class="col-12 col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-body-tertiary"><h2 class="h6 mb-0">Roles existentes</h2></div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped mb-0 align-middle">
               <thead>
                 <tr>
-                  <th>Nombre del rol</th>
-                  <th>Descripción</th>
+                  <th>Nombre</th>
+                  <th>Descripcion</th>
                   <th>Permisos</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let role of roles$ | async" class="role-row">
-                  <td class="role-name">{{ role.name }}</td>
-                  <td class="role-description">{{ role.description }}</td>
-                  <td class="role-permissions">
-                    <div class="permission-tags">
-                      <span class="permission-tag" *ngFor="let permission of role.permissions">{{ permission }}</span>
-                    </div>
+                <tr *ngFor="let role of roles$ | async">
+                  <td>{{ role.name }}</td>
+                  <td>{{ role.description }}</td>
+                  <td>
+                    <span class="badge text-bg-light border me-1 mb-1" *ngFor="let permission of role.permissions">{{ permission }}</span>
                   </td>
-                  <td class="role-actions">
-                    <button type="button" class="ghost" (click)="removeRole(role.id)">Eliminar</button>
-                  </td>
+                  <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeRole(role.id)">Eliminar</button></td>
                 </tr>
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Contenido de la pestaña Usuarios Locales -->
-    <div class="tab-content" *ngIf="activeTab === 'local'">
-      <div class="local-users-grid">
-        <form class="local-users-form" (ngSubmit)="addLocalUser()">
-          <h2>Nuevo usuario local</h2>
-          <label>
-            Nombre completo
-            <input 
-              type="text" 
-              name="localUserName" 
-              [(ngModel)]="newLocalUser.name" 
-              required 
-            />
-          </label>
-          <label>
-            Correo electrónico
-            <input 
-              type="email" 
-              name="localUserEmail" 
-              [(ngModel)]="newLocalUser.email" 
-              required 
-            />
-          </label>
-          <label>
-            Rol
-            <select name="localUserRole" [(ngModel)]="newLocalUser.role" required>
-              <option value="">Seleccionar rol</option>
-              <option *ngFor="let role of roles$ | async" [value]="role.name">{{ role.name }}</option>
-            </select>
-          </label>
-          <label>
-            Pactos asignados
-            <div class="selection-checkboxes">
-              <span 
-                class="selection-item" 
-                [class.selected]="newLocalUser.pactos.includes(pacto)" 
-                *ngFor="let pacto of availablePactos"
-                (click)="toggleLocalPacto(pacto)"
-              >
-                {{ pacto }}
-              </span>
-            </div>
-          </label>
-          <label>
-            Proyectos asignados
-            <div class="selection-checkboxes">
-              <span 
-                class="selection-item" 
-                [class.selected]="newLocalUser.proyectos.includes(proyecto)" 
-                *ngFor="let proyecto of availableProyectos"
-                (click)="toggleLocalProyecto(proyecto)"
-              >
-                {{ proyecto }}
-              </span>
-            </div>
-          </label>
-          <label>
-            Contratos asignados
-            <div class="selection-checkboxes">
-              <span 
-                class="selection-item" 
-                [class.selected]="newLocalUser.contratos.includes(contrato)" 
-                *ngFor="let contrato of availableContratos"
-                (click)="toggleLocalContrato(contrato)"
-              >
-                {{ contrato }}
-              </span>
-            </div>
-          </label>
-          <button type="submit" [disabled]="!newLocalUser.name.trim() || !newLocalUser.email.trim() || !newLocalUser.role">
-            Agregar usuario
-          </button>
-        </form>
-
-        <div class="local-users-list">
-          <h2>Usuarios locales</h2>
-          <div class="users-table-container">
-            <table class="users-table" *ngIf="(localUsers$ | async) as users; else noLocalUsers">
-              <thead *ngIf="users.length > 0">
-                <tr>
-                  <th>Nombre</th>
-                  <th>Correo</th>
-                  <th>Rol</th>
-                  <th>Pactos</th>
-                  <th>Proyectos</th>
-                  <th>Contratos</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let user of users" class="user-row">
-                  <td>{{ user.name }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.role }}</td>
-                  <td>
-                    <div class="tags">
-                      <span class="tag" *ngFor="let pacto of user.pactos">{{ pacto }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="tags">
-                      <span class="tag" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="tags">
-                      <span class="tag" *ngFor="let contrato of user.contratos">{{ contrato }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <button type="button" class="ghost" (click)="removeLocalUser(user.id)">Eliminar</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <ng-template #noLocalUsers>
-              <div class="empty-state">
-                <p>No hay usuarios locales registrados</p>
-              </div>
-            </ng-template>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Contenido de la pestaña Usuarios Externos -->
-    <div class="tab-content" *ngIf="activeTab === 'external'">
-      <div class="external-users-grid">
-        <form class="external-users-form" (ngSubmit)="addExternalUser()">
-          <h2>Nuevo usuario externo</h2>
-          <label>
-            Nombre completo
-            <input 
-              type="text" 
-              name="externalUserName" 
-              [(ngModel)]="newExternalUser.name" 
-              required 
-            />
-          </label>
-          <label>
-            Correo electrónico
-            <input 
-              type="email" 
-              name="externalUserEmail" 
-              [(ngModel)]="newExternalUser.email" 
-              required 
-            />
-          </label>
-          <label>
-            Entidad responsable
-            <input 
-              type="text" 
-              name="externalUserEntidad" 
-              [(ngModel)]="newExternalUser.entidadResponsable" 
-              required 
-            />
-          </label>
-          <label>
-            Pactos asignados
-            <div class="selection-checkboxes">
-              <span 
-                class="selection-item" 
-                [class.selected]="newExternalUser.pactos.includes(pacto)" 
-                *ngFor="let pacto of availablePactos"
-                (click)="toggleExternalPacto(pacto)"
-              >
-                {{ pacto }}
-              </span>
-            </div>
-          </label>
-          <label>
-            Proyectos asignados
-            <div class="selection-checkboxes">
-              <span 
-                class="selection-item" 
-                [class.selected]="newExternalUser.proyectos.includes(proyecto)" 
-                *ngFor="let proyecto of availableProyectos"
-                (click)="toggleExternalProyecto(proyecto)"
-              >
-                {{ proyecto }}
-              </span>
-            </div>
-          </label>
-          <label>
-            Contratos asignados
-            <div class="selection-checkboxes">
-              <span 
-                class="selection-item" 
-                [class.selected]="newExternalUser.contratos.includes(contrato)" 
-                *ngFor="let contrato of availableContratos"
-                (click)="toggleExternalContrato(contrato)"
-              >
-                {{ contrato }}
-              </span>
-            </div>
-          </label>
-          <button type="submit" [disabled]="!newExternalUser.name.trim() || !newExternalUser.email.trim() || !newExternalUser.entidadResponsable.trim()">
-            Agregar usuario externo
-          </button>
-        </form>
-
-        <div class="external-users-list">
-          <h2>Usuarios externos</h2>
-          <div class="users-table-container">
-            <table class="users-table" *ngIf="(externalUsers$ | async) as users; else noExternalUsers">
-              <thead *ngIf="users.length > 0">
-                <tr>
-                  <th>Nombre</th>
-                  <th>Correo</th>
-                  <th>Entidad</th>
-                  <th>Pactos</th>
-                  <th>Proyectos</th>
-                  <th>Contratos</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let user of users" class="user-row">
-                  <td>{{ user.name }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.entidadResponsable }}</td>
-                  <td>
-                    <div class="tags">
-                      <span class="tag" *ngFor="let pacto of user.pactos">{{ pacto }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="tags">
-                      <span class="tag" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="tags">
-                      <span class="tag" *ngFor="let contrato of user.contratos">{{ contrato }}</span>
-                    </div>
-                  </td>
-                  <td class="actions-cell">
-                    <button type="button" class="ghost small" (click)="removeExternalUser(user.id)">Eliminar</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <ng-template #noExternalUsers>
-              <div class="empty-state">
-                <p>No hay usuarios externos registrados</p>
-              </div>
-            </ng-template>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <div class="row g-3" *ngIf="activeTab === 'local'">
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-body-tertiary"><h2 class="h6 mb-0">Nuevo usuario local</h2></div>
+        <div class="card-body">
+          <form class="vstack gap-3" (ngSubmit)="addLocalUser()">
+            <div><label class="form-label">Nombre completo</label><input class="form-control" type="text" name="localUserName" [(ngModel)]="newLocalUser.name" required /></div>
+            <div><label class="form-label">Correo</label><input class="form-control" type="email" name="localUserEmail" [(ngModel)]="newLocalUser.email" required /></div>
+            <div>
+              <label class="form-label">Rol</label>
+              <select class="form-select" name="localUserRole" [(ngModel)]="newLocalUser.role" required>
+                <option value="">Seleccionar rol</option>
+                <option *ngFor="let role of roles$ | async" [value]="role.name">{{ role.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Pactos asignados</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="newLocalUser.pactos.includes(pacto)" [class.btn-outline-secondary]="!newLocalUser.pactos.includes(pacto)" *ngFor="let pacto of availablePactos" (click)="toggleLocalPacto(pacto)">{{ pacto }}</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Proyectos asignados</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="newLocalUser.proyectos.includes(proyecto)" [class.btn-outline-secondary]="!newLocalUser.proyectos.includes(proyecto)" *ngFor="let proyecto of availableProyectos" (click)="toggleLocalProyecto(proyecto)">{{ proyecto }}</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Contratos asignados</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="newLocalUser.contratos.includes(contrato)" [class.btn-outline-secondary]="!newLocalUser.contratos.includes(contrato)" *ngFor="let contrato of availableContratos" (click)="toggleLocalContrato(contrato)">{{ contrato }}</button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" [disabled]="!newLocalUser.name.trim() || !newLocalUser.email.trim() || !newLocalUser.role">Agregar usuario</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-body-tertiary"><h2 class="h6 mb-0">Usuarios locales</h2></div>
+        <div class="card-body p-0">
+          <div class="table-responsive" *ngIf="(localUsers$ | async) as users; else noLocalUsers">
+            <table class="table table-striped mb-0 align-middle" *ngIf="users.length > 0">
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Pactos</th><th>Proyectos</th><th>Contratos</th><th>Acciones</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let user of users">
+                  <td>{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.role }}</td>
+                  <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let pacto of user.pactos">{{ pacto }}</span></td>
+                  <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span></td>
+                  <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let contrato of user.contratos">{{ contrato }}</span></td>
+                  <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeLocalUser(user.id)">Eliminar</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="alert alert-light border text-center m-3" *ngIf="users.length === 0">No hay usuarios locales registrados</div>
+          </div>
+          <ng-template #noLocalUsers><div class="alert alert-light border text-center m-3">No hay usuarios locales registrados</div></ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3" *ngIf="activeTab === 'external'">
+    <div class="col-12 col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-body-tertiary"><h2 class="h6 mb-0">Nuevo usuario externo</h2></div>
+        <div class="card-body">
+          <form class="vstack gap-3" (ngSubmit)="addExternalUser()">
+            <div><label class="form-label">Nombre completo</label><input class="form-control" type="text" name="externalUserName" [(ngModel)]="newExternalUser.name" required /></div>
+            <div><label class="form-label">Correo</label><input class="form-control" type="email" name="externalUserEmail" [(ngModel)]="newExternalUser.email" required /></div>
+            <div><label class="form-label">Entidad responsable</label><input class="form-control" type="text" name="externalUserEntidad" [(ngModel)]="newExternalUser.entidadResponsable" required /></div>
+            <div>
+              <label class="form-label">Pactos asignados</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="newExternalUser.pactos.includes(pacto)" [class.btn-outline-secondary]="!newExternalUser.pactos.includes(pacto)" *ngFor="let pacto of availablePactos" (click)="toggleExternalPacto(pacto)">{{ pacto }}</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Proyectos asignados</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="newExternalUser.proyectos.includes(proyecto)" [class.btn-outline-secondary]="!newExternalUser.proyectos.includes(proyecto)" *ngFor="let proyecto of availableProyectos" (click)="toggleExternalProyecto(proyecto)">{{ proyecto }}</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Contratos asignados</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-sm" [class.btn-primary]="newExternalUser.contratos.includes(contrato)" [class.btn-outline-secondary]="!newExternalUser.contratos.includes(contrato)" *ngFor="let contrato of availableContratos" (click)="toggleExternalContrato(contrato)">{{ contrato }}</button>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" [disabled]="!newExternalUser.name.trim() || !newExternalUser.email.trim() || !newExternalUser.entidadResponsable.trim()">Agregar usuario externo</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-body-tertiary"><h2 class="h6 mb-0">Usuarios externos</h2></div>
+        <div class="card-body p-0">
+          <div class="table-responsive" *ngIf="(externalUsers$ | async) as users; else noExternalUsers">
+            <table class="table table-striped mb-0 align-middle" *ngIf="users.length > 0">
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Entidad</th><th>Pactos</th><th>Proyectos</th><th>Contratos</th><th>Acciones</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let user of users">
+                  <td>{{ user.name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.entidadResponsable }}</td>
+                  <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let pacto of user.pactos">{{ pacto }}</span></td>
+                  <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span></td>
+                  <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let contrato of user.contratos">{{ contrato }}</span></td>
+                  <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeExternalUser(user.id)">Eliminar</button></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="alert alert-light border text-center m-3" *ngIf="users.length === 0">No hay usuarios externos registrados</div>
+          </div>
+          <ng-template #noExternalUsers><div class="alert alert-light border text-center m-3">No hay usuarios externos registrados</div></ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
+
+

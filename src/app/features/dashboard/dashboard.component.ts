@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar/sidebar.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 
@@ -81,6 +82,26 @@ export class DashboardComponent {
   activeSubmenu: string | null = null;
   currentYear = new Date().getFullYear();
 
+  constructor(private readonly authService: AuthService) {}
+
+  get sessionUserName(): string {
+    return this.authService.getCurrentUser()?.username || 'Usuario SISPACTOS';
+  }
+
+  get sessionUserRole(): string {
+    const mode = this.authService.getCurrentUser()?.mode;
+
+    if (mode === 'guest') {
+      return 'Usuario Invitado';
+    }
+
+    if (mode === 'local') {
+      return 'Usuario Local';
+    }
+
+    return 'Sin sesion activa';
+  }
+
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
@@ -97,6 +118,4 @@ export class DashboardComponent {
     this.isSidebarOpen = false;
     this.activeSubmenu = null;
   }
-
-
 }
