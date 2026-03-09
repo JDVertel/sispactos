@@ -52,10 +52,11 @@
           <p class="mb-3"><span class="small text-uppercase text-secondary fw-semibold">Objeto:</span> {{ contrato.objeto }}</p>
 
           <div class="row g-3">
+            <div class="col-12 col-md-6"><div class="small text-secondary">Pacto</div><strong>{{ contrato.pacto }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Contrato padre</div><strong>{{ contrato.contratoPadre }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Contratista</div><strong>{{ contrato.contratista }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Contratante</div><strong>{{ contrato.contratante }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Valor</div><strong>{{ formatCurrency(contrato.valor) }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Valor inicial</div><strong>{{ formatCurrency(contrato.valorInicial) }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Supervisor</div><strong>{{ contrato.supervisor }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Vigencia</div><strong>{{ formatDate(contrato.fechaInicio) }} - {{ formatDate(contrato.fechaFin) }}</strong></div>
             <div class="col-12"><div class="small text-secondary">URL SECOP</div><strong>{{ contrato.urlSecop }}</strong></div>
@@ -80,6 +81,12 @@
         <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
           <div class="row g-3">
             <div class="col-12 col-md-6">
+              <label class="form-label">Pacto</label>
+              <select class="form-select" name="contratoPacto" [(ngModel)]="newContrato.pacto" (ngModelChange)="onPactoChange()" required>
+                <option *ngFor="let pacto of pactosDisponibles" [value]="pacto">{{ pacto }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
               <label class="form-label">Proyecto</label>
               <select class="form-select" name="contratoProyecto" [(ngModel)]="newContrato.proyecto" required>
                 <option *ngFor="let proyecto of proyectosDisponibles" [value]="proyecto">{{ proyecto }}</option>
@@ -101,9 +108,16 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Contrato padre</label>
-              <select class="form-select" name="contratoPadre" [(ngModel)]="newContrato.contratoPadre" required>
-                <option *ngFor="let padre of contratosPadreDisponibles" [value]="padre">{{ padre }}</option>
-              </select>
+              <input
+                class="form-control"
+                type="text"
+                name="contratoPadre"
+                [(ngModel)]="newContrato.contratoPadre"
+                pattern="[A-Za-z0-9-]+"
+                title="Solo se permite texto alfanumerico y guion"
+                (input)="onContratoPadreInput($event)"
+                required
+              />
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Tipo contrato</label>
@@ -118,8 +132,8 @@
               </select>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Valor</label>
-              <input class="form-control" type="number" name="contratoValor" [(ngModel)]="newContrato.valor" min="0" step="1000000" required />
+              <label class="form-label">Valor inicial</label>
+              <input class="form-control" type="number" name="contratoValorInicial" [(ngModel)]="newContrato.valorInicial" min="0" step="1000000" required />
             </div>
             <div class="col-12">
               <label class="form-label">Supervisor</label>

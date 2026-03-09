@@ -61,7 +61,8 @@ const MENU_ITEMS: MenuItem[] = [
     label: 'configuracion',
     icon: 'config',
     children: [
-      { label: 'Roles', route: 'administracion' }
+      { label: 'Roles', route: 'administracion' },
+      { label: 'Actores', route: 'configuracion-actores' }
     ]
   },
   { type: 'item', label: 'Acerca de', route: 'acerca-de', icon: 'info' },

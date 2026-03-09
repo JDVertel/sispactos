@@ -83,7 +83,7 @@ export class ContratosService {
   }
 
   getTotalValorContratos(): number {
-    return this.contratos.value.reduce((sum, c) => sum + c.valor, 0);
+    return this.contratos.value.reduce((sum, c) => sum + c.valorInicial, 0);
   }
 
   getContratosConSecop(): number {

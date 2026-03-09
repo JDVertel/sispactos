@@ -14,6 +14,7 @@ import { Observable } from 'rxjs';
 })
 export class PactosManagementComponent implements OnInit {
   pactos$: Observable<Pacto[]>;
+  readonly etapaPorDefecto = 'Construccion y suscripcion';
   lineaTematicaInput = '';
   departamentoSeleccionado = '';
   municipioSeleccionado = '';
@@ -42,7 +43,7 @@ export class PactosManagementComponent implements OnInit {
     fechaCreacion: new Date().toISOString(),
     usuarioModifico: '',
     fechaModificacion: new Date().toISOString(),
-    idEtapa: '',
+    idEtapa: this.etapaPorDefecto,
     fechaVencimiento: '',
     alcance: '',
     urlDocPacto: '',
@@ -160,7 +161,7 @@ export class PactosManagementComponent implements OnInit {
       fechaCreacion: new Date().toISOString(),
       usuarioModifico: '',
       fechaModificacion: new Date().toISOString(),
-      idEtapa: '',
+      idEtapa: this.etapaPorDefecto,
       fechaVencimiento: '',
       alcance: '',
       urlDocPacto: '',

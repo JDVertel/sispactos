@@ -1,5 +1,6 @@
 export interface Contrato {
   id: number;
+  pacto: string;
   proyecto: string;
   objeto: string;
   contratista: string;
@@ -8,7 +9,7 @@ export interface Contrato {
   contratoPadre: string;
   tipoContrato: string;
   contratante: string;
-  valor: number;
+  valorInicial: number;
   supervisor: string;
   urlSecop: string;
 }

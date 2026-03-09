@@ -10,6 +10,7 @@ export class ProyectosService {
   public proyectos$ = this.proyectos.asObservable();
 
   private estadosProyecto = [
+    'No iniciado',
     'Planeación',
     'En Ejecución',
     'Suspendido',

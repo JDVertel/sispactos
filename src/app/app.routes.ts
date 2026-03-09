@@ -6,6 +6,7 @@ import { AdminRolesComponent } from './features/admin/admin-roles.component';
 import { PactosManagementComponent } from './features/admin/pactos-management.component';
 import { ProyectosManagementComponent } from './features/admin/proyectos-management.component';
 import { ContratosManagementComponent } from './features/admin/contratos-management.component';
+import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
 
 export const routes: Routes = [
 	{
@@ -41,6 +42,10 @@ export const routes: Routes = [
 			{
 				path: 'gestion-contratos',
 				component: ContratosManagementComponent
+			},
+			{
+				path: 'configuracion-actores',
+				component: ConfiguracionActoresComponent
 			},
 			{
 				path: ':page',

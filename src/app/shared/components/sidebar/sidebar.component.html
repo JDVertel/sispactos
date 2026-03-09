@@ -61,7 +61,6 @@
             [routerLink]="['/dashboard', child.route]"
             routerLinkActive="active-link"
             [routerLinkActiveOptions]="{ exact: true }"
-            (click)="closeAllMenus()"
           >
             {{ formatLabel(child.label) }}
           </a>

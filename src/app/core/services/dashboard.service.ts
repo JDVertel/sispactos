@@ -10,7 +10,8 @@ export class DashboardService {
       { value: 'dashboard', label: 'Dashboard' },
       { value: 'gestion-pactos', label: 'Gestión de Pactos' },
       { value: 'gestion-proyectos', label: 'Gestión de Proyectos' },
-      { value: 'gestion-contratos', label: 'Gestión de Contratos' }
+      { value: 'gestion-contratos', label: 'Gestión de Contratos' },
+      { value: 'configuracion-actores', label: 'Configuración de Actores' }
     ];
   }
 

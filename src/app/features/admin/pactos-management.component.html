@@ -176,8 +176,7 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">ID Etapa</label>
-              <select class="form-select" name="idEtapa" [(ngModel)]="newPacto.idEtapa">
-                <option value="" disabled>Seleccione una etapa</option>
+              <select class="form-select" name="idEtapa" [(ngModel)]="newPacto.idEtapa" disabled>
                 <option *ngFor="let etapa of etapasPacto" [value]="etapa">{{ etapa }}</option>
               </select>
             </div>

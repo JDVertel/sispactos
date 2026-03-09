@@ -1,0 +1,8 @@
+.filter-wrap {
+  min-width: 180px;
+}
+
+table th,
+table td {
+  white-space: nowrap;
+}

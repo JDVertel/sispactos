@@ -13,47 +13,26 @@ interface ProyectoFormData {
   nombreBpin: string;
   codigo: string;
   nombre: string;
-  actaCd: string;
+  actaCdNumero: string;
+  actaCdFecha: string;
   areaInfluencia: string;
   estadoProyecto: string;
   condicionProyecto: string;
   sector: string;
   lineaTematica: string;
-  tipoProyecto: string;
-  fechaInicio: string;
-  fechaFin: string;
   plazoEstimadoEjecucion: string;
-  fechaReporte: string;
   numeroEmpleosDirectos: number;
   numeroEmpleosIndirectos: number;
-  consecutivoConpes: number;
+  consecutivoConpes: string;
   tieneViabilidad: boolean;
   fechaViabilidad: string;
-  numeroContratoEspecifico: number;
-  fechaFinalizacionCe: string;
-  faseInversion: string;
+  frpt: boolean;
+  numeroContratoEspecifico: string;
   aporteNacion: string;
-  entidadProyecto: string;
+  municipioEntidad: string;
+  entidadResponsablePi: string;
   inversionClimatica: boolean;
-  derivado: boolean;
-  tipoOferta: string;
-  fondo: boolean;
-  identificacionProblemas: string;
-  objetivoGeneral: string;
   alcance: string;
-  presupuestoDnp: number;
-  presupuestoSector: number;
-  presupuestoTerritorial: number;
-  presupuestoOtros: number;
-  presupuestoTotal: number;
-  aporteRealDnp: number;
-  aporteParcialIndicativo: number;
-  valorGestionar: number;
-  indicadorMedicionOg: string;
-  unidadMedidaOg: string;
-  metaIndicadorOg: string;
-  productoAlcance: string;
-  unidadMedida: string;
   metaPa: string;
   mecanismoInclusion: string;
   sectorAdminNacional: string;
@@ -75,12 +54,16 @@ export class ProyectosManagementComponent implements OnInit {
   condicionesProyecto: string[] = ['Nuevo', 'En curso', 'Viabilizado', 'Ajustado'];
   sectores: string[] = ['Transporte', 'Educación', 'Salud', 'Ambiente', 'Vivienda', 'Agro'];
   lineasTematicas: string[] = ['Infraestructura', 'Social', 'Productiva', 'Ambiental'];
-  tiposProyectoCatalogo: string[] = ['Estratégico', 'Misional', 'Infraestructura', 'Social'];
-  fasesInversion: string[] = ['Prefactibilidad', 'Factibilidad', 'Ejecución', 'Operación'];
   aportesNacion: string[] = ['Total', 'Parcial', 'Sin aporte'];
-  tiposOferta: string[] = ['Oferta institucional', 'Oferta territorial', 'Oferta mixta'];
   mecanismosInclusion: string[] = ['Consulta previa', 'Enfoque diferencial', 'Participación comunitaria'];
   sectoresAdminNacional: string[] = ['DNP', 'MinTransporte', 'MinEducación', 'MinSalud', 'MinAmbiente'];
+  readonly entidadesPorMunicipio: Record<string, string[]> = {
+    Bogota: ['Alcaldia de Bogota', 'Empresa Metro de Bogota', 'IDU'],
+    Medellin: ['Alcaldia de Medellin', 'EDU Medellin', 'Metro de Medellin'],
+    Cali: ['Alcaldia de Cali', 'EMCALI', 'Metrocali'],
+    Barranquilla: ['Alcaldia de Barranquilla', 'Area Metropolitana BAQ'],
+    Bucaramanga: ['Alcaldia de Bucaramanga', 'AMB']
+  };
   newProyecto: ProyectoFormData = this.getInitialFormData();
 
   constructor(
@@ -92,7 +75,9 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.estadosProyecto = this.proyectosService.getEstadosProyecto();
+    const estados = this.proyectosService.getEstadosProyecto();
+    this.estadosProyecto = estados.includes('No iniciado') ? estados : ['No iniciado', ...estados];
+    this.newProyecto.estadoProyecto = 'No iniciado';
     this.pactosService.getPactos().subscribe((pactos: Pacto[]) => {
       this.pactosDisponibles = pactos.map((pacto) => pacto.nombre).filter(Boolean);
     });
@@ -104,67 +89,68 @@ export class ProyectosManagementComponent implements OnInit {
       pactoAsociado,
       codigo,
       bpin,
+      nombreBpin,
+      actaCdNumero,
+      actaCdFecha,
       sector,
       lineaTematica,
-      tipoProyecto,
-      faseInversion,
-      fechaReporte,
       numeroEmpleosDirectos,
       numeroEmpleosIndirectos,
       consecutivoConpes,
       tieneViabilidad,
       fechaViabilidad,
+      frpt,
       numeroContratoEspecifico,
-      fechaFinalizacionCe,
-      entidadProyecto,
+      municipioEntidad,
+      entidadResponsablePi,
       estadoProyecto,
-      fechaInicio,
-      fechaFin,
-      presupuestoTotal,
-      objetivoGeneral,
-      identificacionProblemas,
       alcance
     } = this.newProyecto;
 
     const bpinValido = /^\d{13}$/.test(bpin.trim());
+    const consecutivoConpesValido = /^\d{5}$/.test(consecutivoConpes.trim());
+    const contratoEspecificoValido = !frpt || !!numeroContratoEspecifico.trim();
 
     if (
       !nombre.trim() ||
       !pactoAsociado.trim() ||
       !codigo.trim() ||
       !bpinValido ||
-      !entidadProyecto.trim() ||
+      !consecutivoConpesValido ||
+      !actaCdNumero.trim() ||
+      !actaCdFecha ||
+      !municipioEntidad.trim() ||
+      !entidadResponsablePi.trim() ||
       !estadoProyecto ||
-      !fechaInicio ||
-      !fechaFin ||
-      presupuestoTotal <= 0
+      !contratoEspecificoValido
     ) {
       return;
     }
 
+    const actaCd = `${actaCdNumero.trim()} - ${actaCdFecha}`;
+    const responsableProyecto = `${municipioEntidad.trim()} - ${entidadResponsablePi.trim()}`;
+
     const proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion'> = {
       nombre: nombre.trim(),
-      descripcion: (objetivoGeneral || identificacionProblemas || alcance).trim(),
+      descripcion: (alcance || nombreBpin).trim(),
       pactoAsociado: pactoAsociado.trim(),
       codigo: codigo.trim(),
       bpin: bpin.trim(),
+      actaCd,
       sector,
       lineaTematica,
-      tipoProyecto,
-      faseInversion,
-      fechaReporte: fechaReporte ? new Date(fechaReporte) : undefined,
       numeroEmpleosDirectos,
       numeroEmpleosIndirectos,
-      consecutivoConpes,
+      consecutivoConpes: Number(consecutivoConpes),
       tieneViabilidad,
       fechaViabilidad: fechaViabilidad ? new Date(fechaViabilidad) : undefined,
-      numeroContratoEspecifico,
-      fechaFinalizacionCe: fechaFinalizacionCe ? new Date(fechaFinalizacionCe) : undefined,
-      presupuesto: presupuestoTotal,
-      responsable: entidadProyecto.trim(),
+      frpt,
+      numeroContratoEspecifico: frpt && numeroContratoEspecifico ? Number(numeroContratoEspecifico) : undefined,
+      presupuesto: 0,
+      responsable: responsableProyecto,
       estado: estadoProyecto,
-      fechaInicio: new Date(fechaInicio),
-      fechaFin: new Date(fechaFin),
+      fechaInicio: new Date(),
+      fechaFin: new Date(),
       avance: 0
     };
 
@@ -180,6 +166,30 @@ export class ProyectosManagementComponent implements OnInit {
     this.newProyecto = this.getInitialFormData();
   }
 
+  get municipiosEntidadDisponibles(): string[] {
+    return Object.keys(this.entidadesPorMunicipio);
+  }
+
+  get entidadesResponsableDisponibles(): string[] {
+    return this.entidadesPorMunicipio[this.newProyecto.municipioEntidad] ?? [];
+  }
+
+  onTieneViabilidadChange(): void {
+    if (!this.newProyecto.tieneViabilidad) {
+      this.newProyecto.fechaViabilidad = '';
+    }
+  }
+
+  onFrptChange(): void {
+    if (!this.newProyecto.frpt) {
+      this.newProyecto.numeroContratoEspecifico = '';
+    }
+  }
+
+  onMunicipioEntidadChange(): void {
+    this.newProyecto.entidadResponsablePi = '';
+  }
+
   private getInitialFormData(): ProyectoFormData {
     return {
       pactoAsociado: '',
@@ -187,47 +197,26 @@ export class ProyectosManagementComponent implements OnInit {
       nombreBpin: '',
       codigo: '',
       nombre: '',
-      actaCd: '',
+      actaCdNumero: '',
+      actaCdFecha: '',
       areaInfluencia: '',
-      estadoProyecto: this.estadosProyecto?.[0] ?? '',
+      estadoProyecto: 'No iniciado',
       condicionProyecto: '',
       sector: '',
       lineaTematica: '',
-      tipoProyecto: '',
-      fechaInicio: '',
-      fechaFin: '',
       plazoEstimadoEjecucion: '',
-      fechaReporte: '',
       numeroEmpleosDirectos: 0,
       numeroEmpleosIndirectos: 0,
-      consecutivoConpes: 0,
+      consecutivoConpes: '',
       tieneViabilidad: false,
       fechaViabilidad: '',
-      numeroContratoEspecifico: 0,
-      fechaFinalizacionCe: '',
-      faseInversion: '',
+      frpt: false,
+      numeroContratoEspecifico: '',
       aporteNacion: '',
-      entidadProyecto: '',
+      municipioEntidad: '',
+      entidadResponsablePi: '',
       inversionClimatica: false,
-      derivado: false,
-      tipoOferta: '',
-      fondo: false,
-      identificacionProblemas: '',
-      objetivoGeneral: '',
       alcance: '',
-      presupuestoDnp: 0,
-      presupuestoSector: 0,
-      presupuestoTerritorial: 0,
-      presupuestoOtros: 0,
-      presupuestoTotal: 0,
-      aporteRealDnp: 0,
-      aporteParcialIndicativo: 0,
-      valorGestionar: 0,
-      indicadorMedicionOg: '',
-      unidadMedidaOg: '',
-      metaIndicadorOg: '',
-      productoAlcance: '',
-      unidadMedida: '',
       metaPa: '',
       mecanismoInclusion: '',
       sectorAdminNacional: ''
@@ -266,5 +255,11 @@ export class ProyectosManagementComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const value = input.value.replace(/\D/g, '').slice(0, 13);
     this.newProyecto.bpin = value;
+  }
+
+  onConpesInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.replace(/\D/g, '').slice(0, 5);
+    this.newProyecto.consecutivoConpes = value;
   }
 }

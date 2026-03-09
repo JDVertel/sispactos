@@ -5,6 +5,7 @@ export interface Proyecto {
   pactoAsociado?: string;
   codigo: string;
   bpin?: string;
+  actaCd?: string;
   sector?: string;
   lineaTematica?: string;
   tipoProyecto?: string;
@@ -15,6 +16,7 @@ export interface Proyecto {
   consecutivoConpes?: number;
   tieneViabilidad?: boolean;
   fechaViabilidad?: Date;
+  frpt?: boolean;
   numeroContratoEspecifico?: number;
   fechaFinalizacionCe?: Date;
   presupuesto: number;

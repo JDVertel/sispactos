@@ -1,0 +1,112 @@
+<section class="container-fluid px-0">
+  <header class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Configuracion de Actores</h1>
+      <p class="text-secondary mb-0">Gestion de contratistas, contratantes y supervisores.</p>
+    </div>
+    <div class="badge text-bg-light border p-2">Actores: {{ actores.length }}</div>
+  </header>
+
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-5">
+      <article class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-body-tertiary">
+          <h2 class="h5 mb-0">Nuevo registro</h2>
+        </div>
+        <div class="card-body">
+          <form class="vstack gap-3" (ngSubmit)="agregarActor()">
+            <label>
+              <span class="form-label">Tipo</span>
+              <select class="form-select" name="actorTipo" [(ngModel)]="nuevoActor.tipo" required>
+                <option *ngFor="let tipo of tiposActor" [value]="tipo">{{ tipo }}</option>
+              </select>
+            </label>
+
+            <label>
+              <span class="form-label">Nombre o razon social</span>
+              <input class="form-control" type="text" name="actorNombre" [(ngModel)]="nuevoActor.nombre" required />
+            </label>
+
+            <label>
+              <span class="form-label">Identificacion o NIT</span>
+              <input class="form-control" type="text" name="actorIdentificacion" [(ngModel)]="nuevoActor.identificacion" required />
+            </label>
+
+            <label>
+              <span class="form-label">Correo</span>
+              <input class="form-control" type="email" name="actorCorreo" [(ngModel)]="nuevoActor.correo" required />
+            </label>
+
+            <label>
+              <span class="form-label">Telefono</span>
+              <input class="form-control" type="text" name="actorTelefono" [(ngModel)]="nuevoActor.telefono" required />
+            </label>
+
+            <label>
+              <span class="form-label">Estado</span>
+              <select class="form-select" name="actorEstado" [(ngModel)]="nuevoActor.estado" required>
+                <option value="Activo">Activo</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </label>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">Guardar</button>
+              <button type="button" class="btn btn-outline-secondary" (click)="resetFormulario()">Limpiar</button>
+            </div>
+          </form>
+        </div>
+      </article>
+    </div>
+
+    <div class="col-12 col-lg-7">
+      <article class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-body-tertiary d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+          <h2 class="h5 mb-0">Listado de Actores</h2>
+          <div class="filter-wrap">
+            <label class="form-label mb-1">Filtrar por tipo</label>
+            <select class="form-select form-select-sm" name="filtroTipo" [(ngModel)]="filtroTipo">
+              <option value="">Todos</option>
+              <option *ngFor="let tipo of tiposActor" [value]="tipo">{{ tipo }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tipo</th>
+                  <th>Nombre o razon social</th>
+                  <th>Identificacion o NIT</th>
+                  <th>Correo</th>
+                  <th>Telefono</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let actor of actoresFiltrados">
+                  <td>{{ actor.id }}</td>
+                  <td>{{ actor.tipo }}</td>
+                  <td>{{ actor.nombre }}</td>
+                  <td>{{ actor.identificacion }}</td>
+                  <td>{{ actor.correo }}</td>
+                  <td>{{ actor.telefono }}</td>
+                  <td>
+                    <span class="badge" [class.text-bg-success]="actor.estado === 'Activo'" [class.text-bg-secondary]="actor.estado === 'Inactivo'">
+                      {{ actor.estado }}
+                    </span>
+                  </td>
+                </tr>
+                <tr *ngIf="actoresFiltrados.length === 0">
+                  <td colspan="7" class="text-center text-secondary py-4">No hay registros para el filtro seleccionado.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
