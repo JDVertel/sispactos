@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 const PAGE_DATA: Record<string, { title: string; description: string }> = {
   home: {
     title: 'SISPACTOS',
-    description: 'Resumen general'
+    description: ''
   },
   'acerca-de': {
     title: 'Acerca de',

@@ -18,9 +18,15 @@
 
 <aside class="sidebar card border-0 rounded-0" [class.is-open]="isSidebarOpen">
   <div class="d-flex align-items-center justify-content-between mb-3 sidebar-head">
-    <div>
-      <img src="/pactos-territoriales-logo.png" alt="Pactos Territoriales" class="brand-mark" />
-      <p class="brand-caption mb-0">Centro de Control Territorial</p>
+    <div class="sidebar-user-block">
+      <div class="sidebar-avatar" [attr.aria-label]="'Avatar de ' + sessionUserName">
+        {{ sessionUserInitial }}
+      </div>
+      <div class="sidebar-user-meta">
+        <p class="sidebar-user-name mb-0">{{ sessionUserName }}</p>
+        <p class="sidebar-user-role mb-0">{{ sessionUserRole }}</p>
+        <span class="sidebar-user-profile"><i class="bi bi-person-circle"></i> Perfil</span>
+      </div>
     </div>
     <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button" (click)="closeAllMenus()" aria-label="Cerrar menu">
       X
@@ -70,15 +76,4 @@
       <p *ngIf="item.type === 'separator'" class="small text-uppercase text-secondary fw-semibold mt-2 mb-1 px-2">{{ formatLabel(item.label) }}</p>
     </ng-container>
   </nav>
-
-  <section class="user-session mt-auto" aria-label="Sesion de usuario">
-    <div class="user-avatar" [attr.aria-label]="'Avatar de ' + sessionUserName">
-      {{ sessionUserInitial }}
-    </div>
-    <div class="user-meta">
-      <p class="user-name">{{ sessionUserName }}</p>
-      <p class="user-role">{{ sessionUserRole }}</p>
-      <p class="user-state mb-0"><span class="state-dot"></span>Sesion activa</p>
-    </div>
-  </section>
 </aside>

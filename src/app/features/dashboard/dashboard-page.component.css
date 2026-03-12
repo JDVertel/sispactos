@@ -2,36 +2,49 @@
   display: block;
 }
 
+.home-grid {
+  --bs-gutter-y: 0.6rem;
+}
+
 .summary-card {
-  border: 2px solid #00c3c1;
-  border-radius: 0.75rem;
-  min-height: 130px;
+  border: none;
+  border-radius: 0.15rem;
+  min-height: auto;
   cursor: pointer;
   transition:
     transform 0.18s ease,
     box-shadow 0.18s ease,
     background-color 0.18s ease;
-  background-color: #ffffff;
+  background: #00c3c1;
+  box-shadow: 0 0.3rem 0.8rem rgba(0, 162, 160, 0.35);
 }
 
 .summary-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0.6rem 1.4rem rgba(0, 195, 193, 0.2);
+  box-shadow: 0 0.6rem 1.4rem rgba(0, 162, 160, 0.45);
+  background: #00a2a0;
 }
 
 .summary-card-selected {
-  background-color: #ffffff;
-  border-color: #ffca00;
-  border-width: 3px;
+  background: #ffbf39;
+  border: none;
+  box-shadow: 0 0.3rem 0.8rem rgba(229, 168, 0, 0.4);
+}
+
+.summary-card-selected:hover {
+  background: #e5a800;
 }
 
 .summary-card-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-bottom: 0.2rem;
 }
 
 .summary-card .card-body {
-  padding: 0.7rem 0.85rem;
+  padding: 0.5rem 0.65rem;
 }
 
 .summary-card-icon {
@@ -42,24 +55,64 @@
   justify-content: center;
   border-radius: 50%;
   font-size: 0.86rem;
-  color: #00c3c1;
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 195, 193, 0.45);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.45);
 }
 
-.summary-card-icon-selected {
-  color: #ffca00;
+.summary-card-selected .summary-card-icon {
+  color: #7a5000;
+  background-color: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .summary-card-value {
-  color: #4d4d4d;
-  font-size: 1.4rem;
-  line-height: 1.1;
+  color: #ffffff;
+  font-size: 1.68rem;
+  line-height: 1;
   font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.summary-card-selected .summary-card-value {
+  color: #5a3a00;
+  text-shadow: none;
 }
 
 .summary-card-label {
-  color: #4d4d4d;
-  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
   line-height: 1.2;
+  font-weight: 600;
+}
+
+.summary-card-selected .summary-card-label {
+  color: rgba(90, 58, 0, 0.85);
+}
+
+@media (min-width: 1200px) {
+  .home-card-col {
+    flex: 0 0 20%;
+    max-width: 20%;
+  }
+}
+
+@media (max-width: 576px) {
+  .summary-card .card-body {
+    padding: 0.35rem 0.4rem;
+  }
+
+  .summary-card-value {
+    font-size: 1.1rem;
+  }
+
+  .summary-card-label {
+    font-size: 0.7rem;
+  }
+
+  .summary-card-icon {
+    width: 1.3rem;
+    height: 1.3rem;
+    font-size: 0.7rem;
+  }
 }

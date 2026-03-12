@@ -1,5 +1,13 @@
 :host {
   display: block;
+  --home-font-size: 0.82rem;
+}
+
+.form-label,
+.form-control,
+.form-select,
+textarea {
+  font-size: var(--home-font-size);
 }
 
 .form-grid {
@@ -14,10 +22,10 @@
   gap: 0.4rem;
   padding: 0.65rem 0.7rem;
   border: 1px solid #ebebeb;
-  border-radius: 0.55rem;
+  border-radius: 0.15rem;
   background: #ffffff;
   color: #4d4d4d;
-  font-size: 0.9rem;
+  font-size: var(--home-font-size);
   font-weight: 600;
 }
 

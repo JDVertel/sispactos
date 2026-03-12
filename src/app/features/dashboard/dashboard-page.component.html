@@ -3,10 +3,10 @@
     <h4 class="text-secondary mb-0">{{ pageDescription }}</h4>
   </header>
 
-  <div class="row g-3" *ngIf="currentPage === 'home'">
+  <div class="row g-2 home-grid" *ngIf="currentPage === 'home'">
     <div
       *ngFor="let card of dashboardCards"
-      class="col-12 col-sm-6 col-lg-3"
+      class="col-4 col-lg-4 home-card-col"
     >
       <div
         class="card summary-card h-100"
@@ -14,15 +14,15 @@
         (click)="selectCard(card.label)"
       >
         <div class="card-body">
-          <div class="summary-card-header mb-1">
+          <div class="summary-card-header">
             <i
               class="bi summary-card-icon"
               [ngClass]="getIconClass(card.icon)"
               [class.summary-card-icon-selected]="selectedCardLabel === card.label"
               aria-hidden="true"
             ></i>
+            <p class="mb-0 summary-card-value">{{ card.value }}</p>
           </div>
-          <p class="mb-1 summary-card-value">{{ card.value }}</p>
           <h3 class="h6 mb-0 summary-card-label">{{ card.label }}</h3>
         </div>
       </div>

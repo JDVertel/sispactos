@@ -74,7 +74,7 @@
     <div class="modal-content">
       <form class="d-flex flex-column h-100" (ngSubmit)="addContrato()">
         <div class="modal-header">
-          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel">Nuevo Contrato</h2>
+          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel"><i class="bi bi-file-earmark-text"></i> Nuevo Contrato</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
@@ -83,18 +83,21 @@
             <div class="col-12 col-md-6">
               <label class="form-label">Pacto</label>
               <select class="form-select" name="contratoPacto" [(ngModel)]="newContrato.pacto" (ngModelChange)="onPactoChange()" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let pacto of pactosDisponibles" [value]="pacto">{{ pacto }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Proyecto</label>
               <select class="form-select" name="contratoProyecto" [(ngModel)]="newContrato.proyecto" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let proyecto of proyectosDisponibles" [value]="proyecto">{{ proyecto }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Contratista</label>
               <select class="form-select" name="contratoContratista" [(ngModel)]="newContrato.contratista" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let contratista of contratistasDisponibles" [value]="contratista">{{ contratista }}</option>
               </select>
             </div>
@@ -122,12 +125,14 @@
             <div class="col-12 col-md-6">
               <label class="form-label">Tipo contrato</label>
               <select class="form-select" name="contratoTipo" [(ngModel)]="newContrato.tipoContrato" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let tipo of tiposContrato" [value]="tipo">{{ tipo }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Contratante</label>
               <select class="form-select" name="contratoContratante" [(ngModel)]="newContrato.contratante" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let contratante of contratantesDisponibles" [value]="contratante">{{ contratante }}</option>
               </select>
             </div>
@@ -138,6 +143,7 @@
             <div class="col-12">
               <label class="form-label">Supervisor</label>
               <select class="form-select" name="contratoSupervisor" [(ngModel)]="newContrato.supervisor" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let supervisor of supervisoresDisponibles" [value]="supervisor">{{ supervisor }}</option>
               </select>
             </div>

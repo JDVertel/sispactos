@@ -2,6 +2,17 @@
   min-width: 180px;
 }
 
+:host {
+  --home-font-size: 0.82rem;
+}
+
+.form-label,
+.form-control,
+.form-select,
+textarea {
+  font-size: var(--home-font-size);
+}
+
 table th,
 table td {
   white-space: nowrap;

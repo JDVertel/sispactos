@@ -1,3 +1,11 @@
 :host {
   display: block;
+  --home-font-size: 0.82rem;
+}
+
+.form-label,
+.form-control,
+.form-select,
+textarea {
+  font-size: var(--home-font-size);
 }

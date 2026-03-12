@@ -132,7 +132,7 @@
     <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title h5 mb-0" id="nuevoProyectoModalLabel">Nuevo Proyecto</h2>
+          <h2 class="modal-title h5 mb-0" id="nuevoProyectoModalLabel"><i class="bi bi-briefcase"></i> Nuevo Proyecto</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
 
@@ -142,7 +142,7 @@
               <label>
                 Pacto
                 <select class="form-select" name="proyectoPactoAsociado" [(ngModel)]="newProyecto.pactoAsociado" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let pacto of pactosDisponibles" [value]="pacto">{{ pacto }}</option>
                 </select>
               </label>
@@ -205,7 +205,7 @@
               <label>
                 Area de influencia
                 <select class="form-select" name="proyectoAreaInfluencia" [(ngModel)]="newProyecto.areaInfluencia" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let area of areasInfluencia" [value]="area">{{ area }}</option>
                 </select>
               </label>
@@ -213,6 +213,7 @@
               <label>
                 Estado de proyecto
                 <select class="form-select" name="proyectoEstado" [(ngModel)]="newProyecto.estadoProyecto" disabled required>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let estado of estadosProyecto" [value]="estado">{{ estado }}</option>
                 </select>
               </label>
@@ -220,7 +221,7 @@
               <label>
                 Condicion de proyecto
                 <select class="form-select" name="proyectoCondicion" [(ngModel)]="newProyecto.condicionProyecto" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let condicion of condicionesProyecto" [value]="condicion">{{ condicion }}</option>
                 </select>
               </label>
@@ -228,7 +229,7 @@
               <label>
                 Sector
                 <select class="form-select" name="proyectoSector" [(ngModel)]="newProyecto.sector" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let sector of sectores" [value]="sector">{{ sector }}</option>
                 </select>
               </label>
@@ -236,7 +237,7 @@
               <label>
                 Linea tematica
                 <select class="form-select" name="proyectoLineaTematica" [(ngModel)]="newProyecto.lineaTematica" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let linea of lineasTematicas" [value]="linea">{{ linea }}</option>
                 </select>
               </label>
@@ -279,7 +280,7 @@
               <label>
                 Aporte nacion
                 <select class="form-select" name="proyectoAporteNacion" [(ngModel)]="newProyecto.aporteNacion" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let aporte of aportesNacion" [value]="aporte">{{ aporte }}</option>
                 </select>
               </label>
@@ -287,7 +288,7 @@
               <label>
                 Municipio
                 <select class="form-select" name="proyectoMunicipioEntidad" [(ngModel)]="newProyecto.municipioEntidad" (ngModelChange)="onMunicipioEntidadChange()" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let municipio of municipiosEntidadDisponibles" [value]="municipio">{{ municipio }}</option>
                 </select>
               </label>
@@ -295,7 +296,7 @@
               <label>
                 Entidad responsable PI
                 <select class="form-select" name="proyectoEntidadResponsablePi" [(ngModel)]="newProyecto.entidadResponsablePi" [disabled]="!newProyecto.municipioEntidad" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let entidad of entidadesResponsableDisponibles" [value]="entidad">{{ entidad }}</option>
                 </select>
               </label>
@@ -318,7 +319,7 @@
               <label>
                 Mecanismo de inclusion
                 <select class="form-select" name="proyectoMecanismoInclusion" [(ngModel)]="newProyecto.mecanismoInclusion" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let mecanismo of mecanismosInclusion" [value]="mecanismo">{{ mecanismo }}</option>
                 </select>
               </label>
@@ -326,7 +327,7 @@
               <label>
                 Sector Admin Nacional
                 <select class="form-select" name="proyectoSectorAdminNacional" [(ngModel)]="newProyecto.sectorAdminNacional" required>
-                  <option value="" disabled>Seleccione...</option>
+                  <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let sectorAdmin of sectoresAdminNacional" [value]="sectorAdmin">{{ sectorAdmin }}</option>
                 </select>
               </label>

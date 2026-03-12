@@ -18,6 +18,7 @@
             <label>
               <span class="form-label">Tipo</span>
               <select class="form-select" name="actorTipo" [(ngModel)]="nuevoActor.tipo" required>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let tipo of tiposActor" [value]="tipo">{{ tipo }}</option>
               </select>
             </label>
@@ -45,6 +46,7 @@
             <label>
               <span class="form-label">Estado</span>
               <select class="form-select" name="actorEstado" [(ngModel)]="nuevoActor.estado" required>
+                <option value="" disabled>--seleccione--</option>
                 <option value="Activo">Activo</option>
                 <option value="Inactivo">Inactivo</option>
               </select>

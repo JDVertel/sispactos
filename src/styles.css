@@ -3,7 +3,7 @@
 /* Global theme */
 :root {
   --inst-cyan: #00c3c1;
-  --inst-pink: #fe1b7b;
+  --inst-pink: #ffbf39;
   --inst-yellow: #ffca00;
   --inst-gray-light: #ebebeb;
   --inst-gray-dark: #4d4d4d;
@@ -38,23 +38,7 @@ body {
   margin: 0;
   font-family: var(--app-font-family);
   color: var(--inst-gray-dark);
-  background:
-    radial-gradient(
-      circle at 12% 12%,
-      rgba(0, 195, 193, 0.14),
-      transparent 38%
-    ),
-    radial-gradient(
-      circle at 88% 18%,
-      rgba(254, 27, 123, 0.14),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 82% 84%,
-      rgba(255, 202, 0, 0.14),
-      transparent 42%
-    ),
-    linear-gradient(145deg, #ffffff, #f7f7f7 60%, #f2f2f2);
+  background: #f4f4f4;
   background-attachment: fixed;
 }
 
@@ -63,4 +47,121 @@ button,
 select,
 textarea {
   font-family: inherit;
+}
+
+/* Dashboard unified style based on Home cards */
+.dashboard-shell .content {
+  --home-font-size: 0.82rem;
+  --home-card-bg: linear-gradient(140deg, #d9f7f7 0%, #c4f0f0 100%);
+  --home-card-selected: linear-gradient(140deg, #fff8e1 0%, #ffe49a 100%);
+}
+
+.dashboard-shell .content .card:not(.summary-card) {
+  border: 2px solid var(--inst-cyan);
+  border-radius: 0.15rem;
+  background: var(--home-card-bg);
+  box-shadow: 0 0.35rem 0.9rem rgba(0, 195, 193, 0.12);
+}
+
+.dashboard-shell .content .card-header {
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid rgba(0, 195, 193, 0.24);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.dashboard-shell .content .modal-header {
+  background: linear-gradient(135deg, #ffbf39, #e5a800);
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 191, 57, 0.55);
+}
+
+.dashboard-shell .content .modal-header .btn-close {
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
+}
+
+.dashboard-shell .content .modal-header .modal-title {
+  color: #ffffff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dashboard-shell .content .modal {
+  z-index: 1200;
+}
+
+.modal-backdrop.show {
+  z-index: 1190;
+}
+
+.dashboard-shell .content .modal-dialog {
+  margin-top: calc(var(--topbar-height, 70px) + 1.1rem);
+}
+
+@media (max-width: 600px) {
+  .dashboard-shell .content .modal-dialog {
+    margin-top: calc(var(--topbar-height, 92px) + 0.6rem);
+  }
+}
+
+.dashboard-shell .content .card-body {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+.dashboard-shell .content .card-footer {
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.dashboard-shell .content .form-label,
+.dashboard-shell .content .form-control,
+.dashboard-shell .content .form-select,
+.dashboard-shell .content textarea,
+.dashboard-shell .content .table,
+.dashboard-shell .content .btn,
+.dashboard-shell .content .badge {
+  font-size: var(--home-font-size);
+}
+
+.dashboard-shell .content .form-control,
+.dashboard-shell .content .form-select,
+.dashboard-shell .content textarea {
+  border-radius: 0.15rem;
+  border: 1px solid rgba(0, 195, 193, 0.35);
+  background: #ffffff;
+}
+
+.dashboard-shell .content .form-control:focus,
+.dashboard-shell .content .form-select:focus,
+.dashboard-shell .content textarea:focus {
+  border-color: var(--inst-cyan);
+  box-shadow: 0 0 0 0.18rem rgba(0, 195, 193, 0.2);
+}
+
+.dashboard-shell .content .btn-primary {
+  background: linear-gradient(135deg, #00c3c1, #00a2a0);
+  border-color: transparent;
+}
+
+.dashboard-shell .content .table > :not(caption) > * > * {
+  border-bottom-color: rgba(0, 195, 193, 0.16);
+}
+
+.dashboard-shell .content .badge.text-bg-light,
+.dashboard-shell .content .badge.text-bg-secondary {
+  background: var(--home-card-selected) !important;
+  color: var(--inst-gray-dark) !important;
+  border: 1px solid rgba(255, 191, 57, 0.5) !important;
+}
+
+.modal-content {
+  border-radius: 0.15rem !important;
+}
+
+.dashboard-shell .content .btn {
+  border-radius: 0.15rem;
 }

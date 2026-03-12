@@ -93,7 +93,7 @@
             <div>
               <label class="form-label">Rol</label>
               <select class="form-select" name="localUserRole" [(ngModel)]="newLocalUser.role" required>
-                <option value="">Seleccionar rol</option>
+                <option value="" disabled>--seleccione--</option>
                 <option *ngFor="let role of roles$ | async" [value]="role.name">{{ role.name }}</option>
               </select>
             </div>

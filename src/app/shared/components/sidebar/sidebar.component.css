@@ -10,17 +10,18 @@
   --sidebar-surface: #ffffff;
 
   width: 240px;
-  height: 100vh;
+  height: calc(100vh - var(--topbar-height, 0px));
   padding: 1rem;
   overflow-y: auto;
   position: sticky;
-  top: 0;
+  top: var(--topbar-height, 0px);
   background: var(--sidebar-bg);
   box-shadow: 0 10px 28px rgba(77, 77, 77, 0.12);
   border-right: 1px solid rgba(77, 77, 77, 0.15);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  font-size: 13px;
 }
 
 .sidebar-head {
@@ -30,9 +31,9 @@
 
 .sidebar-fab {
   position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1080;
+  top: calc(var(--topbar-height, 70px) + 0.5rem);
+  left: 0.75rem;
+  z-index: 1095;
   transition:
     opacity 0.25s ease,
     transform 0.25s ease,
@@ -64,18 +65,61 @@
   pointer-events: auto;
 }
 
-.brand-mark {
-  max-width: 150px;
-  width: 100%;
-  height: auto;
+.sidebar-user-block {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
 }
 
-.brand-caption {
-  margin-top: 0.35rem;
+.sidebar-avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #00c3c1;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(0, 195, 193, 0.45), 0 4px 10px rgba(0, 195, 193, 0.2);
+}
+
+.sidebar-user-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.sidebar-user-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--sidebar-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-role {
+  font-size: 0.76rem;
   color: var(--sidebar-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-profile {
   font-size: 0.72rem;
-  letter-spacing: 0.02em;
   font-weight: 600;
+  color: var(--sidebar-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.1rem;
+  cursor: pointer;
 }
 
 .sidebar-nav {
@@ -84,10 +128,11 @@
 
 .menu-link {
   color: var(--sidebar-ink);
+  font-size: inherit;
   font-weight: 500;
   border: 1px solid transparent;
   transition: all 0.2s ease;
-  border-radius: 0.5rem;
+  border-radius: 0.15rem;
 }
 
 .menu-button {
@@ -127,7 +172,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #4d4d4d;
+  color: #ffbf39;
 }
 
 .menu-icon :is(svg) {
@@ -140,72 +185,6 @@
   stroke-linejoin: round;
 }
 
-.user-session {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: var(--sidebar-surface);
-  border: 1px solid rgba(77, 77, 77, 0.2);
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  box-shadow: 0 8px 18px rgba(77, 77, 77, 0.12);
-}
-
-.user-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #ffffff;
-  background: linear-gradient(135deg, #00c3c1, #fe1b7b);
-  box-shadow: 0 6px 12px rgba(0, 195, 193, 0.3);
-}
-
-.user-meta {
-  min-width: 0;
-}
-
-.user-name,
-.user-role {
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-name {
-  color: var(--sidebar-ink);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.user-role {
-  color: var(--sidebar-muted);
-  font-size: 0.8rem;
-}
-
-.user-state {
-  margin-top: 0.2rem;
-  color: #4d4d4d;
-  font-size: 0.72rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.state-dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 9999px;
-  background: #ffca00;
-  box-shadow: 0 0 0 4px rgba(255, 202, 0, 0.2);
-}
-
 @media (max-width: 980px) {
   .menu-overlay {
     display: block;
@@ -215,9 +194,9 @@
     width: 260px;
     padding: 1rem;
     position: fixed;
-    top: 0;
+    top: var(--topbar-height, 0px);
     left: 0;
-    height: 100vh;
+    height: calc(100vh - var(--topbar-height, 0px));
     z-index: 1075;
     transform: translateX(-100%);
     opacity: 0;
@@ -240,9 +219,5 @@
   .sidebar {
     width: 85%;
     max-width: 300px;
-  }
-
-  .user-session {
-    padding: 0.65rem;
   }
 }
