@@ -4,6 +4,7 @@
   providedIn: 'root'
 })
 export class DashboardService {
+  // Lista los módulos/permisos que se pueden asignar en administración.
   getAvailablePermissions() {
     return [
       { value: 'admin', label: 'Administrador' },
@@ -15,6 +16,7 @@ export class DashboardService {
     ];
   }
 
+  // Convierte números a formato de moneda colombiana.
   formatCurrency(amount: number): string {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -23,6 +25,7 @@ export class DashboardService {
     }).format(amount);
   }
 
+  // Convierte fechas a un formato legible para Colombia.
   formatDate(date: Date): string {
     return new Intl.DateTimeFormat('es-CO', {
       year: 'numeric',

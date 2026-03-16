@@ -12,7 +12,9 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
+  // Define si el acceso será como invitado o usuario registrado.
   loginMode: 'local' | 'guest' = 'guest';
+  // Datos que el usuario escribe en el formulario.
   username = '';
   password = '';
 
@@ -21,6 +23,7 @@ export class LoginComponent {
     private authService: AuthService
   ) {}
 
+  // Intenta iniciar sesión y, si es correcto, envía al inicio del panel.
   onSubmit(): void {
     const isAuthenticated = this.authService.login(
       this.username,

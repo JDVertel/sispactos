@@ -1,5 +1,7 @@
+<!-- Pantalla de ingreso al sistema -->
 <section class="login-shell min-vh-100 d-flex align-items-center justify-content-center py-4 px-3">
   <div class="row g-0 w-100 border bg-white rounded-3 overflow-hidden login-card">
+    <!-- Lado visual con imagen institucional -->
     <div class="col-12 col-lg-6 login-media">
       <img src="/dnp.jpg" alt="Departamento Nacional de Planeacion" class="login-media-image" />
       <div class="login-media-overlay">
@@ -8,10 +10,12 @@
       </div>
     </div>
 
+    <!-- Lado del formulario de acceso -->
     <div class="col-12 col-lg-6 p-4 p-lg-5 d-flex align-items-center">
       <div class="w-100">
       <h2 class="h4 mb-3">Inicia sesion</h2>
 
+      <!-- Formulario principal -->
       <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="vstack gap-3">
         <div>
           <label class="form-label d-block">Tipo de acceso</label>

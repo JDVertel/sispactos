@@ -6,6 +6,7 @@ import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 
 const MENU_ITEMS: MenuItem[] = [
+  // Menú principal que alimenta la navegación del panel.
   { type: 'item', label: 'Home', route: 'home', icon: 'home' },
   { type: 'item', label: 'Pacto territorial', route: 'pacto-territorial', icon: 'pin' },
   {
@@ -78,17 +79,22 @@ const MENU_ITEMS: MenuItem[] = [
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent {
+  // Lista final de opciones que se envía al sidebar.
   menuItems = MENU_ITEMS;
+  // Controla si el menú lateral está abierto en pantallas pequeñas.
   isSidebarOpen = false;
+  // Guarda qué submenú está desplegado actualmente.
   activeSubmenu: string | null = null;
   currentYear = new Date().getFullYear();
 
   constructor(private readonly authService: AuthService) {}
 
+  // Nombre de usuario que aparece en la barra superior.
   get sessionUserName(): string {
     return this.authService.getCurrentUser()?.username || 'Usuario SISPACTOS';
   }
 
+  // Texto de rol o tipo de sesión del usuario actual.
   get sessionUserRole(): string {
     const mode = this.authService.getCurrentUser()?.mode;
 
@@ -103,18 +109,22 @@ export class DashboardComponent {
     return 'Sin sesion activa';
   }
 
+  // Abre o cierra el menú lateral.
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
+  // Cierra únicamente el menú lateral.
   closeSidebar(): void {
     this.isSidebarOpen = false;
   }
 
+  // Muestra/oculta el submenú seleccionado.
   toggleSubmenu(label: string): void {
     this.activeSubmenu = this.activeSubmenu === label ? null : label;
   }
 
+  // Cierra menú lateral y cualquier submenú abierto.
   closeAllMenus(): void {
     this.isSidebarOpen = false;
     this.activeSubmenu = null;

@@ -1,0 +1,124 @@
+<div class="filter-drawer" [class.filter-drawer--open]="isOpen">
+
+  <!-- Columna de la pestaña -->
+  <div class="filter-drawer__tab-col">
+    <!-- Botón toggle -->
+    <button
+      class="filter-drawer__tab"
+      type="button"
+      (click)="toggleDrawer()"
+      [attr.aria-expanded]="isOpen"
+      aria-label="Abrir / cerrar filtros"
+    >
+      <i class="bi bi-funnel-fill filter-drawer__tab-icon"></i>
+      <span class="filter-drawer__tab-label">Filtros</span>
+      <span class="filter-drawer__tab-badge" *ngIf="hasActiveFilters">
+        {{ activeFilterCount }}
+      </span>
+    </button>
+  </div>
+
+  <!-- Panel deslizable -->
+  <div class="filter-drawer__panel">
+
+    <div class="filter-drawer__head">
+      <span class="filter-drawer__head-title">
+        <i class="bi bi-funnel-fill"></i> Filtros
+      </span>
+      <button
+        class="filter-drawer__close"
+        type="button"
+        (click)="isOpen = false"
+        aria-label="Cerrar filtros"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="filter-drawer__body">
+
+      <div class="filter-group">
+        <label class="filter-label" for="fdEtapa">
+          <i class="bi bi-layers-fill"></i> Etapa
+        </label>
+        <select
+          id="fdEtapa"
+          class="filter-select"
+          [(ngModel)]="selectedEtapa"
+          (ngModelChange)="applyFilter()"
+        >
+          <option value="">Todas las etapas</option>
+          <option *ngFor="let e of etapas" [value]="e">{{ e }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="fdPacto">
+          <i class="bi bi-pen-fill"></i> Pacto
+        </label>
+        <select
+          id="fdPacto"
+          class="filter-select"
+          [(ngModel)]="selectedPacto"
+          (ngModelChange)="applyFilter()"
+        >
+          <option value="">Todos los pactos</option>
+          <option *ngFor="let p of pactos" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="fdDpto">
+          <i class="bi bi-geo-alt-fill"></i> Departamento
+        </label>
+        <select
+          id="fdDpto"
+          class="filter-select"
+          [(ngModel)]="selectedDepartamento"
+          (ngModelChange)="applyFilter()"
+        >
+          <option value="">Todos los departamentos</option>
+          <option *ngFor="let d of departamentos" [value]="d">{{ d }}</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Chips de filtros activos -->
+    <div class="filter-drawer__chips" *ngIf="hasActiveFilters">
+      <span *ngIf="selectedEtapa" class="filter-chip">
+        <i class="bi bi-layers-fill"></i>
+        <span>{{ selectedEtapa }}</span>
+        <button type="button" (click)="removeEtapa()" aria-label="Quitar etapa">
+          <i class="bi bi-x"></i>
+        </button>
+      </span>
+      <span *ngIf="selectedPacto" class="filter-chip">
+        <i class="bi bi-pen-fill"></i>
+        <span>{{ selectedPacto }}</span>
+        <button type="button" (click)="removePacto()" aria-label="Quitar pacto">
+          <i class="bi bi-x"></i>
+        </button>
+      </span>
+      <span *ngIf="selectedDepartamento" class="filter-chip">
+        <i class="bi bi-geo-alt-fill"></i>
+        <span>{{ selectedDepartamento }}</span>
+        <button type="button" (click)="removeDepartamento()" aria-label="Quitar departamento">
+          <i class="bi bi-x"></i>
+        </button>
+      </span>
+    </div>
+
+    <div class="filter-drawer__footer">
+      <button
+        class="filter-drawer__clear"
+        type="button"
+        (click)="clearFilters()"
+        [disabled]="!hasActiveFilters"
+      >
+        <i class="bi bi-x-circle"></i> Limpiar filtros
+      </button>
+    </div>
+
+  </div>
+</div>

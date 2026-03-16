@@ -7,5 +7,5 @@ import { Component } from '@angular/core';
   styleUrl: './monitores.component.css'
 })
 export class MonitoresComponent {
-
+  // Este módulo queda preparado para futuras funcionalidades de monitoreo.
 }

@@ -20,8 +20,10 @@ interface ContratoExtended extends Contrato {
   styleUrl: './contratos-management.component.css'
 })
 export class ContratosManagementComponent implements OnInit {
+  // Lista observable de contratos para pintar en pantalla.
   contratos$: Observable<ContratoExtended[]>;
 
+  // Datos del formulario de nuevo contrato.
   newContrato: Omit<ContratoExtended, 'id' | 'fechaCreacion'> = {
     pacto: '',
     proyecto: '',
@@ -56,6 +58,7 @@ export class ContratosManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Carga catálogos y opciones iniciales para el formulario.
     this.tiposContrato = this.contratosService.getTiposContrato();
     this.contratistasDisponibles = this.contratosService.getContratistas();
     this.contratosPadreDisponibles = this.contratosService.getContratosPadre();
@@ -91,6 +94,7 @@ export class ContratosManagementComponent implements OnInit {
     this.newContrato.supervisor = this.supervisoresDisponibles[0] ?? '';
   }
 
+  // Crea un contrato nuevo si el formulario cumple validaciones básicas.
   addContrato(): void {
     const { pacto, proyecto, contratista, fechaInicio, fechaFin, contratoPadre, tipoContrato, contratante, valorInicial, supervisor, objeto, urlSecop } = this.newContrato;
     const contratoPadreValido = /^[a-zA-Z0-9-]+$/.test(contratoPadre.trim());
@@ -121,10 +125,12 @@ export class ContratosManagementComponent implements OnInit {
     this.resetForm();
   }
 
+  // Elimina un contrato del listado.
   deleteContrato(id: number): void {
     this.contratosService.removeContrato(id);
   }
 
+  // Reinicia el formulario con valores por defecto.
   resetForm(): void {
     const pacto = this.pactosDisponibles[0] ?? '';
     this.newContrato = {
@@ -144,6 +150,7 @@ export class ContratosManagementComponent implements OnInit {
     this.proyectosDisponibles = this.getProyectosPorPacto(this.newContrato.pacto);
   }
 
+  // Al cambiar el pacto, actualiza los proyectos disponibles.
   onPactoChange(): void {
     this.proyectosDisponibles = this.getProyectosPorPacto(this.newContrato.pacto);
     this.newContrato.proyecto = this.proyectosDisponibles[0] ?? '';

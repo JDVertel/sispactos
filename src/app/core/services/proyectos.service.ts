@@ -6,6 +6,7 @@ import { Proyecto } from '../../shared/models';
   providedIn: 'root'
 })
 export class ProyectosService {
+  // Almacena los proyectos en memoria para consulta y actualización.
   private proyectos = new BehaviorSubject<Proyecto[]>([]);
   public proyectos$ = this.proyectos.asObservable();
 
@@ -20,10 +21,12 @@ export class ProyectosService {
 
   constructor() {}
 
+  // Entrega la lista de proyectos a quien la necesite.
   getProyectos(): Observable<Proyecto[]> {
     return this.proyectos$;
   }
 
+  // Crea un proyecto nuevo y le asigna ID y fecha de creación.
   addProyecto(proyecto: Omit<Proyecto, 'id' | 'fechaCreacion'>): void {
     const currentProyectos = this.proyectos.value;
     const nextId = currentProyectos.length ? Math.max(...currentProyectos.map(p => p.id)) + 1 : 1;
@@ -37,10 +40,12 @@ export class ProyectosService {
     this.proyectos.next([...currentProyectos, newProyecto]);
   }
 
+  // Elimina un proyecto por su ID.
   removeProyecto(id: number): void {
     this.proyectos.next(this.proyectos.value.filter(p => p.id !== id));
   }
 
+  // Actualiza campos puntuales de un proyecto existente.
   updateProyecto(id: number, proyecto: Partial<Omit<Proyecto, 'id' | 'fechaCreacion'>>): void {
     const proyectos = this.proyectos.value.map(p =>
       p.id === id ? { ...p, ...proyecto } : p
@@ -48,10 +53,12 @@ export class ProyectosService {
     this.proyectos.next(proyectos);
   }
 
+  // Devuelve los estados permitidos para los proyectos.
   getEstadosProyecto(): string[] {
     return this.estadosProyecto;
   }
 
+  // Calcula el presupuesto total de todos los proyectos.
   getTotalPresupuesto(): number {
     return this.proyectos.value.reduce((sum, p) => sum + p.presupuesto, 0);
   }

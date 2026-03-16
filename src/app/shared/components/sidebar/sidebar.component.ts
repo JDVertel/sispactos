@@ -32,37 +32,47 @@ export type MenuItem =
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
+  // Opciones del menú que llegan desde el dashboard.
   @Input() menuItems: MenuItem[] = [];
+  // Indica si el panel lateral está abierto (móvil/tablet).
   @Input() isSidebarOpen = false;
+  // Identifica el submenú abierto para mostrar sus hijos.
   @Input() activeSubmenu: string | null = null;
   @Input() sessionUserName = 'Usuario';
   @Input() sessionUserRole = 'Sin rol';
 
+  // Eventos para avisar al componente padre acciones del usuario.
   @Output() toggleSidebarEvent = new EventEmitter<void>();
   @Output() toggleSubmenuEvent = new EventEmitter<string>();
   @Output() closeAllMenusEvent = new EventEmitter<void>();
   @Output() closeSidebarEvent = new EventEmitter<void>();
 
+  // Solicita abrir/cerrar el sidebar.
   toggleSidebar(): void {
     this.toggleSidebarEvent.emit();
   }
 
+  // Solicita cerrar sidebar.
   closeSidebar(): void {
     this.closeSidebarEvent.emit();
   }
 
+  // Solicita abrir/cerrar un submenú concreto.
   toggleSubmenu(label: string): void {
     this.toggleSubmenuEvent.emit(label);
   }
 
+  // Solicita cerrar todos los menús.
   closeAllMenus(): void {
     this.closeAllMenusEvent.emit();
   }
 
+  // Inicial del usuario para avatar textual.
   get sessionUserInitial(): string {
     return this.sessionUserName.trim().charAt(0).toUpperCase() || 'U';
   }
 
+  // Convierte etiquetas técnicas a texto legible.
   formatLabel(label: string): string {
     return label
       .replace(/[-_]+/g, ' ')
@@ -72,6 +82,7 @@ export class SidebarComponent {
       .join(' ');
   }
 
+  // Traduce nombres de icono a clases de Bootstrap Icons.
   getBootstrapIconClass(icon: string): string {
     const icons: Record<string, string> = {
       home: 'bi-house-door',

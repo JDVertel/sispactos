@@ -13,8 +13,10 @@ import { Observable } from 'rxjs';
   styleUrl: './pactos-management.component.css'
 })
 export class PactosManagementComponent implements OnInit {
+  // Lista observable de pactos para mostrar en la vista.
   pactos$: Observable<Pacto[]>;
   readonly etapaPorDefecto = 'Construccion y suscripcion';
+  // Campos auxiliares del formulario.
   lineaTematicaInput = '';
   departamentoSeleccionado = '';
   municipioSeleccionado = '';
@@ -62,12 +64,14 @@ export class PactosManagementComponent implements OnInit {
   ngOnInit(): void {
   }
 
+  // Guarda el nombre del archivo seleccionado en el campo correspondiente.
   onFileSelected(event: Event, field: 'urlDocPacto' | 'urlDocMinuta' | 'urlDocPEI' | 'urlDocFicha'): void {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0] ?? null;
     this.newPacto[field] = file ? file.name : '';
   }
 
+  // Crea un pacto nuevo si los datos esenciales están completos.
   addPacto(): void {
     const { nombre, descripcion, objetivo, tipoPacto } = this.newPacto;
 
@@ -90,6 +94,7 @@ export class PactosManagementComponent implements OnInit {
     this.resetForm();
   }
 
+  // Agrega una línea temática escrita por el usuario.
   addLineaTematicaFromInput(): void {
     const nuevaLinea = this.lineaTematicaInput.trim();
 

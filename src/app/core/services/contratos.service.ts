@@ -10,6 +10,7 @@ interface ContratoExtended extends Contrato {
   providedIn: 'root'
 })
 export class ContratosService {
+  // Mantiene los contratos en memoria y emite cambios a la vista.
   private contratos = new BehaviorSubject<ContratoExtended[]>([]);
   public contratos$ = this.contratos.asObservable();
 
@@ -30,10 +31,12 @@ export class ContratosService {
 
   constructor() {}
 
+  // Devuelve la lista de contratos.
   getContratos(): Observable<ContratoExtended[]> {
     return this.contratos$;
   }
 
+  // Agrega un contrato nuevo con ID y fecha de creación.
   addContrato(contrato: Omit<ContratoExtended, 'id' | 'fechaCreacion'>): void {
     const currentContratos = this.contratos.value;
     const nextId = currentContratos.length ? Math.max(...currentContratos.map(c => c.id)) + 1 : 1;
@@ -47,10 +50,12 @@ export class ContratosService {
     this.contratos.next([...currentContratos, newContrato]);
   }
 
+  // Elimina un contrato según su ID.
   removeContrato(id: number): void {
     this.contratos.next(this.contratos.value.filter(c => c.id !== id));
   }
 
+  // Actualiza datos puntuales de un contrato.
   updateContrato(id: number, contrato: Partial<Omit<ContratoExtended, 'id' | 'fechaCreacion'>>): void {
     const contratos = this.contratos.value.map(c =>
       c.id === id ? { ...c, ...contrato } : c
@@ -58,6 +63,7 @@ export class ContratosService {
     this.contratos.next(contratos);
   }
 
+  // Devuelve el catálogo de tipos de contrato.
   getTiposContrato(): string[] {
     return this.tiposContrato;
   }
@@ -82,10 +88,12 @@ export class ContratosService {
     return this.supervisores;
   }
 
+  // Calcula la suma total del valor inicial de todos los contratos.
   getTotalValorContratos(): number {
     return this.contratos.value.reduce((sum, c) => sum + c.valorInicial, 0);
   }
 
+  // Cuenta cuántos contratos tienen enlace SECOP diligenciado.
   getContratosConSecop(): number {
     return this.contratos.value.filter(c => c.urlSecop.trim().length > 0).length;
   }

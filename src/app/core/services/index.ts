@@ -1,4 +1,5 @@
-﻿export * from './auth.service';
+﻿// Punto único de exportación para importar servicios más fácil.
+export * from './auth.service';
 export * from './pactos.service';
 export * from './proyectos.service';
 export * from './contratos.service';

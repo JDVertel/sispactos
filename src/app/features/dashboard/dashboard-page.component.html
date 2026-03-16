@@ -1,31 +1,116 @@
-<section class="container-fluid px-0">
+<section class="container-fluid px-0 dashboard-page-root">
+  <!-- Encabezado de la sección actual -->
   <header class="mb-4">
     <h4 class="text-secondary mb-0">{{ pageDescription }}</h4>
   </header>
 
-  <div class="row g-2 home-grid" *ngIf="currentPage === 'home'">
-    <div
-      *ngFor="let card of dashboardCards"
-      class="col-4 col-lg-4 home-card-col"
-    >
-      <div
-        class="card summary-card h-100"
-        [class.summary-card-selected]="selectedCardLabel === card.label"
-        (click)="selectCard(card.label)"
-      >
-        <div class="card-body">
-          <div class="summary-card-header">
-            <i
-              class="bi summary-card-icon"
-              [ngClass]="getIconClass(card.icon)"
-              [class.summary-card-icon-selected]="selectedCardLabel === card.label"
-              aria-hidden="true"
-            ></i>
-            <p class="mb-0 summary-card-value">{{ card.value }}</p>
+  <!-- Zona principal del Home: tarjetas, filtros, mapa y tabla -->
+  <div class="home-layout" *ngIf="currentPage === 'home'">
+    <!-- Filtro lateral para escritorio -->
+    <app-filter-drawer
+      *ngIf="!isResponsiveView"
+      class="home-filter"
+      (filtersChange)="onFiltersChange($event)"
+    ></app-filter-drawer>
+
+    <div class="home-cards-wrap">
+      <!-- Tarjetas de resumen -->
+      <div class="row g-2 home-grid">
+        <div
+          *ngFor="let card of dashboardCards"
+          class="col-4 col-lg-4 home-card-col"
+        >
+          <div
+            class="card summary-card h-100"
+            [class.summary-card-selected]="selectedCardLabel === card.label"
+            (click)="selectCard(card.label)"
+          >
+            <div class="card-body">
+              <div class="summary-card-header">
+                <i
+                  class="bi summary-card-icon"
+                  [ngClass]="getIconClass(card.icon)"
+                  [class.summary-card-icon-selected]="selectedCardLabel === card.label"
+                  aria-hidden="true"
+                ></i>
+                <p class="mb-0 summary-card-value">{{ card.value }}</p>
+              </div>
+              <h3 class="h6 mb-0 summary-card-label">{{ card.label }}</h3>
+            </div>
           </div>
-          <h3 class="h6 mb-0 summary-card-label">{{ card.label }}</h3>
         </div>
       </div>
+
+      <!-- Filtro en posición superior para móvil/tablet -->
+      <app-filter-drawer
+        *ngIf="isResponsiveView"
+        class="home-filter home-filter-inline"
+        (filtersChange)="onFiltersChange($event)"
+      ></app-filter-drawer>
+
+      <!-- Panel inferior con mapa y tabla filtrada -->
+      <section class="home-detail-panel mt-3">
+        <div class="row g-3">
+          <!-- Mapa que cambia según departamento -->
+          <div class="col-12 col-xl-5">
+            <app-departamento-map [departamento]="departamentoMapa"></app-departamento-map>
+          </div>
+
+          <!-- Tabla con los pactos que cumplen los filtros -->
+          <div class="col-12 col-xl-7">
+            <article class="card pactos-table-card h-100 border-0">
+              <header class="pactos-table-head d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-table me-1"></i> Pactos filtrados</span>
+                <span class="pactos-count">{{ pactosFiltrados.length }}</span>
+              </header>
+
+              <div class="table-responsive pactos-table-wrap">
+                <table class="table table-sm table-hover align-middle mb-0 pactos-table">
+                  <thead>
+                    <tr>
+                      <th>Nombre del pacto</th>
+                      <th>Fecha subscripción</th>
+                      <th>Fecha vencimiento</th>
+                      <th>Etapa</th>
+                      <th>Valor indicativo</th>
+                      <th>Presupuesto comprometido</th>
+                      <th>Avance comprometido</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of pactosFiltrados">
+                      <td data-label="Nombre del pacto">{{ item.nombrePacto }}</td>
+                      <td data-label="Fecha suscripción">{{ item.fechaSubscripcion }}</td>
+                      <td data-label="Fecha vencimiento">{{ item.fechaVencimiento }}</td>
+                      <td data-label="Etapa">{{ item.etapa }}</td>
+                      <td data-label="Valor indicativo">{{ formatCurrency(item.valorIndicativo) }}</td>
+                      <td data-label="Presupuesto comprometido">{{ formatCurrency(item.presupuestoComprometido) }}</td>
+                      <td data-label="Avance comprometido">
+                        <div class="avance-cell">
+                          <span class="avance-label">{{ item.avanceComprometido }}%</span>
+                          <div class="progress avance-progress" role="progressbar" [attr.aria-valuenow]="item.avanceComprometido" aria-valuemin="0" aria-valuemax="100">
+                            <div
+                              class="progress-bar"
+                              [ngClass]="getAvanceClass(item.avanceComprometido)"
+                              [style.width.%]="item.avanceComprometido"
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="pactosFiltrados.length === 0">
+                      <td colspan="7" class="text-center text-secondary py-3">
+                        No hay resultados para los filtros seleccionados.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 

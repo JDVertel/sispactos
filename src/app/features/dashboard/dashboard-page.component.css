@@ -2,6 +2,335 @@
   display: block;
 }
 
+.dashboard-page-root {
+  position: relative;
+  max-width: 100%;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.home-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0.55rem;
+  min-height: calc(100vh - var(--topbar-height, 86px));
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-filter {
+  flex: 0 0 auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-filter-inline {
+  width: 100%;
+  margin-top: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.home-cards-wrap {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.home-grid {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.home-detail-panel {
+  margin-bottom: 0.75rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.home-detail-panel .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.home-detail-panel [class*='col-'] {
+  padding-left: 0.45rem;
+  padding-right: 0.45rem;
+  max-width: 100%;
+}
+
+.pactos-table-card {
+  background: #ffffff;
+  box-shadow: 0 0.35rem 1rem rgba(0, 162, 160, 0.14);
+  border: 1px solid rgba(0, 195, 193, 0.3);
+  width: 100%;
+  max-width: 100%;
+}
+
+.pactos-table-head {
+  background: linear-gradient(90deg, #00c3c1, #00a2a0);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 2px solid #ffbf39;
+}
+
+.pactos-count {
+  background: #ffbf39;
+  color: #5a3a00;
+  border-radius: 999px;
+  min-width: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+}
+
+.pactos-table-wrap {
+  max-height: 320px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pactos-table {
+  min-width: 100%;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.pactos-table thead th {
+  position: sticky;
+  top: 0;
+  background: #ecf9f9;
+  color: #006968;
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  z-index: 1;
+  border-bottom: 1px solid rgba(0, 195, 193, 0.3);
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.15;
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.pactos-table tbody td {
+  font-size: 0.78rem;
+  color: #4d4d4d;
+  vertical-align: middle;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.avance-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.avance-label {
+  min-width: 2.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #006968;
+}
+
+.avance-progress {
+  height: 0.45rem;
+  flex: 1;
+  background: #eaf2f2;
+  border-radius: 999px;
+}
+
+.avance-progress .progress-bar.avance-low {
+  background: #f08a8a;
+}
+
+.avance-progress .progress-bar.avance-mid {
+  background: #ffbf39;
+}
+
+.avance-progress .progress-bar.avance-high {
+  background: #00c3c1;
+}
+
+@media (max-width: 980px) {
+  .home-layout {
+    gap: 0.4rem;
+    flex-direction: column;
+    min-height: auto;
+  }
+
+  .home-filter {
+    flex: 1 1 auto;
+    width: 100%;
+    order: 1;
+  }
+
+  .home-cards-wrap {
+    overflow-x: hidden;
+    width: 100%;
+    order: 2;
+  }
+
+  .home-grid {
+    --bs-gutter-x: 0.35rem;
+  }
+
+  .home-grid .home-card-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .pactos-table thead th,
+  .pactos-table tbody td {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-layout {
+    gap: 0.3rem;
+  }
+
+  .home-filter,
+  .home-cards-wrap {
+    width: 100%;
+  }
+
+  .home-grid {
+    --bs-gutter-x: 0.3rem;
+  }
+
+  .pactos-table-head {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.6rem;
+  }
+
+  .pactos-count {
+    font-size: 0.7rem;
+    min-width: 1.35rem;
+  }
+
+  .avance-cell {
+    min-width: 120px;
+  }
+
+  .pactos-table-wrap {
+    max-height: 240px;
+  }
+
+  .pactos-table {
+    min-width: 100%;
+  }
+
+  .pactos-table-wrap {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pactos-table thead {
+    display: none;
+  }
+
+  .pactos-table,
+  .pactos-table tbody,
+  .pactos-table tr,
+  .pactos-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .pactos-table tbody tr {
+    border: 1px solid rgba(0, 195, 193, 0.25);
+    border-radius: 0.45rem;
+    padding: 0.2rem 0.45rem;
+    margin-bottom: 0.5rem;
+    background: #ffffff;
+  }
+
+  .pactos-table tbody td {
+    border: 0;
+    border-bottom: 1px dashed rgba(0, 162, 160, 0.2);
+    padding: 0.42rem 0.2rem;
+    font-size: 0.72rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    text-align: right;
+  }
+
+  .pactos-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .pactos-table tbody td::before {
+    content: attr(data-label);
+    color: #006968;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-align: left;
+    flex: 0 0 44%;
+  }
+
+  .avance-cell {
+    width: 56%;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 576px) {
+  .home-layout {
+    align-items: flex-start;
+  }
+
+  .dashboard-page-root {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .home-grid .home-card-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .home-detail-panel [class*='col-'] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .pactos-table {
+    min-width: 100%;
+  }
+
+  .pactos-table thead th,
+  .pactos-table tbody td {
+    font-size: 0.68rem;
+  }
+
+  .avance-label {
+    min-width: 2rem;
+    font-size: 0.7rem;
+  }
+
+  .home-detail-panel {
+    margin-top: 0.65rem !important;
+  }
+}
+
 .home-grid {
   --bs-gutter-y: 0.6rem;
 }

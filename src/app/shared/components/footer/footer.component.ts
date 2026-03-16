@@ -9,5 +9,6 @@ import { CommonModule } from '@angular/common';
   styleUrl: './footer.component.css',
 })
 export class FooterComponent {
+  // Año actual para mostrarlo automáticamente en el pie de página.
   currentYear = new Date().getFullYear();
 }

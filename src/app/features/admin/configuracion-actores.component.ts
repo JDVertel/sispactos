@@ -22,9 +22,12 @@ interface ActorConfiguracion {
   styleUrl: './configuracion-actores.component.css'
 })
 export class ConfiguracionActoresComponent {
+  // Tipos de actor permitidos en el formulario.
   tiposActor: TipoActor[] = ['Contratista', 'Contratante', 'Supervisor'];
+  // Filtro para mostrar actores por tipo.
   filtroTipo = '';
 
+  // Lista de actores registrados (datos de ejemplo/base).
   actores: ActorConfiguracion[] = [
     {
       id: 1,
@@ -73,6 +76,7 @@ export class ConfiguracionActoresComponent {
     estado: 'Activo'
   };
 
+  // Retorna actores según el filtro seleccionado.
   get actoresFiltrados(): ActorConfiguracion[] {
     if (!this.filtroTipo) {
       return this.actores;
@@ -80,6 +84,7 @@ export class ConfiguracionActoresComponent {
     return this.actores.filter((actor) => actor.tipo === this.filtroTipo);
   }
 
+  // Agrega un actor nuevo cuando el formulario está completo.
   agregarActor(): void {
     if (
       !this.nuevoActor.nombre.trim() ||
@@ -108,6 +113,7 @@ export class ConfiguracionActoresComponent {
     this.resetFormulario();
   }
 
+  // Limpia el formulario de registro para volver a empezar.
   resetFormulario(): void {
     this.nuevoActor = {
       tipo: 'Contratista',

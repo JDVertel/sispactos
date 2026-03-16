@@ -29,15 +29,22 @@
   padding-bottom: 0.75rem;
 }
 
+.sidebar-logo-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.25rem 0;
+}
+
+.sidebar-logo {
+  height: 70px;
+  width: auto;
+  object-fit: contain;
+}
+
 .sidebar-fab {
-  position: fixed;
-  top: calc(var(--topbar-height, 70px) + 0.5rem);
-  left: 0.75rem;
-  z-index: 1095;
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease,
-    visibility 0.25s ease;
+  display: none !important;
 }
 
 .sidebar-fab.is-hidden {
@@ -139,6 +146,7 @@
   width: 100%;
   padding: 0.5rem 0.75rem;
   line-height: 1.4;
+  text-decoration: none !important;
 }
 
 .menu-link:hover {
@@ -172,7 +180,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #ffbf39;
+  color: #00c3c1;
 }
 
 .menu-icon :is(svg) {

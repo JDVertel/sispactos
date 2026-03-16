@@ -46,8 +46,10 @@ interface ProyectoFormData {
   styleUrl: './proyectos-management.component.css'
 })
 export class ProyectosManagementComponent implements OnInit {
+  // Lista observable de proyectos para la vista.
   proyectos$: Observable<Proyecto[]>;
 
+  // Catálogos que alimentan los selectores del formulario.
   estadosProyecto: string[] = [];
   pactosDisponibles: string[] = [];
   areasInfluencia: string[] = ['Urbana', 'Rural', 'Mixta', 'Regional'];
@@ -64,6 +66,7 @@ export class ProyectosManagementComponent implements OnInit {
     Barranquilla: ['Alcaldia de Barranquilla', 'Area Metropolitana BAQ'],
     Bucaramanga: ['Alcaldia de Bucaramanga', 'AMB']
   };
+  // Datos del formulario para crear un nuevo proyecto.
   newProyecto: ProyectoFormData = this.getInitialFormData();
 
   constructor(
@@ -75,6 +78,7 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    // Carga estados y pactos disponibles al iniciar la pantalla.
     const estados = this.proyectosService.getEstadosProyecto();
     this.estadosProyecto = estados.includes('No iniciado') ? estados : ['No iniciado', ...estados];
     this.newProyecto.estadoProyecto = 'No iniciado';
@@ -83,6 +87,7 @@ export class ProyectosManagementComponent implements OnInit {
     });
   }
 
+  // Crea un proyecto nuevo cuando pasa las validaciones principales.
   addProyecto(): void {
     const {
       nombre,
@@ -158,10 +163,12 @@ export class ProyectosManagementComponent implements OnInit {
     this.resetForm();
   }
 
+  // Elimina un proyecto del listado.
   deleteProyecto(id: number): void {
     this.proyectosService.removeProyecto(id);
   }
 
+  // Reinicia el formulario a su estado inicial.
   resetForm(): void {
     this.newProyecto = this.getInitialFormData();
   }
@@ -174,18 +181,21 @@ export class ProyectosManagementComponent implements OnInit {
     return this.entidadesPorMunicipio[this.newProyecto.municipioEntidad] ?? [];
   }
 
+  // Si se desmarca viabilidad, limpia su fecha asociada.
   onTieneViabilidadChange(): void {
     if (!this.newProyecto.tieneViabilidad) {
       this.newProyecto.fechaViabilidad = '';
     }
   }
 
+  // Si FRPT está desactivado, limpia el número de contrato específico.
   onFrptChange(): void {
     if (!this.newProyecto.frpt) {
       this.newProyecto.numeroContratoEspecifico = '';
     }
   }
 
+  // Al cambiar municipio, se reinicia la entidad responsable.
   onMunicipioEntidadChange(): void {
     this.newProyecto.entidadResponsablePi = '';
   }

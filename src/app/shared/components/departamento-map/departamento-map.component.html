@@ -1,0 +1,19 @@
+<!-- Tarjeta del mapa enfocada en el departamento elegido -->
+<article class="card map-card h-100 border-0">
+  <!-- Encabezado con título y nombre del departamento -->
+  <header class="map-card-head d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-map me-1"></i> Mapa por departamento</span>
+    <span class="map-chip">{{ displayDepartamento }}</span>
+  </header>
+
+  <!-- Contenedor del mapa embebido -->
+  <div class="map-frame-wrap">
+    <iframe
+      class="map-frame"
+      [src]="mapUrl"
+      title="Mapa del departamento seleccionado"
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+  </div>
+</article>

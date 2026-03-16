@@ -1,10 +1,24 @@
+<!-- Barra superior con título del sistema y datos de sesión -->
 <header class="topbar">
-  <div class="topbar-brand">
-    <img src="/pactos-territoriales-logo.png" alt="SISPACTOS" class="topbar-logo" />
+  <button class="topbar-menu-btn" type="button" (click)="toggleSidebar()" aria-label="Abrir menu">
+    <i class="bi bi-list"></i>
+  </button>
+  <div class="topbar-title-block">
+    <h1 class="topbar-title mb-0" aria-label="SISPACTOS">
+      <span class="topbar-title-sis">SIS</span><span class="topbar-title-pactos">PACTOS</span>
+    </h1>
     <p class="topbar-subtitle mb-0">Sistema de Informacion para el seguimiento de Pactos Territoriales</p>
+  </div>
+  <div class="topbar-session">
+    <div class="topbar-meta">
+      <span class="topbar-user">{{ sessionUserName }}</span>
+      <span class="topbar-role">{{ sessionUserRole }}</span>
+    </div>
+    <div class="topbar-avatar">{{ sessionUserName.charAt(0).toUpperCase() }}</div>
   </div>
 </header>
 
+<!-- Estructura principal: menú lateral + contenido central -->
 <div class="dashboard-shell">
   <app-sidebar
     [menuItems]="menuItems"
@@ -19,7 +33,9 @@
   ></app-sidebar>
 
   <main class="content">
+    <!-- Aquí se carga cada página interna según la opción elegida -->
     <router-outlet></router-outlet>
   </main>
 </div>
+<!-- Pie de página institucional -->
 <app-footer></app-footer>

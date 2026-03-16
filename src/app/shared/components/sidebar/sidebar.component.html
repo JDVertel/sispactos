@@ -1,3 +1,4 @@
+<!-- Fondo oscuro para cerrar el menú tocando fuera -->
 <button
   class="menu-overlay"
   type="button"
@@ -6,6 +7,7 @@
   (click)="closeAllMenus()"
 ></button>
 
+<!-- Botón flotante para abrir menú en pantallas pequeñas -->
 <button
   class="sidebar-fab btn btn-primary d-lg-none"
   type="button"
@@ -16,25 +18,22 @@
   Menu
 </button>
 
+<!-- Menú lateral principal -->
 <aside class="sidebar card border-0 rounded-0" [class.is-open]="isSidebarOpen">
+  <!-- Encabezado del menú con logo -->
   <div class="d-flex align-items-center justify-content-between mb-3 sidebar-head">
-    <div class="sidebar-user-block">
-      <div class="sidebar-avatar" [attr.aria-label]="'Avatar de ' + sessionUserName">
-        {{ sessionUserInitial }}
-      </div>
-      <div class="sidebar-user-meta">
-        <p class="sidebar-user-name mb-0">{{ sessionUserName }}</p>
-        <p class="sidebar-user-role mb-0">{{ sessionUserRole }}</p>
-        <span class="sidebar-user-profile"><i class="bi bi-person-circle"></i> Perfil</span>
-      </div>
+    <div class="sidebar-logo-block">
+      <img src="/logodnp.png" alt="DNP" class="sidebar-logo" />
     </div>
     <button class="btn btn-outline-secondary btn-sm d-lg-none" type="button" (click)="closeAllMenus()" aria-label="Cerrar menu">
       X
     </button>
   </div>
 
+  <!-- Opciones de navegación -->
   <nav class="nav flex-column gap-1 sidebar-nav">
     <ng-container *ngFor="let item of menuItems">
+      <!-- Opción simple -->
       <a
         *ngIf="item.type === 'item'"
         class="nav-link rounded px-3 py-2 d-flex align-items-center gap-2 menu-link"
@@ -47,6 +46,7 @@
         {{ formatLabel(item.label) }}
       </a>
 
+      <!-- Opción con submenú -->
       <div *ngIf="item.type === 'submenu'" class="vstack gap-1">
         <button
           type="button"
@@ -60,6 +60,7 @@
           <span class="submenu-indicator" aria-hidden="true">+</span>
         </button>
 
+        <!-- Hijos del submenú -->
         <div class="vstack gap-1 ms-3" *ngIf="activeSubmenu === item.label">
           <a
             *ngFor="let child of item.children"
@@ -73,6 +74,7 @@
         </div>
       </div>
 
+      <!-- Título separador entre grupos -->
       <p *ngIf="item.type === 'separator'" class="small text-uppercase text-secondary fw-semibold mt-2 mb-1 px-2">{{ formatLabel(item.label) }}</p>
     </ng-container>
   </nav>

@@ -14,13 +14,16 @@ import { Observable } from 'rxjs';
   styleUrl: './admin-roles.component.css'
 })
 export class AdminRolesComponent implements OnInit {
+  // Pestaña activa en la vista de administración.
   activeTab = 'roles';
 
+  // Fuentes de datos para roles y diferentes tipos de usuarios.
   roles$: Observable<Role[]>;
   localUsers$: Observable<LocalUser[]>;
   externalUsers$: Observable<ExternalUser[]>;
   pendingUsers$: Observable<PendingUser[]>;
 
+  // Datos del nuevo rol que se quiere crear.
   newRoleName = '';
   newRoleDescription = '';
   newRolePermissions: string[] = [];
@@ -46,6 +49,7 @@ export class AdminRolesComponent implements OnInit {
   availablePactos: string[] = [];
   availableProyectos: string[] = [];
   availableContratos: string[] = [];
+  // Módulos disponibles para asignar permisos.
   availableModules: Array<{ value: string; label: string }> = [];
 
   constructor(
@@ -62,10 +66,12 @@ export class AdminRolesComponent implements OnInit {
     this.availableModules = this.dashboardService.getAvailablePermissions();
   }
 
+  // Cambia la pestaña visible (roles, usuarios locales o externos).
   setActiveTab(tab: string): void {
     this.activeTab = tab;
   }
 
+  // Crea un rol nuevo cuando los datos mínimos están completos.
   addRole(): void {
     const name = this.newRoleName.trim();
     const description = this.newRoleDescription.trim();
@@ -89,6 +95,7 @@ export class AdminRolesComponent implements OnInit {
     this.newRolePermissions = [];
   }
 
+  // Activa o quita un permiso de la selección actual.
   togglePermission(permission: string): void {
     const index = this.newRolePermissions.indexOf(permission);
     if (index > -1) {
@@ -98,10 +105,12 @@ export class AdminRolesComponent implements OnInit {
     }
   }
 
+  // Elimina un rol por su identificador.
   removeRole(id: number): void {
     this.rolesUsersService.removeRole(id);
   }
 
+  // Agrega un usuario local con su rol y asignaciones.
   addLocalUser(): void {
     const { name, email, role } = this.newLocalUser;
     
@@ -120,10 +129,12 @@ export class AdminRolesComponent implements OnInit {
     };
   }
 
+  // Elimina un usuario local.
   removeLocalUser(id: number): void {
     this.rolesUsersService.removeLocalUser(id);
   }
 
+  // Agrega un usuario externo con su entidad responsable.
   addExternalUser(): void {
     const { name, email, entidadResponsable } = this.newExternalUser;
     
@@ -142,14 +153,17 @@ export class AdminRolesComponent implements OnInit {
     };
   }
 
+  // Elimina un usuario externo.
   removeExternalUser(id: number): void {
     this.rolesUsersService.removeExternalUser(id);
   }
 
+  // Aprueba una solicitud de usuario pendiente.
   approveUser(id: number): void {
     this.rolesUsersService.approvePendingUser(id);
   }
 
+  // Rechaza una solicitud de usuario pendiente.
   rejectUser(id: number): void {
     this.rolesUsersService.rejectPendingUser(id);
   }
