@@ -33,9 +33,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.32rem;
   width: 2.7rem;
-  padding: 1rem 0;
+  padding: 0.7rem 0;
   /* Cuando está cerrado usa color amarillo. */
   background: #ffbf39;
   color: #5a3a00;
@@ -69,12 +69,16 @@
 }
 
 .filter-drawer__tab-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.6rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   writing-mode: vertical-rl;
   text-orientation: mixed;
+  transform: translateY(-0.15rem);
 }
 
 .filter-drawer__tab-badge {
@@ -122,11 +126,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.9rem;
-  background: linear-gradient(90deg, #00c3c1, #00a2a0);
-  color: #ffffff;
+  background: linear-gradient(90deg, #ffd15f, #ffbf39);
+  color: #5a3a00;
   flex-shrink: 0;
   white-space: nowrap;
-  border-bottom: 2px solid #ffbf39;
+  border-bottom: 2px solid #d39500;
 }
 
 .filter-drawer__head-title {
@@ -140,7 +144,7 @@
 .filter-drawer__close {
   background: transparent;
   border: none;
-  color: #ffffff;
+  color: #5a3a00;
   font-size: 1rem;
   cursor: pointer;
   padding: 0;
@@ -162,6 +166,7 @@
   padding: 1rem 0.9rem 0.75rem;
   flex: 1;
   overflow-y: auto;
+  background: #fffaf0;
 }
 
 @media (max-width: 980px) {
@@ -196,6 +201,7 @@
     text-orientation: mixed;
     font-size: 0.72rem;
     letter-spacing: 0.03em;
+    transform: none;
   }
 
   .filter-drawer__tab-badge {
@@ -262,7 +268,7 @@
 .filter-label {
   font-size: 0.73rem;
   font-weight: 700;
-  color: #4d4d4d;
+  color: #5a3a00;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: flex;
@@ -272,17 +278,17 @@
 }
 
 .filter-label i {
-  color: #00c3c1;
+  color: #d39500;
   font-size: 0.85rem;
 }
 
 .filter-select {
   font-size: 0.82rem;
-  border: 1px solid rgba(0, 195, 193, 0.4);
+  border: 1px solid rgba(211, 149, 0, 0.45);
   border-radius: 0.3rem;
   padding: 0.35rem 0.6rem;
   color: #4d4d4d;
-  background: #f9fefe;
+  background: #fffdf7;
   outline: none;
   cursor: pointer;
   width: 100%;
@@ -290,8 +296,8 @@
 }
 
 .filter-select:focus {
-  border-color: #00c3c1;
-  box-shadow: 0 0 0 3px rgba(0, 195, 193, 0.15);
+  border-color: #ffbf39;
+  box-shadow: 0 0 0 3px rgba(255, 191, 57, 0.24);
 }
 
 /* ── Chips activos ────────────────────────────────────── */
@@ -300,7 +306,8 @@
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.5rem 0.9rem;
-  border-top: 1px dashed rgba(0, 195, 193, 0.25);
+  border-top: 1px dashed rgba(211, 149, 0, 0.35);
+  background: #fff7e5;
 }
 
 .filter-chip {
@@ -350,15 +357,16 @@
 /* ── Pie ──────────────────────────────────────────────── */
 .filter-drawer__footer {
   padding: 0.6rem 0.9rem;
-  border-top: 1px solid rgba(0, 162, 160, 0.15);
+  border-top: 1px solid rgba(211, 149, 0, 0.28);
+  background: #fff7e5;
   flex-shrink: 0;
 }
 
 .filter-drawer__clear {
   width: 100%;
-  background: transparent;
+  background: #ffbf39;
   border: 1px solid #ffbf39;
-  color: #b87c00;
+  color: #5a3a00;
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: 0.3rem;
@@ -373,7 +381,7 @@
 }
 
 .filter-drawer__clear:hover:not(:disabled) {
-  background: rgba(255, 191, 57, 0.15);
+  background: #e5a800;
   color: #5a3a00;
 }
 
