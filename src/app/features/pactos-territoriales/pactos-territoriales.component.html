@@ -1,0 +1,161 @@
+<!-- Navtab eliminado -->
+<div>
+    <!-- Menú dinámico de estado -->
+    <div class="mb-3 d-flex gap-2">
+      <button type="button"
+        class="estado-btn"
+        [class.estado-btn-activo]="estadoSeleccionado === 'implementacion'"
+        (click)="seleccionarEstado('implementacion')">
+        Implementación
+      </button>
+      <button type="button"
+        class="estado-btn"
+        [class.estado-btn-activo]="estadoSeleccionado === 'cierre'"
+        (click)="seleccionarEstado('cierre')">
+        Cierre
+      </button>
+    </div>
+    <!-- Cards de ejecución y valores integradas en cada pacto -->
+    <div class="mb-3">
+      <label class="form-label">Selecciona un pacto:</label>
+      <div class="list-group list-group-horizontal pactos-scroll"
+           [class.scrollable]="pactosFiltrados.length >= 7">
+        <button *ngFor="let pacto of pactosFiltrados" type="button" class="list-group-item list-group-item-action me-2"
+          [class.active]="pactoSeleccionado?.id === pacto.id" (click)="seleccionarPacto(pacto)">
+          {{ pacto.nombre }} ({{ pacto.departamento }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs internas para la información del pacto -->
+    <div *ngIf="pactoSeleccionado" class="mb-3">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="tabActivo === 'info'" (click)="tabActivo = 'info'" type="button" role="tab">
+            <i class="bi bi-info-circle"></i> Información general
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="tabActivo === 'avance'" (click)="tabActivo = 'avance'" type="button" role="tab">
+            <i class="bi bi-graph-up"></i> Avance consolidado
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="tabActivo === 'aportes'" (click)="tabActivo = 'aportes'" type="button" role="tab">
+            <i class="bi bi-cash-coin"></i> Detalle de aportes
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="tabActivo === 'iniciativas'" (click)="tabActivo = 'iniciativas'" type="button" role="tab">
+            <i class="bi bi-lightbulb"></i> Iniciativas
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="tabActivo === 'proyectos'" (click)="tabActivo = 'proyectos'" type="button" role="tab">
+            <i class="bi bi-kanban"></i> Inf. proyectos
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="tabActivo === 'compromisos'" (click)="tabActivo = 'compromisos'" type="button" role="tab">
+            <i class="bi bi-check2-circle"></i> Compromisos
+          </button>
+        </li>
+      </ul>
+      <div class="tab-content pt-3">
+        <div class="tab-pane fade show active" *ngIf="tabActivo === 'info'">
+          <!-- Cards de ejecución y valores debajo del selector, mostrando datos del pacto seleccionado -->
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-md-3" *ngFor="let card of [
+              {label: 'Ejecución física', value: datosClave[pactoSeleccionado.id]?.ejecucionFisica ? (datosClave[pactoSeleccionado.id].ejecucionFisica + '%') : '62%', color: 'card-ejecucion'},
+              {label: 'Ejecución financiera', value: datosClave[pactoSeleccionado.id]?.ejecucionFinanciera ? (datosClave[pactoSeleccionado.id].ejecucionFinanciera + '%') : '55%', color: 'card-ejecucion'},
+              {label: 'Valor ejecutado', value: datosClave[pactoSeleccionado.id]?.valorEjecutado ? ('$' + datosClave[pactoSeleccionado.id].valorEjecutado.toLocaleString()) : '$120.000.000', color: 'card-ejecucion'},
+              {label: 'Valor por ejecutar', value: datosClave[pactoSeleccionado.id]?.valorPorEjecutar ? ('$' + datosClave[pactoSeleccionado.id].valorPorEjecutar.toLocaleString()) : '$80.000.000', color: 'card-ejecucion'}
+            ]">
+              <div class="card h-100 {{card.color}}">
+                <div class="card-body py-2 px-3">
+                  <div class="fw-bold small text-secondary">{{ card.label }}</div>
+                  <div class="fs-5">{{ card.value }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Panel de mediatorta (avance) y mapa -->
+          <div class="row mb-4">
+            <div class="col-12 col-lg-6 mb-3 mb-lg-0 d-flex flex-column gap-3">
+              <div class="card h-100 mb-3">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                  <div class="fw-bold mb-2">Avance del pacto</div>
+                  <svg width="120" height="120" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="54" fill="#f7fafd" stroke="#e0e0e0" stroke-width="12" />
+                    <circle cx="60" cy="60" r="54" fill="none" stroke="#00c3c1" stroke-width="12"
+                      [attr.stroke-dasharray]="339.292" [attr.stroke-dashoffset]="339.292 - ((datosClaveSeguro?.porcentajeTiempo || 0) / 100 * 339.292)"
+                      stroke-linecap="round" transform="rotate(-90 60 60)" />
+                    <text x="50%" y="54%" text-anchor="middle" fill="#00a2a0" font-size="1.6em" font-weight="bold" dy=".3em">
+                      {{ datosClaveSeguro?.porcentajeTiempo || 0 }}%
+                    </text>
+                  </svg>
+                </div>
+              </div>
+              <app-departamento-map *ngIf="pactoSeleccionado" [departamento]="pactoSeleccionado.departamento || ''"></app-departamento-map>
+            </div>
+            <div class="col-12 col-lg-6 d-flex flex-column gap-3">
+              <div class="row g-2 mb-2" *ngIf="pactoSeleccionado && galeria[pactoSeleccionado.id]">
+                <div class="col-6 col-md-4" *ngFor="let img of galeria[pactoSeleccionado.id]">
+                  <div class="gallery-img-wrap">
+                    <img [src]="img" class="img-fluid gallery-img" alt="Imagen del pacto" />
+                  </div>
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6 col-md-3" *ngFor="let card of [
+                  {label: 'Fecha suscripción', value: datosClaveSeguro.fechaSuscripcion},
+                  {label: 'Plazo (años)', value: datosClaveSeguro.plazoAnios},
+                  {label: 'Vencimiento', value: datosClaveSeguro.vencimiento},
+                  {label: 'Meses para vencimiento', value: datosClaveSeguro.mesesParaVencimiento}
+                ]">
+                  <div class="card card-dato h-100">
+                    <div class="card-body py-2 px-3">
+                      <div class="fw-bold small text-secondary">{{ card.label }}</div>
+                      <div class="fs-5">{{ card.value }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row g-2">
+                <div class="col-6 col-md-3" *ngFor="let card of [
+                  {label: '% Tiempo transcurrido', value: (datosClaveSeguro.porcentajeTiempo || 0) + '%'},
+                  {label: 'Total de proyectos', value: datosClaveSeguro.totalProyectos},
+                  {label: 'Valor indicativo', value: datosClaveSeguro.valorIndicativo ? ('$' + datosClaveSeguro.valorIndicativo.toLocaleString()) : ''},
+                  {label: 'Aporte ind. Nación', value: datosClaveSeguro.aporteNacion ? ('$' + datosClaveSeguro.aporteNacion.toLocaleString()) : ''},
+                  {label: 'Aporte ind. Territorio', value: datosClaveSeguro.aporteTerritorio ? ('$' + datosClaveSeguro.aporteTerritorio.toLocaleString()) : ''}
+                ]">
+                  <div class="card card-dato h-100">
+                    <div class="card-body py-2 px-3">
+                      <div class="fw-bold small text-secondary">{{ card.label }}</div>
+                      <div class="fs-5">{{ card.value }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane fade show active" *ngIf="tabActivo === 'avance'">
+          <div class="alert alert-info">Contenido de Avance consolidado</div>
+        </div>
+        <div class="tab-pane fade show active" *ngIf="tabActivo === 'aportes'">
+          <div class="alert alert-info">Contenido de Detalle de aportes</div>
+        </div>
+        <div class="tab-pane fade show active" *ngIf="tabActivo === 'iniciativas'">
+          <div class="alert alert-info">Contenido de Iniciativas</div>
+        </div>
+        <div class="tab-pane fade show active" *ngIf="tabActivo === 'proyectos'">
+          <div class="alert alert-info">Contenido de Inf. proyectos</div>
+        </div>
+        <div class="tab-pane fade show active" *ngIf="tabActivo === 'compromisos'">
+          <div class="alert alert-info">Contenido de Compromisos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+

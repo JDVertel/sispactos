@@ -7,6 +7,7 @@ import { PactosManagementComponent } from './features/admin/pactos-management.co
 import { ProyectosManagementComponent } from './features/admin/proyectos-management.component';
 import { ContratosManagementComponent } from './features/admin/contratos-management.component';
 import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
+import { PactosTerritorialesComponent } from './features/pactos-territoriales/pactos-territoriales.component';
 
 export const routes: Routes = [
 	{
@@ -46,6 +47,10 @@ export const routes: Routes = [
 			{
 				path: 'configuracion-actores',
 				component: ConfiguracionActoresComponent
+			},
+			{
+				path: 'pactos-territoriales',
+				component: PactosTerritorialesComponent
 			},
 			{
 				path: ':page',

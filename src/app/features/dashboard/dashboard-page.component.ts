@@ -1,5 +1,5 @@
-﻿import { CommonModule } from '@angular/common';
-import { Component, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FilterDrawerComponent, type FilterDrawerValues } from '../../shared/components/filter-drawer/filter-drawer.component';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
@@ -102,7 +102,7 @@ const PAGE_DATA: Record<string, { title: string; description: string }> = {
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.css'
 })
-export class DashboardPageComponent {
+export class DashboardPageComponent implements OnInit, OnDestroy {
   // Texto principal que se muestra en la parte superior de la página.
   pageTitle = 'SISPACTOS';
   pageDescription = 'Resumen general.';
@@ -229,6 +229,7 @@ export class DashboardPageComponent {
       icon: 'handshake',
       label: 'Pactos Territoriales',
       value: '16',
+      type: 'cantidad',
       size: 'medium',
       isWide: false
     },
@@ -236,34 +237,15 @@ export class DashboardPageComponent {
       icon: 'currency',
       label: 'Valor Indicativo',
       value: '$2.5B',
+      type: 'valor',
       size: 'medium',
-      isWide: false
-    },
-    {
-      icon: 'building',
-      label: 'Área Metropolitana',
-      value: '8',
-      size: 'small',
-      isWide: false
-    },
-    {
-      icon: 'map-marker',
-      label: 'Departamentos',
-      value: '32',
-      size: 'small',
-      isWide: false
-    },
-    {
-      icon: 'city',
-      label: 'Municipios',
-      value: '1,103',
-      size: 'small',
       isWide: false
     },
     {
       icon: 'folder-open',
       label: 'Proyectos',
       value: '247',
+      type: 'cantidad',
       size: 'medium',
       isWide: false
     },
@@ -271,20 +253,15 @@ export class DashboardPageComponent {
       icon: 'check-circle',
       label: 'Proyectos en Ejecución/Terminados',
       value: '156',
+      type: 'cantidad',
       size: 'wide',
-      isWide: true
-    },
-    {
-      icon: 'users',
-      label: 'Habitantes del Área de Influencia',
-      value: '24.5M',
-      size: 'large',
       isWide: true
     },
     {
       icon: 'progress',
       label: 'Avance Comprometido/Indicativo',
       value: '68%',
+      type: 'porcentaje',
       size: 'medium',
       isWide: true
     },
@@ -292,10 +269,62 @@ export class DashboardPageComponent {
       icon: 'wallet-check',
       label: 'Presupuesto Comprometido',
       value: '$1.7B',
+      type: 'valor',
       size: 'medium',
       isWide: true
     }
   ];
+
+  carouselImages = [
+    {
+      src: 'https://placehold.co/900x320/00c3c1/fff?text=Proyecto+de+Infraestructura',
+      alt: 'Proyecto de infraestructura',
+      caption: 'Proyecto de infraestructura comunitaria'
+    },
+    {
+      src: 'https://placehold.co/900x320/ffbf39/232323?text=Comunidad+Participando',
+      alt: 'Comunidad participando',
+      caption: 'Participación de la comunidad en proyectos sociales'
+    },
+    {
+      src: 'https://placehold.co/900x320/232323/ffbf39?text=Educación+y+Desarrollo',
+      alt: 'Educación y desarrollo',
+      caption: 'Iniciativas de educación y desarrollo local'
+    }
+  ];
+
+  currentCarousel = 0;
+  carouselInterval: any;
+
+  ngOnInit() {
+    // Aleatorizar imágenes al cargar
+    this.carouselImages = this.shuffleArray(this.carouselImages);
+    // Avance automático
+    this.carouselInterval = setInterval(() => {
+      this.nextCarousel();
+    }, 4000);
+  }
+
+  ngOnDestroy() {
+    if (this.carouselInterval) {
+      clearInterval(this.carouselInterval);
+    }
+  }
+
+  shuffleArray(array: any[]) {
+    return array
+      .map(value => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value);
+  }
+
+  nextCarousel() {
+    this.currentCarousel = (this.currentCarousel + 1) % this.carouselImages.length;
+  }
+
+  prevCarousel() {
+    this.currentCarousel = (this.currentCarousel - 1 + this.carouselImages.length) % this.carouselImages.length;
+  }
 
   constructor(private route: ActivatedRoute) {
     // Al iniciar, revisa el tamaño de pantalla para organizar el layout.

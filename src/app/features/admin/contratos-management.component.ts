@@ -113,15 +113,19 @@ export class ContratosManagementComponent implements OnInit {
       !objeto.trim() ||
       !urlSecop.trim()
     ) {
+      console.warn('[SISPACTOS] No se guarda contrato: validacion fallida.');
       return;
     }
 
-    this.contratosService.addContrato({
+    const payload = {
       ...this.newContrato,
       contratoPadre: contratoPadre.trim(),
       objeto: objeto.trim(),
       urlSecop: urlSecop.trim()
-    });
+    };
+
+    console.log('[SISPACTOS] Nuevo contrato (local):', payload);
+    this.contratosService.addContrato(payload);
     this.resetForm();
   }
 

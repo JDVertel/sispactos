@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -8,7 +8,7 @@ import { FooterComponent } from '../../shared/components/footer/footer.component
 const MENU_ITEMS: MenuItem[] = [
   // Menú principal que alimenta la navegación del panel.
   { type: 'item', label: 'Home', route: 'home', icon: 'home' },
-  { type: 'item', label: 'Pacto territorial', route: 'pacto-territorial', icon: 'pin' },
+  { type: 'item', label: 'Pactos Territoriales', route: 'pactos-territoriales', icon: 'pin' },
   {
     type: 'submenu',
     label: 'proyectos',

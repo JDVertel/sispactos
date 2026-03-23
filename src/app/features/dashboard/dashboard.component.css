@@ -10,7 +10,7 @@
 .topbar {
   height: var(--topbar-height);
   padding: 0.35rem 1.25rem;
-  background: linear-gradient(90deg, #43d8d5 0%, #7eeeed 50%, #43d8d5 100%);
+  background: linear-gradient(90deg, #7a7c7c 0%, #ffffff 50%, #48bbb9 100%);
   color: #ffffff;
   position: sticky;
   top: 0;

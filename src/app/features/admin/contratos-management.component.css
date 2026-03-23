@@ -3,6 +3,13 @@
   --home-font-size: 0.82rem;
 }
 
+.top-bar {
+  background-color: #ebebeb !important;
+  border: none !important;
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+
 .form-label,
 .form-control,
 .form-select,

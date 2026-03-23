@@ -1,22 +1,22 @@
 <!-- Pantalla para administrar proyectos -->
 <section class="container-fluid px-0">
   <!-- Encabezado con indicadores y acceso rápido al formulario -->
-  <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
+  <header class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
       <p class="text-uppercase small text-secondary mb-1">Administracion</p>
       <h1 class="h3 mb-1">Gestion de Proyectos</h1>
       <p class="text-secondary mb-0">Crea, administra y visualiza los proyectos asociados a los pactos territoriales.</p>
     </div>
-    <div class="row g-2">
-      <div class="col-6 col-xl-auto"><span class="badge text-bg-light border p-2">Activos: {{ (proyectos$ | async)?.length ?? 0 }}</span></div>
-      <div class="col-6 col-xl-auto"><span class="badge text-bg-light border p-2">Presupuesto: {{ formatCurrency(getTotalPresupuesto()) }}</span></div>
-      <div class="col-6 col-xl-auto"><span class="badge text-bg-light border p-2">Avance: {{ getAvancePromedio() }}%</span></div>
-      <div class="col-6 col-xl-auto"><span class="badge text-bg-light border p-2">Directos: {{ getTotalEmpleosDirectos() }}</span></div>
-      <div class="col-6 col-xl-auto"><span class="badge text-bg-light border p-2">Indirectos: {{ getTotalEmpleosIndirectos() }}</span></div>
-      <div class="col-12 col-xl-auto">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <span class="badge text-bg-light border px-3 py-2">Activos: {{ (proyectos$ | async)?.length ?? 0 }}</span>
+      <span class="badge text-bg-light border px-3 py-2">Presupuesto: {{ formatCurrency(getTotalPresupuesto()) }}</span>
+      <span class="badge text-bg-light border px-3 py-2">Avance: {{ getAvancePromedio() }}%</span>
+      <span class="badge text-bg-light border px-3 py-2">Directos: {{ getTotalEmpleosDirectos() }}</span>
+      <span class="badge text-bg-light border px-3 py-2">Indirectos: {{ getTotalEmpleosIndirectos() }}</span>
+      <div>
         <button
           type="button"
-          class="btn btn-primary w-100"
+          class="btn btn-primary"
           data-bs-toggle="modal"
           data-bs-target="#nuevoProyectoModal"
         >
@@ -27,36 +27,38 @@
   </header>
 
   <!-- Listado de proyectos registrados -->
-  <div class="row g-3">
-    <div class="col-12">
-      <h2 class="h5 mb-3">Proyectos Registrados</h2>
-
-      <p *ngIf="(proyectos$ | async)?.length === 0" class="alert alert-light border text-center">
-        Aun no hay proyectos registrados. Usa el boton Nuevo Proyecto para crear el primero.
-      </p>
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-body-tertiary py-3">
+      <h2 class="h5 mb-0">Proyectos Registrados</h2>
+    </div>
+    <div class="card-body p-2 p-md-3">
+      <div *ngIf="(proyectos$ | async)?.length === 0" class="alert alert-light border text-center mb-0">
+        No hay proyectos registrados. Usa el botón <strong>Nuevo Proyecto</strong> para crear el primero.
+      </div>
 
       <article *ngFor="let proyecto of proyectos$ | async" class="card mb-3 border">
-        <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
-          <div>
-            <h3>{{ proyecto.nombre }}</h3>
-            <p class="card-code">{{ proyecto.codigo }}</p>
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
+            <div>
+              <h3 class="h5 mb-1">{{ proyecto.nombre }}</h3>
+              <p class="card-code mb-0">{{ proyecto.codigo }}</p>
+            </div>
+            <button
+              type="button"
+              class="btn btn-outline-danger btn-sm"
+              (click)="deleteProyecto(proyecto.id)"
+              aria-label="Eliminar proyecto"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+              Eliminar
+            </button>
           </div>
-          <button
-            type="button"
-            class="btn btn-outline-danger btn-sm"
-            (click)="deleteProyecto(proyecto.id)"
-            aria-label="Eliminar proyecto"
-          >
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-            </svg>
-            Eliminar
-          </button>
-        </div>
 
-        <p class="mb-3">{{ proyecto.descripcion }}</p>
+          <p class="mb-3">{{ proyecto.descripcion }}</p>
 
-        <div class="row g-3">
+          <div class="row g-3">
           <div class="col-12 col-md-6" *ngIf="proyecto.bpin">
             <span class="small text-uppercase text-secondary fw-semibold">BPIN:</span>
             <strong>{{ proyecto.bpin }}</strong>
@@ -122,11 +124,12 @@
               <span class="small text-secondary">{{ proyecto.avance }}%</span>
             </div>
           </div>
-        </div>
+          </div>
 
-        <p class="small text-secondary border-top pt-2 mt-3 mb-0">
-          Creado el {{ formatDate(proyecto.fechaCreacion) }}
-        </p>
+          <p class="small text-secondary border-top pt-2 mt-3 mb-0">
+            Creado el {{ formatDate(proyecto.fechaCreacion) }}
+          </p>
+        </div>
       </article>
     </div>
   </div>

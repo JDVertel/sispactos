@@ -5,6 +5,11 @@ import { PactosService } from '../../core/services/pactos.service';
 import { Pacto } from '../../shared/models';
 import { Observable } from 'rxjs';
 
+type PactoFormData = Pick<
+  Pacto,
+  'tipoPacto' | 'nombre' | 'descripcion' | 'objetivo' | 'lineasTematicas' | 'fechaSuscripcion' | 'idEtapa' | 'fechaVencimiento' | 'urlDocPacto' | 'urlDocMinuta'
+>;
+
 @Component({
   selector: 'app-pactos-management',
   standalone: true,
@@ -30,28 +35,17 @@ export class PactosManagementComponent implements OnInit {
     Santander: ['Bucaramanga', 'Floridablanca', 'Barrancabermeja']
   };
 
-  newPacto: Omit<Pacto, 'id'> = {
+  newPacto: PactoFormData = {
     tipoPacto: '',
     nombre: '',
     descripcion: '',
     objetivo: '',
     lineasTematicas: [],
     fechaSuscripcion: '',
-    fechaNegociacion: '',
-    valorEstimado: 0,
-    valorEstimadoOtros: 0,
-    porcentajeEstimado: 0,
-    usuarioCreo: '',
-    fechaCreacion: new Date().toISOString(),
-    usuarioModifico: '',
-    fechaModificacion: new Date().toISOString(),
     idEtapa: this.etapaPorDefecto,
     fechaVencimiento: '',
-    alcance: '',
     urlDocPacto: '',
-    urlDocMinuta: '',
-    urlDocPEI: '',
-    urlDocFicha: ''
+    urlDocMinuta: ''
   };
 
   tiposPactos = ['Territorio', 'Nación'];
@@ -65,7 +59,7 @@ export class PactosManagementComponent implements OnInit {
   }
 
   // Guarda el nombre del archivo seleccionado en el campo correspondiente.
-  onFileSelected(event: Event, field: 'urlDocPacto' | 'urlDocMinuta' | 'urlDocPEI' | 'urlDocFicha'): void {
+  onFileSelected(event: Event, field: 'urlDocPacto' | 'urlDocMinuta'): void {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0] ?? null;
     this.newPacto[field] = file ? file.name : '';
@@ -76,6 +70,7 @@ export class PactosManagementComponent implements OnInit {
     const { nombre, descripcion, objetivo, tipoPacto } = this.newPacto;
 
     if (!nombre.trim() || !descripcion.trim() || !objetivo.trim() || !tipoPacto.trim()) {
+      console.warn('[SISPACTOS] No se guarda pacto: faltan campos obligatorios.');
       return;
     }
 
@@ -83,14 +78,22 @@ export class PactosManagementComponent implements OnInit {
       ? `${this.departamentoSeleccionado} - ${this.municipioSeleccionado}`
       : '';
     const detalle = this.alcanceDetalle.trim();
-    this.newPacto.alcance = [
+    const alcance = [
       territorio ? `Dptos de intervencion del pacto - municipio: ${territorio}` : '',
       detalle ? `Detalle: ${detalle}` : ''
     ]
       .filter(Boolean)
       .join(' | ');
 
-    this.pactosService.addPacto(this.newPacto);
+    const payload: Omit<Pacto, 'id'> = this.cleanPayload({
+      ...this.newPacto,
+      alcance,
+      fechaCreacion: new Date().toISOString(),
+      fechaModificacion: new Date().toISOString()
+    });
+
+    console.log('[SISPACTOS] Nuevo pacto (local):', payload);
+    this.pactosService.addPacto(payload);
     this.resetForm();
   }
 
@@ -158,21 +161,27 @@ export class PactosManagementComponent implements OnInit {
       objetivo: '',
       lineasTematicas: [],
       fechaSuscripcion: '',
-      fechaNegociacion: '',
-      valorEstimado: 0,
-      valorEstimadoOtros: 0,
-      porcentajeEstimado: 0,
-      usuarioCreo: '',
-      fechaCreacion: new Date().toISOString(),
-      usuarioModifico: '',
-      fechaModificacion: new Date().toISOString(),
       idEtapa: this.etapaPorDefecto,
       fechaVencimiento: '',
-      alcance: '',
       urlDocPacto: '',
-      urlDocMinuta: '',
-      urlDocPEI: '',
-      urlDocFicha: ''
+      urlDocMinuta: ''
     };
+  }
+
+  private cleanPayload(payload: Omit<Pacto, 'id'>): Omit<Pacto, 'id'> {
+    const entries = Object.entries(payload).filter(([, value]) => {
+      if (value === null || value === undefined) {
+        return false;
+      }
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+      return true;
+    });
+
+    return Object.fromEntries(entries) as Omit<Pacto, 'id'>;
   }
 }

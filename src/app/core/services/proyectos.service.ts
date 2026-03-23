@@ -6,6 +6,8 @@ import { Proyecto } from '../../shared/models';
   providedIn: 'root'
 })
 export class ProyectosService {
+  private readonly storageKey = 'sispactos.proyectos';
+
   // Almacena los proyectos en memoria para consulta y actualización.
   private proyectos = new BehaviorSubject<Proyecto[]>([]);
   public proyectos$ = this.proyectos.asObservable();
@@ -19,7 +21,9 @@ export class ProyectosService {
     'Cancelado'
   ];
 
-  constructor() {}
+  constructor() {
+    this.loadFromStorage();
+  }
 
   // Entrega la lista de proyectos a quien la necesite.
   getProyectos(): Observable<Proyecto[]> {
@@ -31,18 +35,20 @@ export class ProyectosService {
     const currentProyectos = this.proyectos.value;
     const nextId = currentProyectos.length ? Math.max(...currentProyectos.map(p => p.id)) + 1 : 1;
 
-    const newProyecto: Proyecto = {
+    const newProyecto: Proyecto = this.sanitizeRecord({
       id: nextId,
       ...proyecto,
       fechaCreacion: new Date()
-    };
+    });
 
     this.proyectos.next([...currentProyectos, newProyecto]);
+    this.saveToStorage();
   }
 
   // Elimina un proyecto por su ID.
   removeProyecto(id: number): void {
     this.proyectos.next(this.proyectos.value.filter(p => p.id !== id));
+    this.saveToStorage();
   }
 
   // Actualiza campos puntuales de un proyecto existente.
@@ -51,6 +57,7 @@ export class ProyectosService {
       p.id === id ? { ...p, ...proyecto } : p
     );
     this.proyectos.next(proyectos);
+    this.saveToStorage();
   }
 
   // Devuelve los estados permitidos para los proyectos.
@@ -79,5 +86,59 @@ export class ProyectosService {
 
   getTotalEmpleosIndirectos(): number {
     return this.proyectos.value.reduce((sum, p) => sum + (p.numeroEmpleosIndirectos ?? 0), 0);
+  }
+
+  private loadFromStorage(): void {
+    const raw = localStorage.getItem(this.storageKey);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as Proyecto[];
+      if (!Array.isArray(parsed)) {
+        this.proyectos.next([]);
+        return;
+      }
+
+      const hydrated = parsed.map((proyecto) => this.sanitizeRecord({
+        ...proyecto,
+        fechaInicio: new Date(proyecto.fechaInicio),
+        fechaFin: new Date(proyecto.fechaFin),
+        fechaCreacion: new Date(proyecto.fechaCreacion),
+        fechaViabilidad: proyecto.fechaViabilidad ? new Date(proyecto.fechaViabilidad) : undefined,
+        fechaReporte: proyecto.fechaReporte ? new Date(proyecto.fechaReporte) : undefined,
+        fechaFinalizacionCe: proyecto.fechaFinalizacionCe ? new Date(proyecto.fechaFinalizacionCe) : undefined
+      }));
+
+      this.proyectos.next(hydrated);
+      this.saveToStorage();
+    } catch {
+      this.proyectos.next([]);
+    }
+  }
+
+  private saveToStorage(): void {
+    localStorage.setItem(this.storageKey, JSON.stringify(this.proyectos.value));
+  }
+
+  private sanitizeRecord<T extends Record<string, unknown>>(record: T): T {
+    const cleanedEntries = Object.entries(record).filter(([, value]) => {
+      if (value === null || value === undefined) {
+        return false;
+      }
+
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+
+      return true;
+    });
+
+    return Object.fromEntries(cleanedEntries) as T;
   }
 }

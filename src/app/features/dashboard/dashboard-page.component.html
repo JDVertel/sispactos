@@ -18,11 +18,16 @@
       <div class="row g-2 home-grid">
         <div
           *ngFor="let card of dashboardCards"
-          class="col-4 col-lg-4 home-card-col"
+          class="col home-card-col"
         >
           <div
             class="card summary-card h-100"
-            [class.summary-card-selected]="selectedCardLabel === card.label"
+            [ngClass]="[
+              selectedCardLabel === card.label ? 'summary-card-selected' : '',
+              card.type === 'cantidad' ? 'card-bg-magenta' : '',
+              card.type === 'porcentaje' ? 'card-bg-yellow' : '',
+              card.type === 'valor' ? 'card-bg-gray' : ''
+            ]"
             (click)="selectCard(card.label)"
           >
             <div class="card-body">
@@ -33,11 +38,39 @@
                   [class.summary-card-icon-selected]="selectedCardLabel === card.label"
                   aria-hidden="true"
                 ></i>
-                <p class="mb-0 summary-card-value">{{ card.value }}</p>
+                <p class="mb-0 summary-card-value"
+                   [ngClass]="{
+                     'card-magenta': card.type === 'cantidad',
+                     'card-yellow': card.type === 'porcentaje',
+                     'card-gray': card.type === 'valor'
+                   }"
+>{{ card.value }}</p>
               </div>
               <h3 class="h6 mb-0 summary-card-label">{{ card.label }}</h3>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Carrusel de imágenes simple -->
+      <div class="home-carousel my-3" *ngIf="carouselImages.length">
+        <div class="carousel slide" [id]="'simpleCarousel'" data-bs-ride="carousel">
+          <div class="carousel-inner">
+            <div *ngFor="let img of carouselImages; let i = index" class="carousel-item" [class.active]="i === currentCarousel">
+              <img [src]="img.src" [alt]="img.alt" class="d-block w-100" style="max-height: 320px; object-fit: cover;" />
+              <div class="carousel-caption d-none d-md-block">
+                <h5>{{ img.caption }}</h5>
+              </div>
+            </div>
+          </div>
+          <button class="carousel-control-prev" type="button" (click)="prevCarousel()">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+          </button>
+          <button class="carousel-control-next" type="button" (click)="nextCarousel()">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Siguiente</span>
+          </button>
         </div>
       </div>
 

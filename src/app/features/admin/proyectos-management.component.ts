@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProyectosService } from '../../core/services/proyectos.service';
@@ -129,6 +129,19 @@ export class ProyectosManagementComponent implements OnInit {
       !estadoProyecto ||
       !contratoEspecificoValido
     ) {
+      console.warn('[SISPACTOS] No se guarda proyecto: validacion fallida.', {
+        nombre: !!nombre.trim(),
+        pactoAsociado: !!pactoAsociado.trim(),
+        codigo: !!codigo.trim(),
+        bpinValido,
+        consecutivoConpesValido,
+        actaCdNumero: !!actaCdNumero.trim(),
+        actaCdFecha: !!actaCdFecha,
+        municipioEntidad: !!municipioEntidad.trim(),
+        entidadResponsablePi: !!entidadResponsablePi.trim(),
+        estadoProyecto: !!estadoProyecto,
+        contratoEspecificoValido
+      });
       return;
     }
 
@@ -159,6 +172,7 @@ export class ProyectosManagementComponent implements OnInit {
       avance: 0
     };
 
+    console.log('[SISPACTOS] Nuevo proyecto (local):', proyectoBase);
     this.proyectosService.addProyecto(proyectoBase);
     this.resetForm();
   }
