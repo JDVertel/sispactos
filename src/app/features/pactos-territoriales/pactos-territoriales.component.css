@@ -113,6 +113,25 @@
 .card-ejecucion .text-secondary {
   color: #b48a00 !important;
 }
+
+.indicator-title {
+  color: #00a2a0;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.form-select:focus {
+  border-color: #00c3c1;
+  box-shadow: 0 0 0 0.15rem rgba(0, 195, 193, 0.2);
+}
+
+table thead th {
+  background-color: #f7fafd;
+  color: #00a2a0;
+  border-bottom: 2px solid #d9f3f3;
+  white-space: nowrap;
+}
+
 svg {
   display: block;
   margin: 0 auto;
