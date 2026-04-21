@@ -18,6 +18,12 @@
     <!-- Cards de ejecución y valores integradas en cada pacto -->
     <div class="mb-3">
       <label class="form-label">Selecciona un pacto:</label>
+      <div *ngIf="isLoadingPactos" class="alert alert-info py-2 px-3 mb-2" role="status">
+        Cargando pactos territoriales...
+      </div>
+      <div *ngIf="!isLoadingPactos && pactosError" class="alert alert-danger py-2 px-3 mb-2" role="alert">
+        {{ pactosError }}
+      </div>
       <div class="list-group list-group-horizontal pactos-scroll"
            [class.scrollable]="pactosFiltrados.length >= 7">
         <button *ngFor="let pacto of pactosFiltrados" type="button" class="list-group-item list-group-item-action me-2"
@@ -103,6 +109,28 @@
                     <div class="card-body py-2 px-3">
                       <div class="fw-bold small text-secondary">{{ card.label }}</div>
                       <div class="fs-5">{{ card.value }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card card-dato mb-2">
+                <div class="card-body py-2 px-3">
+                  <div class="fw-bold small text-secondary mb-1">Descripción</div>
+                  <div>{{ descripcionPactoSeleccionado }}</div>
+                </div>
+              </div>
+              <div class="card card-dato mb-2">
+                <div class="card-body py-2 px-3">
+                  <div class="fw-bold small text-secondary mb-1">Objetivo</div>
+                  <div>{{ objetivoPactoSeleccionado }}</div>
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6 col-md-3" *ngFor="let card of resumenPactoSeleccionado">
+                  <div class="card card-dato h-100">
+                    <div class="card-body py-2 px-3">
+                      <div class="fw-bold small text-secondary">{{ card.label }}</div>
+                      <div class="fs-6">{{ card.value }}</div>
                     </div>
                   </div>
                 </div>

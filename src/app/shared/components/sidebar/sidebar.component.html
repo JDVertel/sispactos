@@ -2,7 +2,7 @@
 <button
   class="menu-overlay"
   type="button"
-  [class.is-visible]="isSidebarOpen || activeSubmenu"
+  [class.is-visible]="isSidebarOpen"
   aria-label="Cerrar menu"
   (click)="closeAllMenus()"
 ></button>
@@ -34,8 +34,18 @@
   <nav class="nav flex-column gap-1 sidebar-nav">
     <ng-container *ngFor="let item of menuItems">
       <!-- Opción simple -->
+      <button
+        *ngIf="item.type === 'item' && item.action"
+        type="button"
+        class="nav-link rounded px-3 py-2 d-flex align-items-center gap-2 menu-link w-100 text-start"
+        (click)="runMenuAction(item.action)"
+      >
+        <i class="menu-icon bi" [class]="'menu-icon bi ' + getBootstrapIconClass(item.icon)" aria-hidden="true"></i>
+        {{ formatLabel(item.label) }}
+      </button>
+
       <a
-        *ngIf="item.type === 'item'"
+        *ngIf="item.type === 'item' && !item.action"
         class="nav-link rounded px-3 py-2 d-flex align-items-center gap-2 menu-link"
         [routerLink]="item.absolute ? item.route : ['/dashboard', item.route]"
         routerLinkActive="active-link"
@@ -68,6 +78,7 @@
             [routerLink]="['/dashboard', child.route]"
             routerLinkActive="active-link"
             [routerLinkActiveOptions]="{ exact: true }"
+            (click)="closeAllMenus()"
           >
             {{ formatLabel(child.label) }}
           </a>

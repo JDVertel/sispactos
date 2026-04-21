@@ -1,8 +1,8 @@
 <!-- Pantalla de ingreso al sistema -->
-<section class="login-shell">
+<section class="login-shell" [class.login-shell-compact]="compactMode">
   <div class="login-card login-layout">
     <!-- Lado visual con imagen institucional -->
-    <div class="login-media login-media-panel">
+    <div class="login-media login-media-panel" *ngIf="!compactMode">
       <img src="/dnp.jpg" alt="Departamento Nacional de Planeacion" class="login-media-image" />
       <div class="login-media-overlay">
         <h1 class="login-media-title mb-1">SISPACTOS</h1>
@@ -18,33 +18,25 @@
 
       <!-- Formulario principal -->
       <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form-stack">
+        <p class="small text-secondary mb-0">Diligencia los siguientes datos</p>
+
         <div class="login-fieldset">
-          <label class="form-label d-block">Tipo de acceso</label>
-          <div class="login-mode-group">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="mode" id="modeGuest" value="guest" [(ngModel)]="loginMode" />
-              <label class="form-check-label" for="modeGuest">Invitado</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="mode" id="modeLocal" value="local" [(ngModel)]="loginMode" />
-              <label class="form-check-label" for="modeLocal">Usuario Registrado</label>
-            </div>
-          </div>
-        </div>
-
-        <p class="small text-secondary mb-0" *ngIf="loginMode === 'local'">Diligencia los siguientes datos</p>
-
-        <div class="login-fieldset" *ngIf="loginMode === 'local'">
           <label for="username" class="form-label">Usuario</label>
           <input id="username" name="username" type="text" class="form-control" [(ngModel)]="username" required placeholder="Ingresa tu Email" />
         </div>
 
-        <div class="login-fieldset" *ngIf="loginMode === 'local'">
+        <div class="login-fieldset">
           <label for="password" class="form-label">Contrasena</label>
           <input id="password" name="password" type="password" class="form-control" [(ngModel)]="password" required placeholder="Ingresa tu Contrasena" />
         </div>
 
-        <button type="submit" class="btn btn-primary w-100" [disabled]="loginMode === 'local' && !loginForm.form.valid">Ingresar</button>
+        <div *ngIf="loginError" class="alert alert-danger py-2 px-3 mb-0" role="alert">
+          {{ loginError }}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" [disabled]="!loginForm.form.valid || isSubmitting">
+          {{ isSubmitting ? 'Validando...' : 'Ingresar' }}
+        </button>
       </form>
       </div>
     </div>

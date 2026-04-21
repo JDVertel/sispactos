@@ -1,9 +1,10 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { PactosService } from '../../core/services/pactos.service';
+import { CatalogoOption, PactosService } from '../../core/services/pactos.service';
 import { Pacto } from '../../shared/models';
 import { Observable } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 type PactoFormData = Pick<
   Pacto,
@@ -20,7 +21,20 @@ type PactoFormData = Pick<
 export class PactosManagementComponent implements OnInit {
   // Lista observable de pactos para mostrar en la vista.
   pactos$: Observable<Pacto[]>;
-  readonly etapaPorDefecto = 'Construccion y suscripcion';
+  readonly etapaPorDefecto = 'construccion';
+  readonly tiposPactoFallback: CatalogoOption[] = [
+    { id: 1, codigo: 'TERRITORIO', texto: 'Territorio' },
+    { id: 2, codigo: 'NACION', texto: 'Nación' }
+  ];
+  readonly etapasPactoFallback: CatalogoOption[] = [
+    { id: 1, codigo: 'CONSTRUCCION', texto: 'Construcción y suscripción' },
+    { id: 2, codigo: 'IMPLEMENTACION', texto: 'Implementación' },
+    { id: 3, codigo: 'CIERRE', texto: 'Cierre' }
+  ];
+  isSubmitting = false;
+  isLoadingCatalogos = false;
+  submitError = '';
+  submitSuccess = '';
   // Campos auxiliares del formulario.
   lineaTematicaInput = '';
   departamentoSeleccionado = '';
@@ -42,20 +56,21 @@ export class PactosManagementComponent implements OnInit {
     objetivo: '',
     lineasTematicas: [],
     fechaSuscripcion: '',
-    idEtapa: this.etapaPorDefecto,
+    idEtapa: '',
     fechaVencimiento: '',
     urlDocPacto: '',
     urlDocMinuta: ''
   };
 
-  tiposPactos = ['Territorio', 'Nación'];
-  etapasPacto = ['Construccion y suscripcion', 'Implementacion', 'Cierre'];
+  tiposPactos: CatalogoOption[] = [];
+  etapasPacto: CatalogoOption[] = [];
 
   constructor(private pactosService: PactosService) {
     this.pactos$ = this.pactosService.getPactos();
   }
 
   ngOnInit(): void {
+    this.loadCatalogos();
   }
 
   // Guarda el nombre del archivo seleccionado en el campo correspondiente.
@@ -67,10 +82,27 @@ export class PactosManagementComponent implements OnInit {
 
   // Crea un pacto nuevo si los datos esenciales están completos.
   addPacto(): void {
-    const { nombre, descripcion, objetivo, tipoPacto } = this.newPacto;
+    const { nombre, descripcion, objetivo, tipoPacto, fechaSuscripcion, fechaVencimiento, idEtapa } = this.newPacto;
+    this.submitError = '';
+    this.submitSuccess = '';
 
     if (!nombre.trim() || !descripcion.trim() || !objetivo.trim() || !tipoPacto.trim()) {
-      console.warn('[SISPACTOS] No se guarda pacto: faltan campos obligatorios.');
+      this.submitError = 'Faltan campos obligatorios para crear el pacto.';
+      return;
+    }
+
+    if (!this.tiposPactos.length || !this.etapasPacto.length) {
+      this.submitError = 'No fue posible cargar los catálogos requeridos para crear el pacto.';
+      return;
+    }
+
+    if (!fechaSuscripcion || !fechaVencimiento) {
+      this.submitError = 'Debe diligenciar las fechas de suscripción y vencimiento.';
+      return;
+    }
+
+    if (!idEtapa?.trim()) {
+      this.submitError = 'No se encontró una etapa válida para el pacto.';
       return;
     }
 
@@ -92,9 +124,20 @@ export class PactosManagementComponent implements OnInit {
       fechaModificacion: new Date().toISOString()
     });
 
-    console.log('[SISPACTOS] Nuevo pacto (local):', payload);
-    this.pactosService.addPacto(payload);
-    this.resetForm();
+    this.isSubmitting = true;
+
+    this.pactosService
+      .createPactoInApi(payload)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe((result) => {
+        if (!result.success) {
+          this.submitError = result.message || 'No se pudo crear el pacto.';
+          return;
+        }
+
+        this.submitSuccess = 'Pacto creado correctamente.';
+        this.resetForm();
+      });
   }
 
   // Agrega una línea temática escrita por el usuario.
@@ -161,11 +204,57 @@ export class PactosManagementComponent implements OnInit {
       objetivo: '',
       lineasTematicas: [],
       fechaSuscripcion: '',
-      idEtapa: this.etapaPorDefecto,
+      idEtapa: this.getDefaultEtapaId(),
       fechaVencimiento: '',
       urlDocPacto: '',
       urlDocMinuta: ''
     };
+  }
+
+  private loadCatalogos(): void {
+    this.isLoadingCatalogos = true;
+    this.submitError = '';
+
+    this.pactosService
+      .getPactoCatalogos()
+      .pipe(finalize(() => (this.isLoadingCatalogos = false)))
+      .subscribe({
+        next: ({ tiposPacto, etapas }) => {
+          this.tiposPactos = tiposPacto.length ? tiposPacto : this.tiposPactoFallback;
+          this.etapasPacto = etapas.length ? etapas : this.etapasPactoFallback;
+          this.newPacto.idEtapa = this.getDefaultEtapaId();
+
+          if (!tiposPacto.length || !etapas.length) {
+            this.submitError = 'Se usaron opciones por defecto para tipo de pacto y etapa.';
+          }
+        },
+        error: () => {
+          this.tiposPactos = this.tiposPactoFallback;
+          this.etapasPacto = this.etapasPactoFallback;
+          this.newPacto.idEtapa = this.getDefaultEtapaId();
+          this.submitError = 'Se usaron opciones por defecto para tipo de pacto y etapa.';
+        }
+      });
+  }
+
+  private getDefaultEtapaId(): string {
+    if (!this.etapasPacto.length) {
+      return '';
+    }
+
+    const defaultEtapa = this.etapasPacto.find((etapa) =>
+      this.normalizeText(etapa.texto).includes(this.etapaPorDefecto)
+    );
+
+    return String((defaultEtapa || this.etapasPacto[0]).id);
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
   }
 
   private cleanPayload(payload: Omit<Pacto, 'id'>): Omit<Pacto, 'id'> {

@@ -124,12 +124,24 @@
         </div>
 
         <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
+          <div *ngIf="submitError" class="alert alert-danger py-2 px-3" role="alert">
+            {{ submitError }}
+          </div>
+
+          <div *ngIf="submitSuccess" class="alert alert-success py-2 px-3" role="alert">
+            {{ submitSuccess }}
+          </div>
+
+          <div *ngIf="isLoadingCatalogos" class="alert alert-info py-2 px-3" role="status">
+            Cargando catálogos de tipo de pacto y etapa...
+          </div>
+
           <div class="row g-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Tipo de Pacto</label>
-              <select class="form-select" name="tipoPacto" [(ngModel)]="newPacto.tipoPacto" required>
+              <select class="form-select" name="tipoPacto" [(ngModel)]="newPacto.tipoPacto" [disabled]="isLoadingCatalogos || !tiposPactos.length" required>
                 <option value="">Seleccionar tipo</option>
-                <option *ngFor="let tipo of tiposPactos" [value]="tipo">{{ tipo }}</option>
+                <option *ngFor="let tipo of tiposPactos" [value]="tipo.id">{{ tipo.texto }}</option>
               </select>
             </div>
 
@@ -180,8 +192,9 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">ID Etapa</label>
-              <select class="form-select" name="idEtapa" [(ngModel)]="newPacto.idEtapa" disabled>
-                <option *ngFor="let etapa of etapasPacto" [value]="etapa">{{ etapa }}</option>
+              <select class="form-select" name="idEtapa" [(ngModel)]="newPacto.idEtapa" [disabled]="isLoadingCatalogos || !etapasPacto.length">
+                <option value="">Seleccionar etapa</option>
+                <option *ngFor="let etapa of etapasPacto" [value]="etapa.id">{{ etapa.texto }}</option>
               </select>
             </div>
 
@@ -249,10 +262,9 @@
           <button
             type="submit"
             class="btn btn-primary"
-            data-bs-dismiss="modal"
-            [disabled]="!newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim()"
+            [disabled]="isSubmitting || isLoadingCatalogos || !tiposPactos.length || !etapasPacto.length || !newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim() || !newPacto.idEtapa?.trim()"
           >
-            Crear Pacto
+            {{ isSubmitting ? 'Guardando...' : 'Crear Pacto' }}
           </button>
         </div>
       </form>

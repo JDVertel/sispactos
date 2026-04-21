@@ -130,7 +130,11 @@
 }
 
 .sidebar-nav {
-  flex: 1;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 .menu-link {

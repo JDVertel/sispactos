@@ -10,11 +10,31 @@
     <p class="topbar-subtitle mb-0">Sistema de Informacion para el seguimiento de Pactos Territoriales</p>
   </div>
   <div class="topbar-session">
-    <div class="topbar-meta">
+    <div class="topbar-user-menu-wrap" *ngIf="hasAuthenticatedSession">
+      <button
+        class="btn topbar-user-toggle"
+        type="button"
+        (click)="toggleUserMenu()"
+        aria-label="Abrir menu de sesion"
+      >
+        <div class="topbar-meta">
+          <span class="topbar-user">{{ sessionUserName }}</span>
+          <span class="topbar-role">{{ sessionUserRole }}</span>
+        </div>
+        <div class="topbar-avatar">{{ sessionUserName.charAt(0).toUpperCase() }}</div>
+      </button>
+
+      <div class="topbar-user-menu" *ngIf="showUserMenu">
+        <button type="button" class="dropdown-item" (click)="logoutFromTopbar()">Cerrar sesion</button>
+        <button type="button" class="dropdown-item" (click)="exitFromTopbar()">Salir</button>
+      </div>
+    </div>
+
+    <div class="topbar-meta" *ngIf="!hasAuthenticatedSession">
       <span class="topbar-user">{{ sessionUserName }}</span>
       <span class="topbar-role">{{ sessionUserRole }}</span>
     </div>
-    <div class="topbar-avatar">{{ sessionUserName.charAt(0).toUpperCase() }}</div>
+    <div class="topbar-avatar" *ngIf="!hasAuthenticatedSession">{{ sessionUserName.charAt(0).toUpperCase() }}</div>
   </div>
 </header>
 
@@ -30,6 +50,7 @@
     (toggleSubmenuEvent)="toggleSubmenu($event)"
     (closeAllMenusEvent)="closeAllMenus()"
     (closeSidebarEvent)="closeSidebar()"
+    (menuActionEvent)="onSidebarAction($event)"
   ></app-sidebar>
 
   <main class="content">
@@ -37,5 +58,30 @@
     <router-outlet></router-outlet>
   </main>
 </div>
+
+<button class="topbar-user-menu-overlay" *ngIf="showUserMenu" (click)="closeUserMenu()" aria-label="Cerrar menu de sesion"></button>
+
+<div class="login-modal-backdrop" *ngIf="showLoginModal" (click)="closeLoginModal()"></div>
+<section
+  class="login-modal"
+  *ngIf="showLoginModal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Iniciar sesion en SISPACTOS"
+>
+  <header class="login-modal-head">
+    <h2 class="login-modal-title mb-0">Iniciar sesion en SISPACTOS</h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Cerrar modal"
+      (click)="closeLoginModal()"
+    ></button>
+  </header>
+  <div class="login-modal-body">
+    <app-login [compactMode]="true" (loginSuccess)="onLoginSuccess()"></app-login>
+  </div>
+</section>
+
 <!-- Pie de página institucional -->
 <app-footer></app-footer>

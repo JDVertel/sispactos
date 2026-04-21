@@ -1,7 +1,8 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -12,11 +13,14 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
-  // Define si el acceso será como invitado o usuario registrado.
-  loginMode: 'local' | 'guest' = 'guest';
+  @Input() compactMode = false;
+  @Output() loginSuccess = new EventEmitter<void>();
+
   // Datos que el usuario escribe en el formulario.
   username = '';
   password = '';
+  isSubmitting = false;
+  loginError = '';
 
   constructor(
     private router: Router,
@@ -25,14 +29,23 @@ export class LoginComponent {
 
   // Intenta iniciar sesión y, si es correcto, envía al inicio del panel.
   onSubmit(): void {
-    const isAuthenticated = this.authService.login(
-      this.username,
-      this.password,
-      this.loginMode
-    );
+    this.loginError = '';
+    this.isSubmitting = true;
 
-    if (isAuthenticated) {
-      this.router.navigateByUrl('/dashboard/home');
-    }
+    this.authService
+      .login(this.username, this.password)
+      .pipe(finalize(() => (this.isSubmitting = false)))
+      .subscribe((result) => {
+        if (!result.isAuthenticated) {
+          this.loginError = result.message || 'Credenciales invalidas o servicio no disponible.';
+          return;
+        }
+
+        this.loginSuccess.emit();
+
+        if (!this.compactMode) {
+          this.router.navigateByUrl('/dashboard/home');
+        }
+      });
   }
 }

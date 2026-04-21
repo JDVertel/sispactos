@@ -9,6 +9,7 @@ export type MenuItem =
       route: string;
       icon: string;
       absolute?: boolean;
+      action?: 'open-login-modal' | 'logout' | 'logout-and-open-login';
     }
   | {
       type: 'submenu';
@@ -46,6 +47,7 @@ export class SidebarComponent {
   @Output() toggleSubmenuEvent = new EventEmitter<string>();
   @Output() closeAllMenusEvent = new EventEmitter<void>();
   @Output() closeSidebarEvent = new EventEmitter<void>();
+  @Output() menuActionEvent = new EventEmitter<'open-login-modal' | 'logout' | 'logout-and-open-login'>();
 
   // Solicita abrir/cerrar el sidebar.
   toggleSidebar(): void {
@@ -65,6 +67,12 @@ export class SidebarComponent {
   // Solicita cerrar todos los menús.
   closeAllMenus(): void {
     this.closeAllMenusEvent.emit();
+  }
+
+  // Ejecuta acciones especiales del menú sin navegación.
+  runMenuAction(action: 'open-login-modal' | 'logout' | 'logout-and-open-login'): void {
+    this.menuActionEvent.emit(action);
+    this.closeSidebar();
   }
 
   // Inicial del usuario para avatar textual.
@@ -98,6 +106,7 @@ export class SidebarComponent {
       map: 'bi-map',
       chart: 'bi-bar-chart-line',
       gauge: 'bi-speedometer2',
+      user: 'bi-person',
       settings: 'bi-sliders',
       config: 'bi-gear',
       info: 'bi-info-circle',

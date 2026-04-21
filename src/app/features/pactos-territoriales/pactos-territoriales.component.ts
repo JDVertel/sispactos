@@ -1,13 +1,22 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
+import { PactosService } from '../../core/services/pactos.service';
+import { Pacto as PactoModel } from '../../shared/models';
 
 interface Pacto {
   id: number;
   nombre: string;
   departamento: string;
   estado: 'implementacion' | 'cierre';
+  tipoPacto?: string;
+  descripcion?: string;
+  objetivo?: string;
+  fechaSuscripcion?: string;
+  fechaVencimiento?: string;
+  idEtapa?: string;
+  alcance?: string;
 }
 
 interface AporteDetalle {
@@ -50,17 +59,13 @@ interface IniciativaTabla {
   templateUrl: './pactos-territoriales.component.html',
   styleUrls: ['./pactos-territoriales.component.css']
 })
-export class PactosTerritorialesComponent {
+export class PactosTerritorialesComponent implements OnInit {
   tabActivo = 'info';
   estadoSeleccionado: 'implementacion' | 'cierre' = 'implementacion';
-  pactos: Pacto[] = [
-    { id: 1, nombre: 'Pacto Caribe', departamento: 'Atlántico', estado: 'implementacion' },
-    { id: 2, nombre: 'Pacto Santander', departamento: 'Santander', estado: 'cierre' },
-    { id: 3, nombre: 'Pacto Nariño', departamento: 'Nariño', estado: 'implementacion' },
-    { id: 4, nombre: 'Pacto Antioquia', departamento: 'Antioquia', estado: 'cierre' },
-    { id: 5, nombre: 'Pacto Pacífico', departamento: 'Valle del Cauca', estado: 'implementacion' }
-  ];
+  pactos: Pacto[] = [];
   pactoSeleccionado: Pacto | null = null;
+  isLoadingPactos = false;
+  pactosError = '';
   galeria: Record<number, string[]> = {
     1: [
       'https://placehold.co/300x200/00c3c1/fff?text=Caribe+1',
@@ -525,13 +530,24 @@ export class PactosTerritorialesComponent {
     entidadTerritorioAportante: ''
   };
 
+  constructor(private readonly pactosService: PactosService) {}
+
+  ngOnInit(): void {
+    this.loadPactos();
+  }
+
   get pactosFiltrados() {
     return this.pactos.filter(p => p.estado === this.estadoSeleccionado);
   }
 
   seleccionarEstado(estado: 'implementacion' | 'cierre') {
     this.estadoSeleccionado = estado;
-    this.pactoSeleccionado = null;
+
+    if (this.pactoSeleccionado?.estado === estado) {
+      return;
+    }
+
+    this.pactoSeleccionado = this.pactosFiltrados[0] ?? null;
   }
 
   seleccionarPacto(pacto: Pacto) {
@@ -542,7 +558,35 @@ export class PactosTerritorialesComponent {
 
   get datosClaveSeguro() {
     if (!this.pactoSeleccionado) return null;
-    return this.datosClave[this.pactoSeleccionado.id] || null;
+
+    const datosBase = this.datosClave[this.pactoSeleccionado.id] || {};
+
+    return {
+      ...datosBase,
+      fechaSuscripcion: this.pactoSeleccionado.fechaSuscripcion || datosBase.fechaSuscripcion || 'N/A',
+      vencimiento: this.pactoSeleccionado.fechaVencimiento || datosBase.vencimiento || 'N/A'
+    };
+  }
+
+  get resumenPactoSeleccionado() {
+    if (!this.pactoSeleccionado) {
+      return [];
+    }
+
+    return [
+      { label: 'Tipo de pacto', value: this.pactoSeleccionado.tipoPacto || 'N/A' },
+      { label: 'Etapa', value: this.pactoSeleccionado.idEtapa || 'N/A' },
+      { label: 'Departamento', value: this.pactoSeleccionado.departamento || 'N/A' },
+      { label: 'Alcance', value: this.pactoSeleccionado.alcance || 'N/A' }
+    ];
+  }
+
+  get descripcionPactoSeleccionado(): string {
+    return this.pactoSeleccionado?.descripcion || 'Sin descripción registrada.';
+  }
+
+  get objetivoPactoSeleccionado(): string {
+    return this.pactoSeleccionado?.objetivo || 'Sin objetivo registrado.';
   }
 
   get indicadoresEjecucion() {
@@ -714,5 +758,64 @@ export class PactosTerritorialesComponent {
 
   private obtenerOpcionesUnicas(valores: string[]) {
     return [...new Set(valores)].sort((a, b) => a.localeCompare(b));
+  }
+
+  private loadPactos(): void {
+    this.isLoadingPactos = true;
+    this.pactosError = '';
+
+    this.pactosService.getPactos().subscribe({
+      next: (rows) => {
+        this.pactos = rows.map((item) => this.mapPacto(item));
+        this.pactoSeleccionado = this.pactosFiltrados[0] ?? this.pactos[0] ?? null;
+        this.isLoadingPactos = false;
+      },
+      error: () => {
+        this.pactos = [];
+        this.pactoSeleccionado = null;
+        this.pactosError = 'No fue posible cargar los pactos territoriales.';
+        this.isLoadingPactos = false;
+      }
+    });
+  }
+
+  private mapPacto(item: PactoModel): Pacto {
+    const etapa = (item.idEtapa || '').trim();
+
+    return {
+      id: item.id,
+      nombre: item.nombre,
+      departamento: this.extractDepartamento(item.alcance),
+      estado: this.mapEstado(etapa),
+      tipoPacto: item.tipoPacto,
+      descripcion: item.descripcion,
+      objetivo: item.objetivo,
+      fechaSuscripcion: item.fechaSuscripcion,
+      fechaVencimiento: item.fechaVencimiento,
+      idEtapa: etapa,
+      alcance: item.alcance
+    };
+  }
+
+  private mapEstado(etapa: string): 'implementacion' | 'cierre' {
+    const normalized = etapa
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
+    return normalized.includes('cierre') ? 'cierre' : 'implementacion';
+  }
+
+  private extractDepartamento(alcance?: string): string {
+    const safeAlcance = (alcance || '').trim();
+
+    if (!safeAlcance) {
+      return 'N/A';
+    }
+
+    const afterColon = safeAlcance.split(':').pop()?.trim() || safeAlcance;
+    const departamento = afterColon.split('|')[0].split('-')[0].trim();
+
+    return departamento || 'N/A';
   }
 }

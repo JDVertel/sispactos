@@ -62,7 +62,8 @@
               "buildTarget": "sispactos2:build:production"
             },
             "development": {
-              "buildTarget": "sispactos2:build:development"
+              "buildTarget": "sispactos2:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

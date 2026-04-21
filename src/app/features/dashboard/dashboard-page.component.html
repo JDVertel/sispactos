@@ -111,6 +111,18 @@
                     </tr>
                   </thead>
                   <tbody>
+                    <tr *ngIf="isLoadingPactos">
+                      <td colspan="7" class="text-center text-secondary py-3">
+                        Cargando pactos...
+                      </td>
+                    </tr>
+
+                    <tr *ngIf="!isLoadingPactos && pactosError">
+                      <td colspan="7" class="text-center text-danger py-3">
+                        {{ pactosError }}
+                      </td>
+                    </tr>
+
                     <tr *ngFor="let item of pactosFiltrados">
                       <td data-label="Nombre del pacto">{{ item.nombrePacto }}</td>
                       <td data-label="Fecha suscripción">{{ item.fechaSubscripcion }}</td>
@@ -132,7 +144,7 @@
                       </td>
                     </tr>
 
-                    <tr *ngIf="pactosFiltrados.length === 0">
+                    <tr *ngIf="!isLoadingPactos && !pactosError && pactosFiltrados.length === 0">
                       <td colspan="7" class="text-center text-secondary py-3">
                         No hay resultados para los filtros seleccionados.
                       </td>

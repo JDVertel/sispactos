@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { FilterDrawerComponent, type FilterDrawerValues } from '../../shared/components/filter-drawer/filter-drawer.component';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
+import { PactosService, type PactoTablaDto } from '../../core/services/pactos.service';
 
 interface PactoFila {
   nombrePacto: string;
@@ -113,65 +116,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   activeFilters: FilterDrawerValues = { etapa: '', pacto: '', departamento: '' };
   // Sirve para adaptar el orden de los bloques cuando la pantalla es pequeña.
   isResponsiveView = false;
+  isLoadingPactos = false;
+  pactosError = '';
+  private readonly destroy$ = new Subject<void>();
 
-  // Datos de ejemplo para poblar la tabla de pactos en Home.
-  pactosTabla: PactoFila[] = [
-    {
-      nombrePacto: 'Pacto Territorial Caribe',
-      fechaSubscripcion: '2021-03-15',
-      fechaVencimiento: '2027-03-15',
-      etapa: 'Ejecución',
-      valorIndicativo: 520000000,
-      presupuestoComprometido: 330000000,
-      avanceComprometido: 64,
-      departamento: 'Atlántico',
-      tipoPacto: 'Pacto Territorial'
-    },
-    {
-      nombrePacto: 'Contrato Plan Santander',
-      fechaSubscripcion: '2020-08-10',
-      fechaVencimiento: '2026-12-30',
-      etapa: 'Ejecución',
-      valorIndicativo: 610000000,
-      presupuestoComprometido: 470000000,
-      avanceComprometido: 77,
-      departamento: 'Santander',
-      tipoPacto: 'Contrato Plan'
-    },
-    {
-      nombrePacto: 'Pacto de Borde Nariño',
-      fechaSubscripcion: '2022-05-21',
-      fechaVencimiento: '2028-05-21',
-      etapa: 'Suscripción',
-      valorIndicativo: 300000000,
-      presupuestoComprometido: 90000000,
-      avanceComprometido: 31,
-      departamento: 'Nariño',
-      tipoPacto: 'Pacto de Borde'
-    },
-    {
-      nombrePacto: 'Pacto Subregional Antioquia Norte',
-      fechaSubscripcion: '2019-11-05',
-      fechaVencimiento: '2025-11-05',
-      etapa: 'Terminado',
-      valorIndicativo: 415000000,
-      presupuestoComprometido: 415000000,
-      avanceComprometido: 100,
-      departamento: 'Antioquia',
-      tipoPacto: 'Pacto Subregional'
-    },
-    {
-      nombrePacto: 'Pacto Metropolitano Centro',
-      fechaSubscripcion: '2023-01-30',
-      fechaVencimiento: '2029-01-30',
-      etapa: 'Negociación',
-      valorIndicativo: 250000000,
-      presupuestoComprometido: 52000000,
-      avanceComprometido: 18,
-      departamento: 'Cundinamarca',
-      tipoPacto: 'Pacto Metropolitano'
-    }
-  ];
+  pactosTabla: PactoFila[] = [];
 
   // Recibe los filtros del componente de filtros y actualiza la vista.
   onFiltersChange(values: FilterDrawerValues): void {
@@ -297,6 +246,8 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   carouselInterval: any;
 
   ngOnInit() {
+    this.loadPactosTabla();
+
     // Aleatorizar imágenes al cargar
     this.carouselImages = this.shuffleArray(this.carouselImages);
     // Avance automático
@@ -309,6 +260,9 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     if (this.carouselInterval) {
       clearInterval(this.carouselInterval);
     }
+
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   shuffleArray(array: any[]) {
@@ -326,7 +280,10 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.currentCarousel = (this.currentCarousel - 1 + this.carouselImages.length) % this.carouselImages.length;
   }
 
-  constructor(private route: ActivatedRoute) {
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly pactosService: PactosService
+  ) {
     // Al iniciar, revisa el tamaño de pantalla para organizar el layout.
     this.updateResponsiveView();
 
@@ -342,6 +299,26 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       this.pageDescription = data.description;
     });
 
+  }
+
+  private loadPactosTabla(): void {
+    this.isLoadingPactos = true;
+    this.pactosError = '';
+
+    this.pactosService
+      .getPactosTablaFromApi()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (rows: PactoTablaDto[]) => {
+          this.pactosTabla = rows;
+          this.isLoadingPactos = false;
+        },
+        error: () => {
+          this.pactosTabla = [];
+          this.pactosError = 'No fue posible cargar el listado de pactos.';
+          this.isLoadingPactos = false;
+        }
+      });
   }
 
   // Cuando cambia el tamaño de ventana, actualiza el modo responsive.
