@@ -422,7 +422,7 @@
 }
 
 .card-magenta {
-  color: #d72660 !important;
+  color: #7ccf1a !important;
 }
 
 .card-yellow {
@@ -434,14 +434,14 @@
 }
 
 .card-bg-magenta {
-  background: linear-gradient(135deg, #d72660 80%, #fff 100%) !important;
+  background: linear-gradient(135deg, #7ccf1a 80%, #f7ffe6 100%) !important;
   color: #fff;
 }
 
 .card-bg-magenta .summary-card-label,
 .card-bg-magenta .summary-card-value {
   color: #fff !important;
-  text-shadow: 0 1px 3px #a01a47;
+  text-shadow: 0 1px 3px #4f8d0c;
 }
 
 .card-bg-yellow {

@@ -24,17 +24,42 @@
       <div *ngIf="!isLoadingPactos && pactosError" class="alert alert-danger py-2 px-3 mb-2" role="alert">
         {{ pactosError }}
       </div>
-      <div class="list-group list-group-horizontal pactos-scroll"
-           [class.scrollable]="pactosFiltrados.length >= 7">
-        <button *ngFor="let pacto of pactosFiltrados" type="button" class="list-group-item list-group-item-action me-2"
-          [class.active]="pactoSeleccionado?.id === pacto.id" (click)="seleccionarPacto(pacto)">
-          {{ pacto.nombre }} ({{ pacto.departamento }})
+      <div class="pactos-carousel-wrapper">
+        <button class="carousel-nav-btn carousel-nav-prev" (click)="scrollCarousel(-1)" [disabled]="pactosFiltrados.length <= 3" type="button" aria-label="Anterior">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <div class="pactos-carousel-track" #carouselTrack>
+          <div *ngFor="let pacto of pactosFiltrados; let i = index"
+               class="pacto-card"
+               [class.pacto-card-active]="pactoSeleccionado?.id === pacto.id"
+               (click)="seleccionarPacto(pacto)"
+               role="button"
+               [attr.aria-label]="'Seleccionar ' + pacto.nombre">
+            <div class="pacto-card-numero">{{ i + 1 }}</div>
+            <div class="pacto-card-nombre">{{ pacto.nombre }}</div>
+            <div class="pacto-card-depto">
+              <i class="bi bi-geo-alt-fill"></i>
+              {{ pacto.departamento || 'N/A' }}
+            </div>
+            <div class="pacto-card-estado">
+              <span class="badge" [class.badge-implementacion]="pacto.estado === 'implementacion'" [class.badge-cierre]="pacto.estado === 'cierre'">
+                {{ pacto.estado === 'implementacion' ? 'En implementación' : 'Cierre' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button class="carousel-nav-btn carousel-nav-next" (click)="scrollCarousel(1)" [disabled]="pactosFiltrados.length <= 3" type="button" aria-label="Siguiente">
+          <i class="bi bi-chevron-right"></i>
         </button>
       </div>
     </div>
 
     <!-- Tabs internas para la información del pacto -->
     <div *ngIf="pactoSeleccionado" class="mb-3">
+      <div class="selected-pacto-header mb-3">
+        <div class="selected-pacto-kicker">Pacto seleccionado</div>
+        <h3 class="selected-pacto-title mb-0">{{ pactoSeleccionado.nombre }}</h3>
+      </div>
       <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link" [class.active]="tabActivo === 'info'" (click)="tabActivo = 'info'" type="button" role="tab">

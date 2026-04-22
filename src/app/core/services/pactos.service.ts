@@ -16,6 +16,12 @@ export interface PactoTablaDto {
   tipoPacto: string;
 }
 
+export interface PactoTablaFilters {
+  etapa?: string;
+  pacto?: string;
+  departamento?: string;
+}
+
 type ApiPacto = Record<string, unknown>;
 
 export interface CreatePactoResult {
@@ -75,7 +81,6 @@ export class PactosService {
 
   constructor(private readonly http: HttpClient) {
     this.loadFromStorage();
-    this.syncPactosFromApi().subscribe();
   }
 
   // Entrega la lista de pactos para que los componentes la muestren.
@@ -86,7 +91,15 @@ export class PactosService {
   // Consulta el listado de pactos desde la API transaccional.
   getPactosTablaFromApi(): Observable<PactoTablaDto[]> {
     return this.http.get<unknown>(this.pactosApiUrl).pipe(
-      map((response) => this.normalizeApiPactos(response).map((item) => this.mapToTabla(item)))
+      map((response) => this.normalizeApiPactos(response).map((item) => this.mapToTabla(item))),
+      catchError(() => of(this.pactos.value.map((item) => this.mapStoredPactoToTabla(item))))
+    );
+  }
+
+  // Consulta el listado de pactos y aplica filtros funcionales para la vista Home.
+  getPactosTablaFiltradosFromApi(filters: PactoTablaFilters): Observable<PactoTablaDto[]> {
+    return this.getPactosTablaFromApi().pipe(
+      map((rows) => rows.filter((item) => this.matchesTablaFilters(item, filters)))
     );
   }
 
@@ -291,6 +304,20 @@ export class PactosService {
     };
   }
 
+  private mapStoredPactoToTabla(item: Pacto): PactoTablaDto {
+    return {
+      nombrePacto: (item.nombre || '').trim() || 'Sin nombre',
+      fechaSubscripcion: this.formatDate(item.fechaSuscripcion || item.fechaCreacion || ''),
+      fechaVencimiento: this.formatDate(item.fechaVencimiento || ''),
+      etapa: (item.idEtapa || '').trim() || 'Sin etapa',
+      valorIndicativo: item.valorEstimado || 0,
+      presupuestoComprometido: 0,
+      avanceComprometido: 0,
+      departamento: this.extractDepartamentoFromAlcance(item.alcance),
+      tipoPacto: (item.tipoPacto || '').trim() || 'No definido'
+    };
+  }
+
   private mapToCreateCommand(pacto: Omit<Pacto, 'id'>): CreatePactoCommand {
     return {
       idTipoPacto: this.mapTipoPactoToId(pacto.tipoPacto),
@@ -305,6 +332,39 @@ export class PactosService {
       urlPacto: (pacto.urlDocPacto || '').trim(),
       urlMinuta: (pacto.urlDocMinuta || '').trim()
     };
+  }
+
+  private matchesTablaFilters(item: PactoTablaDto, filters: PactoTablaFilters): boolean {
+    const etapa = (filters.etapa || '').trim();
+    const pacto = (filters.pacto || '').trim();
+    const departamento = (filters.departamento || '').trim();
+
+    const byEtapa = !etapa || item.etapa === etapa;
+    const byPacto = !pacto || item.tipoPacto === pacto;
+    const byDepartamento = !departamento || item.departamento === departamento;
+
+    return byEtapa && byPacto && byDepartamento;
+  }
+
+  private extractDepartamentoFromAlcance(alcance?: string): string {
+    const safeAlcance = (alcance || '').trim();
+
+    if (!safeAlcance) {
+      return 'N/A';
+    }
+
+    const lowerAlcance = safeAlcance.toLowerCase();
+    const marker = 'municipio:';
+    const markerIndex = lowerAlcance.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return 'N/A';
+    }
+
+    const afterMarker = safeAlcance.slice(markerIndex + marker.length).trim();
+    const departamento = afterMarker.split('|')[0].split('-')[0].trim();
+
+    return departamento || 'N/A';
   }
 
   private mapTipoPactoToId(tipoPacto: string | undefined): number {

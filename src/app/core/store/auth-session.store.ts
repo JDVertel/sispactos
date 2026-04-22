@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 export interface AuthSession {
   username: string;
   mode: 'local';
-  token: string;
+  token?: string;
 }
 
 const AUTH_SESSION_STORAGE_KEY = 'sispactos.auth.session';
@@ -49,10 +49,6 @@ export class AuthSessionStore {
 
       const parsed = JSON.parse(rawValue) as Partial<AuthSession>;
 
-      if (typeof parsed?.token !== 'string' || !parsed.token.trim()) {
-        return null;
-      }
-
       if (typeof parsed?.username !== 'string' || !parsed.username.trim()) {
         return null;
       }
@@ -60,7 +56,7 @@ export class AuthSessionStore {
       return {
         username: parsed.username,
         mode: 'local',
-        token: parsed.token
+        token: typeof parsed.token === 'string' ? parsed.token : ''
       };
     } catch {
       return null;

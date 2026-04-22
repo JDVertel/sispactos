@@ -7,8 +7,6 @@ import { ProyectosManagementComponent } from './features/admin/proyectos-managem
 import { ContratosManagementComponent } from './features/admin/contratos-management.component';
 import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
 import { PactosTerritorialesComponent } from './features/pactos-territoriales/pactos-territoriales.component';
-import { protectedPagesGuard } from './core/guards/protected-pages.guard';
-import { validUserSessionGuard } from './core/guards/valid-user-session.guard';
 
 export const routes: Routes = [
 	{
@@ -27,27 +25,22 @@ export const routes: Routes = [
 			},
 			{
 				path: 'administracion',
-				canActivate: [validUserSessionGuard],
 				component: AdminRolesComponent
 			},
 			{
 				path: 'gestion-pactos',
-				canActivate: [validUserSessionGuard],
 				component: PactosManagementComponent
 			},
 			{
 				path: 'gestion-proyectos',
-				canActivate: [validUserSessionGuard],
 				component: ProyectosManagementComponent
 			},
 			{
 				path: 'gestion-contratos',
-				canActivate: [validUserSessionGuard],
 				component: ContratosManagementComponent
 			},
 			{
 				path: 'configuracion-actores',
-				canActivate: [validUserSessionGuard],
 				component: ConfiguracionActoresComponent
 			},
 			{
@@ -56,7 +49,6 @@ export const routes: Routes = [
 			},
 			{
 				path: ':page',
-				canActivate: [protectedPagesGuard],
 				component: DashboardPageComponent
 			}
 		]

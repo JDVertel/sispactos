@@ -7,18 +7,6 @@ import { FilterDrawerComponent, type FilterDrawerValues } from '../../shared/com
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
 import { PactosService, type PactoTablaDto } from '../../core/services/pactos.service';
 
-interface PactoFila {
-  nombrePacto: string;
-  fechaSubscripcion: string;
-  fechaVencimiento: string;
-  etapa: string;
-  valorIndicativo: number;
-  presupuestoComprometido: number;
-  avanceComprometido: number;
-  departamento: string;
-  tipoPacto: string;
-}
-
 const PAGE_DATA: Record<string, { title: string; description: string }> = {
   home: {
     title: 'SISPACTOS',
@@ -120,26 +108,17 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   pactosError = '';
   private readonly destroy$ = new Subject<void>();
 
-  pactosTabla: PactoFila[] = [];
+  pactosFiltrados: PactoTablaDto[] = [];
 
   // Recibe los filtros del componente de filtros y actualiza la vista.
   onFiltersChange(values: FilterDrawerValues): void {
     this.activeFilters = values;
+    this.loadPactosTabla();
   }
 
   // Si hay departamento elegido, el mapa se centra allí; si no, muestra Colombia.
   get departamentoMapa(): string {
     return this.activeFilters.departamento;
-  }
-
-  // Esta lista se recalcula para mostrar solo los pactos que cumplen los filtros.
-  get pactosFiltrados(): PactoFila[] {
-    return this.pactosTabla.filter((pacto) => {
-      const byEtapa = !this.activeFilters.etapa || pacto.etapa === this.activeFilters.etapa;
-      const byPacto = !this.activeFilters.pacto || pacto.tipoPacto === this.activeFilters.pacto;
-      const byDepartamento = !this.activeFilters.departamento || pacto.departamento === this.activeFilters.departamento;
-      return byEtapa && byPacto && byDepartamento;
-    });
   }
 
   // Da formato de moneda para que los valores se lean de forma clara.
@@ -306,15 +285,15 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.pactosError = '';
 
     this.pactosService
-      .getPactosTablaFromApi()
+      .getPactosTablaFiltradosFromApi(this.activeFilters)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (rows: PactoTablaDto[]) => {
-          this.pactosTabla = rows;
+          this.pactosFiltrados = rows;
           this.isLoadingPactos = false;
         },
         error: () => {
-          this.pactosTabla = [];
+          this.pactosFiltrados = [];
           this.pactosError = 'No fue posible cargar el listado de pactos.';
           this.isLoadingPactos = false;
         }

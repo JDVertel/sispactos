@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
@@ -9,6 +9,7 @@ interface Pacto {
   id: number;
   nombre: string;
   departamento: string;
+  ciudad?: string;
   estado: 'implementacion' | 'cierre';
   tipoPacto?: string;
   descripcion?: string;
@@ -60,6 +61,8 @@ interface IniciativaTabla {
   styleUrls: ['./pactos-territoriales.component.css']
 })
 export class PactosTerritorialesComponent implements OnInit {
+  @ViewChild('carouselTrack') carouselTrack!: ElementRef<HTMLElement>;
+
   tabActivo = 'info';
   estadoSeleccionado: 'implementacion' | 'cierre' = 'implementacion';
   pactos: Pacto[] = [];
@@ -550,6 +553,13 @@ export class PactosTerritorialesComponent implements OnInit {
     this.pactoSeleccionado = this.pactosFiltrados[0] ?? null;
   }
 
+  scrollCarousel(direction: -1 | 1) {
+    if (!this.carouselTrack?.nativeElement) return;
+    const track = this.carouselTrack.nativeElement;
+    const scrollAmount = 220 * 2; // 2 cards
+    track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+  }
+
   seleccionarPacto(pacto: Pacto) {
     this.pactoSeleccionado = pacto;
     this.limpiarFiltrosAportes();
@@ -577,6 +587,7 @@ export class PactosTerritorialesComponent implements OnInit {
       { label: 'Tipo de pacto', value: this.pactoSeleccionado.tipoPacto || 'N/A' },
       { label: 'Etapa', value: this.pactoSeleccionado.idEtapa || 'N/A' },
       { label: 'Departamento', value: this.pactoSeleccionado.departamento || 'N/A' },
+      { label: 'Ciudad', value: this.pactoSeleccionado.ciudad || 'N/A' },
       { label: 'Alcance', value: this.pactoSeleccionado.alcance || 'N/A' }
     ];
   }
@@ -781,11 +792,13 @@ export class PactosTerritorialesComponent implements OnInit {
 
   private mapPacto(item: PactoModel): Pacto {
     const etapa = (item.idEtapa || '').trim();
+    const ubicacion = this.extractUbicacion(item.alcance);
 
     return {
       id: item.id,
       nombre: item.nombre,
-      departamento: this.extractDepartamento(item.alcance),
+      departamento: ubicacion.departamento,
+      ciudad: ubicacion.ciudad,
       estado: this.mapEstado(etapa),
       tipoPacto: item.tipoPacto,
       descripcion: item.descripcion,
@@ -806,16 +819,53 @@ export class PactosTerritorialesComponent implements OnInit {
     return normalized.includes('cierre') ? 'cierre' : 'implementacion';
   }
 
-  private extractDepartamento(alcance?: string): string {
+  private extractUbicacion(alcance?: string): { departamento: string; ciudad: string } {
     const safeAlcance = (alcance || '').trim();
 
     if (!safeAlcance) {
-      return 'N/A';
+      return { departamento: 'N/A', ciudad: '' };
     }
 
-    const afterColon = safeAlcance.split(':').pop()?.trim() || safeAlcance;
-    const departamento = afterColon.split('|')[0].split('-')[0].trim();
+    const segments = safeAlcance
+      .split('|')
+      .map((segment) => segment.trim())
+      .filter(Boolean);
 
-    return departamento || 'N/A';
+    const locationSegment = segments.find((segment) => {
+      const normalized = segment
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      return normalized.includes('departamento')
+        || normalized.includes('dptos de intervencion')
+        || normalized.includes('municipio')
+        || normalized.includes('ciudad');
+    }) || segments[0];
+
+    const cleanLocation = locationSegment.includes(':')
+      ? locationSegment.slice(locationSegment.indexOf(':') + 1).trim()
+      : locationSegment;
+
+    const dashParts = cleanLocation.split('-').map((part) => part.trim()).filter(Boolean);
+    if (dashParts.length >= 2) {
+      return {
+        departamento: dashParts[0] || 'N/A',
+        ciudad: dashParts.slice(1).join(' - ')
+      };
+    }
+
+    const commaParts = cleanLocation.split(',').map((part) => part.trim()).filter(Boolean);
+    if (commaParts.length >= 2) {
+      return {
+        departamento: commaParts[commaParts.length - 1] || 'N/A',
+        ciudad: commaParts.slice(0, -1).join(', ')
+      };
+    }
+
+    return {
+      departamento: cleanLocation || 'N/A',
+      ciudad: ''
+    };
   }
 }
