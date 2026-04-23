@@ -1,5 +1,6 @@
 export interface Pacto {
   id: number;
+  idTipoPacto?: number;
   tipoPacto: string;
   nombre: string;
   descripcion: string;

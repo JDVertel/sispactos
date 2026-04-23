@@ -1,3 +1,46 @@
+.pactos-filter-bar {
+  padding: 0.9rem 1rem;
+  border: 1px solid #d9f3f3;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f4fbfb 0%, #ffffff 100%);
+  overflow-x: auto;
+}
+
+.pactos-filter-inline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: nowrap;
+  min-width: max-content;
+}
+
+.pactos-filter-inline-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: nowrap;
+}
+
+.pactos-filter-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1a2e35;
+  white-space: nowrap;
+  padding-top: 0.45rem;
+}
+
+.pactos-filter-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.45rem;
+}
+
+.pactos-filter-reset {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.05rem;
+}
+
 /* ── Carrusel de selección de pactos ─────────────────────────── */
 .pactos-carousel-wrapper {
   display: grid;
@@ -38,9 +81,9 @@
 }
 
 .pacto-card {
-  width: 200px;
-  min-width: 200px;
-  max-width: 200px;
+  width: 184px;
+  min-width: 184px;
+  max-width: 184px;
   background: #fff;
   border: 2px solid #e2f7f7;
   border-radius: 12px;
@@ -92,23 +135,23 @@
   color: #00a2a0;
 }
 
-.pacto-card-depto {
-  font-size: 0.75rem;
-  color: #6c757d;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.15rem;
-}
-.pacto-card-depto i {
-  color: #00c3c1;
-  font-size: 0.7rem;
-}
-
 .pacto-card-estado {
   margin-top: 0.4rem;
 }
-.badge-implementacion {
+.badge-etapa-construccion {
+  background: #eef7ff;
+  color: #0b63b6;
+  border: 1px solid #84b8f8;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+.pacto-card-active .badge-etapa-construccion {
+  background: #0b63b6;
+  color: #fff;
+}
+.badge-etapa-implementacion {
   background: #e8fafa;
   color: #00a2a0;
   border: 1px solid #00c3c1;
@@ -117,11 +160,11 @@
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
 }
-.pacto-card-active .badge-implementacion {
+.pacto-card-active .badge-etapa-implementacion {
   background: #00c3c1;
   color: #fff;
 }
-.badge-cierre {
+.badge-etapa-cierre {
   background: #fff7e0;
   color: #b48a00;
   border: 1px solid #ffbf39;
@@ -130,9 +173,24 @@
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
 }
-.pacto-card-active .badge-cierre {
+.pacto-card-active .badge-etapa-cierre {
   background: #ffbf39;
   color: #232323;
+}
+
+.badge-etapa-default {
+  background: #f2f4f5;
+  color: #52616b;
+  border: 1px solid #cfd8dc;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.pacto-card-active .badge-etapa-default {
+  background: #52616b;
+  color: #fff;
 }
 
 .carousel-nav-btn {
@@ -162,6 +220,10 @@
 }
 
 @media (max-width: 768px) {
+  .pactos-filter-inline-row {
+    gap: 0.75rem;
+  }
+
   .pactos-carousel-wrapper {
     grid-template-columns: 1fr;
     row-gap: 0.5rem;
@@ -172,9 +234,9 @@
   }
 
   .pacto-card {
-    width: 180px;
-    min-width: 180px;
-    max-width: 180px;
+    width: 168px;
+    min-width: 168px;
+    max-width: 168px;
   }
 }
 

@@ -80,6 +80,40 @@
   border-bottom: 2px solid #ffbf39;
 }
 
+.pactos-table-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.pactos-source-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pactos-source-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.pactos-source-chip-cache {
+  color: #0d6efd;
+  background: #ffffff;
+}
+
+.pactos-source-chip-api {
+  color: #000000;
+  background: #ffffff;
+}
+
 .pactos-count {
   background: #ffbf39;
   color: #5a3a00;
@@ -129,6 +163,19 @@
   vertical-align: middle;
   white-space: normal;
   word-break: break-word;
+}
+
+.pactos-table tbody tr.pacto-row-cache td {
+  color: #0d6efd;
+}
+
+.pactos-table tbody tr.pacto-row-api td {
+  color: #000000;
+}
+
+.pactos-table tbody tr.pacto-row-cache .avance-label,
+.pactos-table tbody tr.pacto-row-api .avance-label {
+  color: inherit;
 }
 
 .avance-cell {
@@ -218,6 +265,19 @@
     padding: 0.5rem 0.6rem;
   }
 
+  .pactos-table-head-meta {
+    gap: 0.35rem;
+  }
+
+  .pactos-source-legend {
+    gap: 0.25rem;
+  }
+
+  .pactos-source-chip {
+    font-size: 0.62rem;
+    padding: 0.1rem 0.38rem;
+  }
+
   .pactos-count {
     font-size: 0.7rem;
     min-width: 1.35rem;
@@ -233,6 +293,16 @@
 
   .pactos-table {
     min-width: 100%;
+  }
+
+  .pactos-table-head {
+    align-items: flex-start !important;
+    gap: 0.35rem;
+  }
+
+  .pactos-table-head-meta {
+    flex-direction: column;
+    align-items: flex-end;
   }
 
   .pactos-table-wrap {
@@ -422,7 +492,7 @@
 }
 
 .card-magenta {
-  color: #7ccf1a !important;
+  color: #6288af !important;
 }
 
 .card-yellow {
@@ -434,7 +504,7 @@
 }
 
 .card-bg-magenta {
-  background: linear-gradient(135deg, #7ccf1a 80%, #f7ffe6 100%) !important;
+  background: linear-gradient(135deg, #6288af 20%) !important;
   color: #fff;
 }
 
@@ -445,7 +515,7 @@
 }
 
 .card-bg-yellow {
-  background: linear-gradient(135deg, #ffbf39 80%, #fff 100%) !important;
+  background: linear-gradient(135deg, #ffbf39 80%) !important;
   color: #232323;
 }
 
@@ -456,7 +526,7 @@
 }
 
 .card-bg-gray {
-  background: linear-gradient(135deg, #7F8181 80%, #fff 100%) !important;
+  background: linear-gradient(135deg, #7F8181 80%) !important;
   color: #fff;
 }
 

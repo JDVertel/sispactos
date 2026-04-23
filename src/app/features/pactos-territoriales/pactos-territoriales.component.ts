@@ -2,7 +2,7 @@ import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
-import { PactosService } from '../../core/services/pactos.service';
+import { CatalogoOption, PactosService } from '../../core/services/pactos.service';
 import { Pacto as PactoModel } from '../../shared/models';
 
 interface Pacto {
@@ -10,7 +10,7 @@ interface Pacto {
   nombre: string;
   departamento: string;
   ciudad?: string;
-  estado: 'implementacion' | 'cierre';
+  idTipoPacto?: number;
   tipoPacto?: string;
   descripcion?: string;
   objetivo?: string;
@@ -64,7 +64,9 @@ export class PactosTerritorialesComponent implements OnInit {
   @ViewChild('carouselTrack') carouselTrack!: ElementRef<HTMLElement>;
 
   tabActivo = 'info';
-  estadoSeleccionado: 'implementacion' | 'cierre' = 'implementacion';
+  etapaSeleccionada = '';
+  tipoPactoSeleccionado = '';
+  tiposPactoCatalogo: CatalogoOption[] = [];
   pactos: Pacto[] = [];
   pactoSeleccionado: Pacto | null = null;
   isLoadingPactos = false;
@@ -537,20 +539,43 @@ export class PactosTerritorialesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPactos();
+    this.loadTiposPacto();
+    this.pactosService.syncPactosFromApi().subscribe();
   }
 
   get pactosFiltrados() {
-    return this.pactos.filter(p => p.estado === this.estadoSeleccionado);
+    return this.pactos.filter((pacto) => {
+      const byEtapa = !this.etapaSeleccionada || pacto.idEtapa === this.etapaSeleccionada;
+      const byTipoPacto = !this.tipoPactoSeleccionado || String(pacto.idTipoPacto ?? pacto.tipoPacto ?? '') === this.tipoPactoSeleccionado;
+      return byEtapa && byTipoPacto;
+    });
   }
 
-  seleccionarEstado(estado: 'implementacion' | 'cierre') {
-    this.estadoSeleccionado = estado;
+  get opcionesEtapa() {
+    return this.obtenerOpcionesUnicas(this.pactos.map((item) => item.idEtapa || 'Sin etapa'));
+  }
 
-    if (this.pactoSeleccionado?.estado === estado) {
+  get opcionesTipoPacto() {
+    return this.tiposPactoCatalogo
+      .map((item) => ({
+        value: String(item.id),
+        label: item.texto
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  onFiltrosPactosChange() {
+    if (this.pactoSeleccionado && this.pactosFiltrados.some((item) => item.id === this.pactoSeleccionado?.id)) {
       return;
     }
 
     this.pactoSeleccionado = this.pactosFiltrados[0] ?? null;
+  }
+
+  limpiarFiltrosPactos() {
+    this.etapaSeleccionada = '';
+    this.tipoPactoSeleccionado = '';
+    this.pactoSeleccionado = this.pactosFiltrados[0] ?? this.pactos[0] ?? null;
   }
 
   scrollCarousel(direction: -1 | 1) {
@@ -585,7 +610,7 @@ export class PactosTerritorialesComponent implements OnInit {
 
     return [
       { label: 'Tipo de pacto', value: this.pactoSeleccionado.tipoPacto || 'N/A' },
-      { label: 'Etapa', value: this.pactoSeleccionado.idEtapa || 'N/A' },
+      { label: 'Etapa', value: this.formatEtapa(this.pactoSeleccionado.idEtapa) },
       { label: 'Departamento', value: this.pactoSeleccionado.departamento || 'N/A' },
       { label: 'Ciudad', value: this.pactoSeleccionado.ciudad || 'N/A' },
       { label: 'Alcance', value: this.pactoSeleccionado.alcance || 'N/A' }
@@ -790,6 +815,17 @@ export class PactosTerritorialesComponent implements OnInit {
     });
   }
 
+  private loadTiposPacto(): void {
+    this.pactosService.getPactoCatalogos().subscribe({
+      next: ({ tiposPacto }) => {
+        this.tiposPactoCatalogo = tiposPacto;
+      },
+      error: () => {
+        this.tiposPactoCatalogo = [];
+      }
+    });
+  }
+
   private mapPacto(item: PactoModel): Pacto {
     const etapa = (item.idEtapa || '').trim();
     const ubicacion = this.extractUbicacion(item.alcance);
@@ -799,7 +835,7 @@ export class PactosTerritorialesComponent implements OnInit {
       nombre: item.nombre,
       departamento: ubicacion.departamento,
       ciudad: ubicacion.ciudad,
-      estado: this.mapEstado(etapa),
+      idTipoPacto: item.idTipoPacto,
       tipoPacto: item.tipoPacto,
       descripcion: item.descripcion,
       objetivo: item.objetivo,
@@ -808,6 +844,37 @@ export class PactosTerritorialesComponent implements OnInit {
       idEtapa: etapa,
       alcance: item.alcance
     };
+  }
+
+  getEtapaBadgeClass(etapa?: string): string {
+    const normalized = this.normalizeText(etapa);
+
+    if (normalized.includes('construccion') || normalized.includes('suscripcion')) {
+      return 'badge-etapa-construccion';
+    }
+
+    if (normalized.includes('implementacion')) {
+      return 'badge-etapa-implementacion';
+    }
+
+    if (normalized.includes('cierre')) {
+      return 'badge-etapa-cierre';
+    }
+
+    return 'badge-etapa-default';
+  }
+
+  formatEtapa(etapa?: string): string {
+    const safeEtapa = (etapa || '').trim();
+    return safeEtapa || 'Sin etapa';
+  }
+
+  private normalizeText(value?: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
   }
 
   private mapEstado(etapa: string): 'implementacion' | 'cierre' {

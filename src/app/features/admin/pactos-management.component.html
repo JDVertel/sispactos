@@ -31,6 +31,10 @@
 
     <div class="card-body p-2 p-md-3">
       <ng-container *ngIf="(pactos$ | async) as pactos; else noPactos">
+        <div class="alert alert-info border text-center mb-3" *ngIf="isLoadingPactos" role="status">
+          Cargando pactos territoriales desde el servicio...
+        </div>
+
         <div class="overflow-auto" style="max-height: 65vh;">
           <div class="card mb-3 border" *ngFor="let pacto of pactos">
             <div class="card-body">
@@ -99,7 +103,7 @@
           </div>
         </div>
 
-        <div class="alert alert-light border text-center mb-0" *ngIf="pactos.length === 0">
+        <div class="alert alert-light border text-center mb-0" *ngIf="!isLoadingPactos && pactos.length === 0">
           No hay pactos registrados. Usa el botón <strong>Nuevo Pacto</strong> para crear el primero.
         </div>
       </ng-container>
@@ -115,23 +119,18 @@
 
 <!-- Modal para registrar un nuevo pacto -->
 <div class="modal fade" id="nuevoPactoModal" tabindex="-1" aria-labelledby="nuevoPactoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
-    <div class="modal-content">
-      <form class="d-flex flex-column h-100" (ngSubmit)="addPacto()">
-        <div class="modal-header">
-          <h2 class="modal-title fs-5" id="nuevoPactoModalLabel"><i class="bi bi-handshake"></i> Nuevo Pacto Territorial</h2>
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-md-down pacto-modal-dialog">
+    <div class="modal-content pacto-modal-content">
+      <form class="d-flex flex-column h-100 pacto-modal-form" (ngSubmit)="addPacto()">
+        <div class="modal-header pacto-modal-header">
+          <div>
+            <h2 class="modal-title pacto-modal-title" id="nuevoPactoModalLabel"><i class="bi bi-handshake"></i> Nuevo Pacto Territorial</h2>
+            <p class="pacto-modal-subtitle mb-0">Diligencia los datos principales para crear el pacto.</p>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
-          <div *ngIf="submitError" class="alert alert-danger py-2 px-3" role="alert">
-            {{ submitError }}
-          </div>
-
-          <div *ngIf="submitSuccess" class="alert alert-success py-2 px-3" role="alert">
-            {{ submitSuccess }}
-          </div>
-
+        <div class="modal-body pacto-modal-body overflow-auto">
           <div *ngIf="isLoadingCatalogos" class="alert alert-info py-2 px-3" role="status">
             Cargando catálogos de tipo de pacto y etapa...
           </div>
@@ -255,9 +254,17 @@
             </div>
 
           </div>
+
+          <div *ngIf="submitError" class="alert alert-danger py-2 px-3 mt-3 mb-0" role="alert">
+            {{ submitError }}
+          </div>
+
+          <div *ngIf="submitSuccess" class="alert alert-success py-2 px-3 mt-3 mb-0" role="alert">
+            {{ submitSuccess }}
+          </div>
         </div>
 
-        <div class="modal-footer bg-body sticky-bottom">
+        <div class="modal-footer pacto-modal-footer bg-body sticky-bottom">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button
             type="submit"

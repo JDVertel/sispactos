@@ -1,8 +1,13 @@
+import { inject } from '@angular/core';
 import { HttpEvent, HttpEventType, HttpInterceptorFn } from '@angular/common/http';
 import { MonoTypeOperatorFunction } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { AuthSessionStore } from '../store/auth-session.store';
 
 export const authTokenInterceptor: HttpInterceptorFn = (req, next) => {
+  const authSessionStore = inject(AuthSessionStore);
+  const token = authSessionStore.getToken().trim();
+
   const extractPayloadData = (body: unknown): unknown => {
     if (!body || typeof body !== 'object') {
       return body;
@@ -34,5 +39,13 @@ export const authTokenInterceptor: HttpInterceptorFn = (req, next) => {
       }
     });
 
-  return next(req).pipe(logHttpTraffic(req.method, req.urlWithParams));
+  const authorizedRequest = token && !req.headers.has('Authorization')
+    ? req.clone({
+        setHeaders: {
+          Authorization: token.startsWith('Bearer ') ? token : `Bearer ${token}`
+        }
+      })
+    : req;
+
+  return next(authorizedRequest).pipe(logHttpTraffic(authorizedRequest.method, authorizedRequest.urlWithParams));
 };

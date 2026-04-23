@@ -1,19 +1,53 @@
 <!-- Navtab eliminado -->
 <div>
-    <!-- Menú dinámico de estado -->
-    <div class="mb-3 d-flex gap-2">
-      <button type="button"
-        class="estado-btn"
-        [class.estado-btn-activo]="estadoSeleccionado === 'implementacion'"
-        (click)="seleccionarEstado('implementacion')">
-        Implementación
-      </button>
-      <button type="button"
-        class="estado-btn"
-        [class.estado-btn-activo]="estadoSeleccionado === 'cierre'"
-        (click)="seleccionarEstado('cierre')">
-        Cierre
-      </button>
+    <div class="mb-3 pactos-filter-bar">
+      <div class="pactos-filter-inline-row">
+        <div class="pactos-filter-inline-group">
+          <div class="pactos-filter-label">Etapa</div>
+          <div class="pactos-filter-actions">
+          <button
+            type="button"
+            class="estado-btn"
+            [class.estado-btn-activo]="!etapaSeleccionada"
+            (click)="etapaSeleccionada = ''; onFiltrosPactosChange()">
+            Todas
+          </button>
+          <button
+            type="button"
+            class="estado-btn"
+            *ngFor="let etapa of opcionesEtapa"
+            [class.estado-btn-activo]="etapaSeleccionada === etapa"
+            (click)="etapaSeleccionada = etapa; onFiltrosPactosChange()">
+            {{ formatEtapa(etapa) }}
+          </button>
+        </div>
+        </div>
+        <div class="pactos-filter-inline-group">
+          <div class="pactos-filter-label">Tipo de pacto</div>
+          <div class="pactos-filter-actions">
+          <button
+            type="button"
+            class="estado-btn"
+            [class.estado-btn-activo]="!tipoPactoSeleccionado"
+            (click)="tipoPactoSeleccionado = ''; onFiltrosPactosChange()">
+            Todos
+          </button>
+          <button
+            type="button"
+            class="estado-btn"
+            *ngFor="let tipo of opcionesTipoPacto"
+            [class.estado-btn-activo]="tipoPactoSeleccionado === tipo.value"
+            (click)="tipoPactoSeleccionado = tipo.value; onFiltrosPactosChange()">
+            {{ tipo.label }}
+          </button>
+        </div>
+        </div>
+        <div class="pactos-filter-reset">
+          <button type="button" class="btn btn-outline-secondary" (click)="limpiarFiltrosPactos()">
+            Limpiar filtros
+          </button>
+        </div>
+      </div>
     </div>
     <!-- Cards de ejecución y valores integradas en cada pacto -->
     <div class="mb-3">
@@ -37,13 +71,9 @@
                [attr.aria-label]="'Seleccionar ' + pacto.nombre">
             <div class="pacto-card-numero">{{ i + 1 }}</div>
             <div class="pacto-card-nombre">{{ pacto.nombre }}</div>
-            <div class="pacto-card-depto">
-              <i class="bi bi-geo-alt-fill"></i>
-              {{ pacto.departamento || 'N/A' }}
-            </div>
             <div class="pacto-card-estado">
-              <span class="badge" [class.badge-implementacion]="pacto.estado === 'implementacion'" [class.badge-cierre]="pacto.estado === 'cierre'">
-                {{ pacto.estado === 'implementacion' ? 'En implementación' : 'Cierre' }}
+              <span class="badge" [ngClass]="getEtapaBadgeClass(pacto.idEtapa)">
+                {{ formatEtapa(pacto.idEtapa) }}
               </span>
             </div>
           </div>
@@ -51,6 +81,9 @@
         <button class="carousel-nav-btn carousel-nav-next" (click)="scrollCarousel(1)" [disabled]="pactosFiltrados.length <= 3" type="button" aria-label="Siguiente">
           <i class="bi bi-chevron-right"></i>
         </button>
+      </div>
+      <div *ngIf="!isLoadingPactos && !pactosError && pactosFiltrados.length === 0" class="alert alert-light border mt-2 mb-0">
+        No hay pactos para la etapa y el tipo seleccionados.
       </div>
     </div>
 

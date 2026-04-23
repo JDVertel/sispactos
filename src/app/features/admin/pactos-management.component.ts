@@ -21,7 +21,7 @@ type PactoFormData = Pick<
 export class PactosManagementComponent implements OnInit {
   // Lista observable de pactos para mostrar en la vista.
   pactos$: Observable<Pacto[]>;
-  readonly etapaPorDefecto = 'construccion';
+  readonly etapaPorDefecto = 'implementacion';
   readonly tiposPactoFallback: CatalogoOption[] = [
     { id: 1, codigo: 'TERRITORIO', texto: 'Territorio' },
     { id: 2, codigo: 'NACION', texto: 'Nación' }
@@ -32,6 +32,7 @@ export class PactosManagementComponent implements OnInit {
     { id: 3, codigo: 'CIERRE', texto: 'Cierre' }
   ];
   isSubmitting = false;
+  isLoadingPactos = false;
   isLoadingCatalogos = false;
   submitError = '';
   submitSuccess = '';
@@ -70,6 +71,7 @@ export class PactosManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.refreshPactos();
     this.loadCatalogos();
   }
 
@@ -137,6 +139,8 @@ export class PactosManagementComponent implements OnInit {
 
         this.submitSuccess = 'Pacto creado correctamente.';
         this.resetForm();
+        this.closeNuevoPactoModal();
+        this.refreshPactos();
       });
   }
 
@@ -235,6 +239,44 @@ export class PactosManagementComponent implements OnInit {
           this.submitError = 'Se usaron opciones por defecto para tipo de pacto y etapa.';
         }
       });
+  }
+
+  private refreshPactos(): void {
+    this.isLoadingPactos = true;
+    this.pactosService
+      .syncPactosFromApi()
+      .pipe(finalize(() => (this.isLoadingPactos = false)))
+      .subscribe();
+  }
+
+  private closeNuevoPactoModal(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const modalElement = document.getElementById('nuevoPactoModal');
+    if (!modalElement) {
+      return;
+    }
+
+    const bootstrapModal = (window as Window & {
+      bootstrap?: {
+        Modal?: {
+          getInstance(element: Element): { hide(): void } | null;
+          getOrCreateInstance?(element: Element): { hide(): void };
+        };
+      };
+    }).bootstrap?.Modal;
+
+    const modalInstance = bootstrapModal?.getInstance(modalElement)
+      || bootstrapModal?.getOrCreateInstance?.(modalElement);
+
+    if (modalInstance) {
+      modalInstance.hide();
+      return;
+    }
+
+    modalElement.querySelector<HTMLElement>('[data-bs-dismiss="modal"]')?.click();
   }
 
   private getDefaultEtapaId(): string {

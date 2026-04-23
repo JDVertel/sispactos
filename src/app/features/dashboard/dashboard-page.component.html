@@ -94,7 +94,13 @@
             <article class="card pactos-table-card h-100 border-0">
               <header class="pactos-table-head d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-table me-1"></i> Pactos filtrados</span>
-                <span class="pactos-count">{{ pactosFiltrados.length }}</span>
+                <div class="pactos-table-head-meta">
+                  <div class="pactos-source-legend" aria-label="Leyenda de origen de datos">
+                    <span class="pactos-source-chip pactos-source-chip-cache">Cache</span>
+                    <span class="pactos-source-chip pactos-source-chip-api">API</span>
+                  </div>
+                  <span class="pactos-count">{{ pactosFiltrados.length }}</span>
+                </div>
               </header>
 
               <div class="table-responsive pactos-table-wrap">
@@ -123,7 +129,7 @@
                       </td>
                     </tr>
 
-                    <tr *ngFor="let item of pactosFiltrados">
+                    <tr *ngFor="let item of pactosFiltrados" [ngClass]="item.dataSource === 'cache' ? 'pacto-row-cache' : 'pacto-row-api'">
                       <td data-label="Nombre del pacto">{{ item.nombrePacto }}</td>
                       <td data-label="Fecha suscripción">{{ item.fechaSubscripcion }}</td>
                       <td data-label="Fecha vencimiento">{{ item.fechaVencimiento }}</td>

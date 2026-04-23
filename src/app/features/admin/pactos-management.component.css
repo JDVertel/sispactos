@@ -3,9 +3,92 @@
   --home-font-size: 0.82rem;
 }
 
+.pacto-modal-dialog {
+  max-width: min(920px, calc(100vw - 1.5rem));
+}
+
+.pacto-modal-content {
+  border: 1px solid rgba(0, 195, 193, 0.35);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #ebebeb;
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 195, 193, 0.2);
+}
+
+.pacto-modal-form {
+  min-height: 100%;
+}
+
+.pacto-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(72, 187, 185, 0.35);
+  background: linear-gradient(90deg, #7a7c7c 0%, #ffffff 50%, #48bbb9 100%) !important;
+}
+
+.pacto-modal-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  text-shadow:
+    -1px 0 0 rgba(0, 0, 0, 0.5),
+    1px 0 0 rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.pacto-modal-subtitle {
+  margin-top: 0.45rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.pacto-modal-body {
+  padding: 0.75rem 1rem 1rem;
+  max-height: calc(100vh - 12rem);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(235, 235, 235, 0.95) 100%);
+}
+
+.pacto-modal-footer {
+  border-top: 1px solid #e9ecef;
+  padding: 0.85rem 1rem 1rem;
+}
+
+.pacto-modal-header .btn-close {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
 .form-label,
 .form-control,
 .form-select,
 textarea {
   font-size: var(--home-font-size);
+}
+
+@media (max-width: 991px) {
+  .pacto-modal-dialog {
+    max-width: calc(100vw - 1rem);
+  }
+
+  .pacto-modal-body {
+    max-height: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .pacto-modal-header,
+  .pacto-modal-body,
+  .pacto-modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
