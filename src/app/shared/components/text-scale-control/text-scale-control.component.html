@@ -1,0 +1,47 @@
+<div
+  class="text-scale-control"
+  role="group"
+  aria-label="Tamaño del texto de la interfaz"
+  [attr.title]="'Tamaño del texto: ' + levelLabel()"
+>
+  <span class="text-scale-control__label" aria-hidden="true">Texto</span>
+
+  <div class="text-scale-control__segmented" role="presentation">
+    <button
+      type="button"
+      class="text-scale-control__seg-btn text-scale-control__seg-btn--first"
+      (click)="textScale.decrease()"
+      [disabled]="textScale.level() <= textScale.minLevel"
+      aria-label="Reducir tamaño del texto"
+    >
+      <span class="text-scale-control__a-mark">
+        <span class="text-scale-control__a">A</span><span class="text-scale-control__a-mod">−</span>
+      </span>
+    </button>
+    <span class="text-scale-control__divider" aria-hidden="true"></span>
+    <button
+      type="button"
+      class="text-scale-control__seg-btn text-scale-control__seg-btn--last"
+      (click)="textScale.increase()"
+      [disabled]="textScale.level() >= textScale.maxLevel"
+      aria-label="Aumentar tamaño del texto"
+    >
+      <span class="text-scale-control__a-mark">
+        <span class="text-scale-control__a">A</span><span class="text-scale-control__a-mod">+</span>
+      </span>
+    </button>
+  </div>
+
+  <span class="text-scale-control__status" aria-live="polite">{{ levelLabel() }}</span>
+
+  <button
+    type="button"
+    class="text-scale-control__reset"
+    (click)="textScale.reset()"
+    [disabled]="textScale.level() === textScale.defaultLevel"
+    aria-label="Restablecer tamaño del texto al predeterminado"
+    title="Tamaño predeterminado"
+  >
+    <i class="bi bi-arrow-counterclockwise text-scale-control__reset-icon" aria-hidden="true"></i>
+  </button>
+</div>

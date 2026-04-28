@@ -165,3 +165,24 @@ textarea {
 .dashboard-shell .content .btn {
   border-radius: 0.15rem;
 }
+
+/* Tamaño de texto global (TextScaleService aplica app-text-scale-N en <html>) */
+html.app-text-scale-0 {
+  font-size: 81.25%;
+}
+
+html.app-text-scale-1 {
+  font-size: 90.625%;
+}
+
+html.app-text-scale-2 {
+  font-size: 100%;
+}
+
+html.app-text-scale-3 {
+  font-size: 112.5%;
+}
+
+html.app-text-scale-4 {
+  font-size: 125%;
+}

@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar/sidebar.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { LoginComponent } from '../auth/login.component';
+import { TextScaleControlComponent } from '../../shared/components/text-scale-control/text-scale-control.component';
 
 const PROTECTED_ROUTES = new Set([
   'avances',
@@ -101,7 +102,14 @@ const MENU_ITEMS: MenuItem[] = [
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SidebarComponent, FooterComponent, LoginComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    SidebarComponent,
+    FooterComponent,
+    LoginComponent,
+    TextScaleControlComponent
+  ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

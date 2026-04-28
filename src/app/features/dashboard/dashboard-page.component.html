@@ -10,6 +10,9 @@
     <app-filter-drawer
       *ngIf="!isResponsiveView"
       class="home-filter"
+      [etapas]="filterEtapas"
+      [tiposPacto]="filterTiposPacto"
+      [departamentos]="filterDepartamentos"
       (filtersChange)="onFiltersChange($event)"
     ></app-filter-drawer>
 
@@ -54,22 +57,42 @@
 
       <!-- Carrusel de imágenes simple -->
       <div class="home-carousel my-3" *ngIf="carouselImages.length">
-        <div class="carousel slide" [id]="'simpleCarousel'" data-bs-ride="carousel">
-          <div class="carousel-inner">
-            <div *ngFor="let img of carouselImages; let i = index" class="carousel-item" [class.active]="i === currentCarousel">
-              <img [src]="img.src" [alt]="img.alt" class="d-block w-100" style="max-height: 320px; object-fit: cover;" />
-              <div class="carousel-caption d-none d-md-block">
-                <h5>{{ img.caption }}</h5>
+        <div
+          class="home-carousel__viewport"
+          role="region"
+          aria-roledescription="carrusel"
+          aria-label="Imagenes destacadas"
+        >
+          <div class="home-carousel__slides">
+            <div
+              *ngFor="let img of carouselImages; let i = index"
+              class="home-carousel__slide"
+              [class.home-carousel__slide--active]="i === currentCarousel"
+              [attr.aria-hidden]="i === currentCarousel ? null : true"
+            >
+              <div class="home-carousel__frame">
+                <img [src]="img.src" [alt]="img.alt" class="home-carousel__img" loading="lazy" />
+                <div class="home-carousel__caption">
+                  <p class="home-carousel__caption-text">{{ img.caption }}</p>
+                </div>
               </div>
             </div>
           </div>
-          <button class="carousel-control-prev" type="button" (click)="prevCarousel()">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Anterior</span>
+          <button
+            type="button"
+            class="home-carousel__nav home-carousel__nav--prev"
+            (click)="prevCarousel()"
+            aria-label="Diapositiva anterior"
+          >
+            <i class="bi bi-chevron-left" aria-hidden="true"></i>
           </button>
-          <button class="carousel-control-next" type="button" (click)="nextCarousel()">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Siguiente</span>
+          <button
+            type="button"
+            class="home-carousel__nav home-carousel__nav--next"
+            (click)="nextCarousel()"
+            aria-label="Diapositiva siguiente"
+          >
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -78,6 +101,9 @@
       <app-filter-drawer
         *ngIf="isResponsiveView"
         class="home-filter home-filter-inline"
+        [etapas]="filterEtapas"
+        [tiposPacto]="filterTiposPacto"
+        [departamentos]="filterDepartamentos"
         (filtersChange)="onFiltersChange($event)"
       ></app-filter-drawer>
 
@@ -86,7 +112,7 @@
         <div class="row g-3">
           <!-- Mapa que cambia según departamento -->
           <div class="col-12 col-xl-5">
-            <app-departamento-map [departamento]="departamentoMapa"></app-departamento-map>
+            <app-departamento-map [departamento]="departamentoMapa" [homeSurface]="true"></app-departamento-map>
           </div>
 
           <!-- Tabla con los pactos que cumplen los filtros -->

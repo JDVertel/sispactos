@@ -5,7 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { FilterDrawerComponent, type FilterDrawerValues } from '../../shared/components/filter-drawer/filter-drawer.component';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
-import { PactosService, type PactoTablaDto } from '../../core/services/pactos.service';
+import { PactosService, type PactoTablaDto, type PactoTablaFilterOptions } from '../../core/services/pactos.service';
 
 const PAGE_DATA: Record<string, { title: string; description: string }> = {
   home: {
@@ -110,6 +110,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   pactosFiltrados: PactoTablaDto[] = [];
 
+  /** Opciones de filtros derivadas de los mismos registros que alimentan la tabla. */
+  filterEtapas: string[] = [];
+  filterTiposPacto: string[] = [];
+  filterDepartamentos: string[] = [];
+
   // Recibe los filtros del componente de filtros y actualiza la vista.
   onFiltersChange(values: FilterDrawerValues): void {
     this.activeFilters = values;
@@ -203,19 +208,23 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     }
   ];
 
+  /**
+   * Imagenes desde src/assets/carousel/ (servidas como /assets/carousel/...).
+   * Ver src/assets/carousel/LEEME.txt.
+   */
   carouselImages = [
     {
-      src: 'https://placehold.co/900x320/00c3c1/fff?text=Proyecto+de+Infraestructura',
+      src: '/assets/carousel/slide-01.svg',
       alt: 'Proyecto de infraestructura',
       caption: 'Proyecto de infraestructura comunitaria'
     },
     {
-      src: 'https://placehold.co/900x320/ffbf39/232323?text=Comunidad+Participando',
+      src: '/assets/carousel/slide-02.svg',
       alt: 'Comunidad participando',
       caption: 'Participación de la comunidad en proyectos sociales'
     },
     {
-      src: 'https://placehold.co/900x320/232323/ffbf39?text=Educación+y+Desarrollo',
+      src: '/assets/carousel/slide-03.svg',
       alt: 'Educación y desarrollo',
       caption: 'Iniciativas de educación y desarrollo local'
     }
@@ -226,6 +235,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadPactosTabla();
+    this.loadFilterOptionsFromService();
 
     // Aleatorizar imágenes al cargar
     this.carouselImages = this.shuffleArray(this.carouselImages);
@@ -278,6 +288,24 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       this.pageDescription = data.description;
     });
 
+  }
+
+  private loadFilterOptionsFromService(): void {
+    this.pactosService
+      .getPactosTablaFilterOptionsFromApi()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (opts: PactoTablaFilterOptions) => {
+          this.filterEtapas = opts.etapas;
+          this.filterTiposPacto = opts.tiposPacto;
+          this.filterDepartamentos = opts.departamentos;
+        },
+        error: () => {
+          this.filterEtapas = [];
+          this.filterTiposPacto = [];
+          this.filterDepartamentos = [];
+        }
+      });
   }
 
   private loadPactosTabla(): void {

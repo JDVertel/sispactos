@@ -1,7 +1,7 @@
 ﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, concat, forkJoin, of } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, toArray } from 'rxjs/operators';
 import { Pacto } from '../../shared/models';
 
 export interface PactoTablaDto {
@@ -21,6 +21,13 @@ export interface PactoTablaFilters {
   etapa?: string;
   pacto?: string;
   departamento?: string;
+}
+
+/** Valores únicos presentes en el listado de pactos (servicio / cache) para armar filtros. */
+export interface PactoTablaFilterOptions {
+  etapas: string[];
+  tiposPacto: string[];
+  departamentos: string[];
 }
 
 type ApiPacto = Record<string, unknown>;
@@ -108,6 +115,20 @@ export class PactosService {
   getPactosTablaFiltradosFromApi(filters: PactoTablaFilters): Observable<PactoTablaDto[]> {
     return this.getPactosTablaFromApi().pipe(
       map((rows) => rows.filter((item) => this.matchesTablaFilters(item, filters)))
+    );
+  }
+
+  /**
+   * Etapas, tipos de pacto y departamentos distintos que aparecen en los registros
+   * devueltos por getPactosTablaFromApi (incluye emisiones cache + API de concat).
+   */
+  getPactosTablaFilterOptionsFromApi(): Observable<PactoTablaFilterOptions> {
+    return this.getPactosTablaFromApi().pipe(
+      toArray(),
+      map((batches) => {
+        const rows = batches.flat();
+        return this.buildTablaFilterOptions(rows);
+      })
     );
   }
 
@@ -380,6 +401,24 @@ export class PactosService {
       urlPacto: (pacto.urlDocPacto || '').trim(),
       urlMinuta: (pacto.urlDocMinuta || '').trim()
     };
+  }
+
+  private buildTablaFilterOptions(rows: PactoTablaDto[]): PactoTablaFilterOptions {
+    return {
+      etapas: this.uniqueSortedFieldValues(rows.map((r) => r.etapa)),
+      tiposPacto: this.uniqueSortedFieldValues(rows.map((r) => r.tipoPacto)),
+      departamentos: this.uniqueSortedFieldValues(rows.map((r) => r.departamento))
+    };
+  }
+
+  private uniqueSortedFieldValues(values: string[]): string[] {
+    const normalized = values
+      .map((v) => (v || '').trim())
+      .filter((v) => v.length > 0);
+
+    const unique = Array.from(new Set(normalized));
+    unique.sort((a, b) => a.localeCompare(b, 'es-CO', { sensitivity: 'base' }));
+    return unique;
   }
 
   private matchesTablaFilters(item: PactoTablaDto, filters: PactoTablaFilters): boolean {

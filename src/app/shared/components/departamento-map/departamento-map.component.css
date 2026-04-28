@@ -5,10 +5,25 @@
 .map-card {
   background: #ffffff;
   box-shadow: 0 0.35rem 1rem rgba(0, 162, 160, 0.14);
-  border: 1px solid rgba(0, 195, 193, 0.3);
+  border: 1px solid rgba(0, 195, 193, 0.3) !important;
+  border-radius: 0;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+}
+
+.map-card.home-surface-card {
+  border-radius: 12px;
+  border: 2px solid #e2f7f7 !important;
+  box-shadow: 0 2px 10px rgba(0, 195, 193, 0.07);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.map-card.home-surface-card:hover {
+  border-color: #00c3c1 !important;
+  box-shadow: 0 4px 18px rgba(0, 195, 193, 0.2);
 }
 
 .map-card-head {

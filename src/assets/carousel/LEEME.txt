@@ -1,0 +1,10 @@
+Imagenes del carrusel (Home)
+
+Ubicacion: src/assets/carousel/
+
+En dashboard-page.component.ts use rutas asi:
+  src: '/assets/carousel/mi-archivo.jpg'
+
+Angular copia esta carpeta a /assets/ al compilar y al hacer ng serve.
+
+Puede borrar los slide-0X.svg cuando suba las imagenes definitivas.

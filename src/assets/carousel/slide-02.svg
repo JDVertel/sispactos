@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="320" viewBox="0 0 900 320">
+  <rect width="900" height="320" fill="#e5a800"/>
+  <rect x="24" y="24" width="852" height="272" rx="12" fill="none" stroke="#232323" stroke-opacity="0.25" stroke-width="2"/>
+  <text x="450" y="130" text-anchor="middle" fill="#232323" font-family="system-ui,Segoe UI,sans-serif" font-size="32" font-weight="800">slide-02.svg</text>
+  <text x="450" y="175" text-anchor="middle" fill="#3d2e00" font-family="system-ui,Segoe UI,sans-serif" font-size="17" font-weight="600">ruta: /assets/carousel/slide-02.svg</text>
+  <text x="450" y="230" text-anchor="middle" fill="#5a4300" font-family="system-ui,Segoe UI,sans-serif" font-size="14">Imagen de prueba - reemplazar por JPG/PNG real</text>
+</svg>

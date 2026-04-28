@@ -1,0 +1,3 @@
+Las imagenes del carrusel del Home estan en:
+  src/assets/carousel/
+y se referencian en codigo como /assets/carousel/nombre.ext

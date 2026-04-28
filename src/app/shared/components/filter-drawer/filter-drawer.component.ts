@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 export interface FilterDrawerValues {
@@ -15,38 +15,50 @@ export interface FilterDrawerValues {
   templateUrl: './filter-drawer.component.html',
   styleUrl: './filter-drawer.component.css'
 })
-export class FilterDrawerComponent {
+export class FilterDrawerComponent implements OnChanges {
   @Output() filtersChange = new EventEmitter<FilterDrawerValues>();
+
+  /** Etapas presentes en los registros del servicio (ordenadas). */
+  @Input() etapas: string[] = [];
+
+  /** Tipos de pacto presentes en los registros del servicio (ordenados). */
+  @Input() tiposPacto: string[] = [];
+
+  /** Departamentos presentes en los registros del servicio (ordenados). */
+  @Input() departamentos: string[] = [];
 
   // Controla si el panel de filtros está abierto o cerrado.
   isOpen = false;
 
-  // Opciones que verá el usuario en el selector de etapa.
-  etapas = ['Formulación', 'Negociación', 'Suscripción', 'Ejecución', 'Terminado'];
-
-  // Opciones disponibles para tipo de pacto.
-  pactos = [
-    'Pacto Territorial',
-    'Contrato Plan',
-    'Pacto de Borde',
-    'Pacto Subregional',
-    'Pacto Metropolitano'
-  ];
-
-  // Lista de departamentos para filtrar.
-  departamentos = [
-    'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bolívar',
-    'Boyacá', 'Caldas', 'Caquetá', 'Casanare', 'Cauca',
-    'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca', 'Guainía',
-    'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta',
-    'Nariño', 'Norte de Santander', 'Putumayo', 'Quindío',
-    'Risaralda', 'San Andrés', 'Santander', 'Sucre', 'Tolima',
-    'Valle del Cauca', 'Vaupés', 'Vichada'
-  ];
-
   selectedEtapa = '';
   selectedPacto = '';
   selectedDepartamento = '';
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['etapas'] || changes['tiposPacto'] || changes['departamentos']) {
+      this.pruneInvalidSelections();
+    }
+  }
+
+  /** Si el listado del servicio cambia, quita selecciones que ya no existen. */
+  private pruneInvalidSelections(): void {
+    let changed = false;
+    if (this.selectedEtapa && !this.etapas.includes(this.selectedEtapa)) {
+      this.selectedEtapa = '';
+      changed = true;
+    }
+    if (this.selectedPacto && !this.tiposPacto.includes(this.selectedPacto)) {
+      this.selectedPacto = '';
+      changed = true;
+    }
+    if (this.selectedDepartamento && !this.departamentos.includes(this.selectedDepartamento)) {
+      this.selectedDepartamento = '';
+      changed = true;
+    }
+    if (changed) {
+      this.applyFilter();
+    }
+  }
 
   // Indica si hay al menos un filtro activo.
   get hasActiveFilters(): boolean {

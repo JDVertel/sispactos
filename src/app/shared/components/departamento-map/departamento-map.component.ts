@@ -13,6 +13,9 @@ export class DepartamentoMapComponent implements OnChanges {
   // Recibe el departamento elegido en los filtros.
   @Input() departamento = '';
 
+  /** Marco redondeado tipo home solo en el dashboard; en otras rutas debe ser false. */
+  @Input() homeSurface = false;
+
   // URL segura del mapa que se incrusta en pantalla.
   mapUrl: SafeResourceUrl = '';
 
