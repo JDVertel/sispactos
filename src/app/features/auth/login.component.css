@@ -62,8 +62,25 @@
 
 .login-shell.login-shell-compact .login-form-content {
   width: 100%;
-  max-width: 100%;
-  padding: 1.2rem;
+  max-width: 410px;
+  padding: 1rem;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid rgba(0, 195, 193, 0.25);
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12), 0 4px 10px rgba(0, 195, 193, 0.1);
+}
+
+.login-compact-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.55rem;
+}
+
+.login-compact-brand-logo {
+  width: min(100%, 180px);
+  height: auto;
+  object-fit: contain;
 }
 
 .login-form-title {
@@ -73,11 +90,29 @@
   font-weight: 700;
 }
 
+.login-shell.login-shell-compact .login-form-title {
+  font-size: 1.25rem;
+}
+
 .login-form-subtitle {
   margin: 0.5rem 0 1.4rem;
   color: #6c757d;
   font-size: 0.95rem;
   line-height: 1.45;
+}
+
+.login-shell.login-shell-compact .login-form-subtitle {
+  margin: 0.35rem 0 0.85rem;
+  font-size: 0.83rem;
+  line-height: 1.35;
+}
+
+.login-form-helper {
+  font-weight: 600;
+}
+
+.login-shell.login-shell-compact .login-form-helper {
+  font-size: 0.74rem;
 }
 
 .login-form-stack {
@@ -86,10 +121,19 @@
   gap: 1rem;
 }
 
+.login-shell.login-shell-compact .login-form-stack {
+  gap: 0.75rem;
+}
+
 .login-fieldset {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.login-shell.login-shell-compact .login-fieldset .form-label {
+  font-size: 0.78rem;
+  margin-bottom: 0.15rem;
 }
 
 .login-mode-group {
@@ -101,6 +145,85 @@
 
 .form-control {
   min-height: 42px;
+  border: 1px solid rgba(77, 77, 77, 0.22);
+  border-radius: 0.45rem;
+  padding: 0.52rem 0.72rem;
+}
+
+.login-shell.login-shell-compact .form-control {
+  min-height: 36px;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.62rem;
+}
+
+.form-control:focus {
+  border-color: #00a2a0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 195, 193, 0.2);
+}
+
+.password-field-wrap {
+  position: relative;
+}
+
+.password-field-input {
+  padding-right: 5.6rem;
+}
+
+.login-shell.login-shell-compact .password-field-input {
+  padding-right: 2.25rem;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.42rem;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #006968;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.3rem 0.4rem;
+  border-radius: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-shell.login-shell-compact .password-toggle-btn {
+  font-size: 0.92rem;
+  padding: 0.2rem 0.28rem;
+}
+
+.password-toggle-btn:hover {
+  background: rgba(0, 195, 193, 0.12);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid rgba(0, 162, 160, 0.55);
+  outline-offset: 1px;
+}
+
+.btn-primary {
+  min-height: 42px;
+  font-weight: 700;
+  border: none;
+  border-radius: 0.45rem;
+  background: linear-gradient(180deg, #37d5d3 0%, #00b9b7 55%, #008f8d 100%);
+  box-shadow: 0 10px 18px rgba(0, 162, 160, 0.2);
+}
+
+.login-shell.login-shell-compact .btn-primary {
+  min-height: 36px;
+  font-size: 0.84rem;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2ecfcd 0%, #00adab 55%, #008381 100%);
+}
+
+.btn-primary:disabled {
+  opacity: 0.72;
 }
 
 .login-media {

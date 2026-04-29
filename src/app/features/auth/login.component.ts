@@ -19,6 +19,7 @@ export class LoginComponent {
   // Datos que el usuario escribe en el formulario.
   username = '';
   password = '';
+  showPassword = false;
   isSubmitting = false;
   loginError = '';
 
@@ -47,5 +48,9 @@ export class LoginComponent {
           this.router.navigateByUrl('/dashboard/home');
         }
       });
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
   }
 }

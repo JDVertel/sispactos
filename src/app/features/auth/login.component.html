@@ -5,6 +5,7 @@
     <div class="login-media login-media-panel" *ngIf="!compactMode">
       <img src="/dnp.jpg" alt="Departamento Nacional de Planeacion" class="login-media-image" />
       <div class="login-media-overlay">
+        <img src="/pactos-territoriales-logo.png" alt="Logo Pactos Territoriales" class="login-media-logo" />
         <h1 class="login-media-title mb-1">SISPACTOS</h1>
         <p class="mb-0 login-media-description">Seguimiento y monitoreo de Pactos Territoriales</p>
       </div>
@@ -13,12 +14,15 @@
     <!-- Lado del formulario de acceso -->
     <div class="login-form-panel">
       <div class="login-form-content">
+      <div class="login-compact-brand" *ngIf="compactMode">
+        <img src="/pactos-territoriales-logo.png" alt="Logo Pactos Territoriales" class="login-compact-brand-logo" />
+      </div>
       <h2 class="login-form-title">Inicia sesion</h2>
       <p class="login-form-subtitle">Accede para consultar el avance de proyectos, contratos y pactos.</p>
 
       <!-- Formulario principal -->
       <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="login-form-stack">
-        <p class="small text-secondary mb-0">Diligencia los siguientes datos</p>
+        <p class="small text-secondary mb-0 login-form-helper">Diligencia los siguientes datos</p>
 
         <div class="login-fieldset">
           <label for="username" class="form-label">Usuario</label>
@@ -26,8 +30,28 @@
         </div>
 
         <div class="login-fieldset">
-          <label for="password" class="form-label">Contrasena</label>
-          <input id="password" name="password" type="password" class="form-control" [(ngModel)]="password" required placeholder="Ingresa tu Contrasena" />
+          <label for="password" class="form-label">Contraseña</label>
+          <div class="password-field-wrap">
+            <input
+              id="password"
+              name="password"
+              [type]="showPassword ? 'text' : 'password'"
+              class="form-control password-field-input"
+              [(ngModel)]="password"
+              required
+              placeholder="Ingresa tu contraseña"
+            />
+            <button
+              type="button"
+              class="password-toggle-btn"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+              [attr.aria-pressed]="showPassword"
+            >
+              <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash-fill' : 'bi-eye-fill'" aria-hidden="true"></i>
+              <span class="visually-hidden">{{ showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña' }}</span>
+            </button>
+          </div>
         </div>
 
         <div *ngIf="loginError" class="alert alert-danger py-2 px-3 mb-0" role="alert">

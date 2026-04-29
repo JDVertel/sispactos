@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, HostBinding, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
@@ -15,6 +15,14 @@ export class DepartamentoMapComponent implements OnChanges {
 
   /** Marco redondeado tipo home solo en el dashboard; en otras rutas debe ser false. */
   @Input() homeSurface = false;
+
+  /** Si es true, el mapa crece en altura para igualar la columna vecina (flex). */
+  @Input() stretchVertical = false;
+
+  @HostBinding('class.map-host-stretch')
+  get hostStretchClass(): boolean {
+    return this.stretchVertical;
+  }
 
   // URL segura del mapa que se incrusta en pantalla.
   mapUrl: SafeResourceUrl = '';

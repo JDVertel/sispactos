@@ -10,7 +10,7 @@
 .topbar {
   height: var(--topbar-height);
   padding: 0.35rem 1.25rem;
-  background: linear-gradient(90deg, #7a7c7c 0%, #ffffff 50%, #48bbb9 100%);
+  background: linear-gradient(180deg, #59e0df 0%, #00c3c1 52%, #008080 100%);
   color: #ffffff;
   position: sticky;
   top: 0;
@@ -19,8 +19,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 3px solid #ffbf39;
+  border-bottom: 3px solid #007978;
   box-shadow: 0 6px 14px rgba(0, 162, 160, 0.25);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .topbar-brand {
@@ -85,9 +87,15 @@
 }
 
 .topbar-title {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   line-height: 1;
   letter-spacing: 0.02em;
+  text-shadow:
+    -1px 0 0 rgba(0, 0, 0, 0.55),
+    1px 0 0 rgba(0, 0, 0, 0.55),
+    0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .topbar-title-sis {
@@ -112,6 +120,7 @@
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
 }
 
 .topbar-session {
@@ -120,6 +129,7 @@
   gap: 0.65rem;
   line-height: 1.2;
   position: relative;
+  min-width: 0;
 }
 
 .topbar-users-btn {
@@ -172,6 +182,7 @@
   background: transparent;
   color: #ffffff;
   padding: 0;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
 }
 
 .topbar-user-menu {
@@ -213,13 +224,15 @@
 }
 
 .topbar-user {
-  font-size: 0.86rem;
+  font-size: 0.92rem;
   font-weight: 700;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
 }
 
 .topbar-role {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   opacity: 0.9;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.45);
 }
 
 .topbar-profile-badge {
@@ -236,12 +249,18 @@
   display: grid;
   grid-template-columns: auto 1fr;
   background: #ebebeb;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .content {
   padding: 1rem 1.25rem 1.5rem;
   background: #ffffff;
   position: relative;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .login-modal-backdrop {
@@ -257,12 +276,12 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(560px, calc(100vw - 1.5rem));
-  max-height: calc(100vh - 3rem);
+  width: min(470px, calc(100vw - 1.25rem));
+  max-height: calc(100vh - 4rem);
   overflow: auto;
   background: #ebebeb;
   border: 1px solid rgba(0, 195, 193, 0.35);
-  border-top: 3px solid #ffbf39;
+  border-top: 3px solid #007978;
   border-radius: 0.75rem;
   box-shadow: 0 22px 52px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 195, 193, 0.2);
   z-index: 1110;
@@ -273,13 +292,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  border-bottom: 2px solid rgba(255, 191, 57, 0.75);
-  padding: 0.85rem 1rem;
-  background: linear-gradient(90deg, #7a7c7c 0%, #ffffff 50%, #48bbb9 100%);
+  border-bottom: 2px solid rgba(0, 121, 120, 0.75);
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(180deg, #59e0df 0%, #00c3c1 52%, #008080 100%);
 }
 
 .login-modal-title {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: #ffffff;
   text-shadow:
     -1px 0 0 rgba(0, 0, 0, 0.5),
@@ -289,7 +308,7 @@
 }
 
 .login-modal-body {
-  padding: 0.5rem;
+  padding: 0.35rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(235, 235, 235, 0.95) 100%);
 }
 
@@ -326,12 +345,12 @@
   }
 
   .topbar-title {
-    font-size: 1.32rem;
+    font-size: 1.45rem;
   }
 
   .topbar-subtitle {
     text-align: center;
-    font-size: 0.82rem;
+    font-size: 0.9rem;
   }
 
   .topbar-divider {

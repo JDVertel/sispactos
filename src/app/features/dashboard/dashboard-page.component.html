@@ -10,6 +10,7 @@
     <app-filter-drawer
       *ngIf="!isResponsiveView"
       class="home-filter"
+      [values]="activeFilters"
       [etapas]="filterEtapas"
       [tiposPacto]="filterTiposPacto"
       [departamentos]="filterDepartamentos"
@@ -82,6 +83,7 @@
             type="button"
             class="home-carousel__nav home-carousel__nav--prev"
             (click)="prevCarousel()"
+            (mouseenter)="prevCarousel()"
             aria-label="Diapositiva anterior"
           >
             <i class="bi bi-chevron-left" aria-hidden="true"></i>
@@ -90,6 +92,7 @@
             type="button"
             class="home-carousel__nav home-carousel__nav--next"
             (click)="nextCarousel()"
+            (mouseenter)="nextCarousel()"
             aria-label="Diapositiva siguiente"
           >
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
@@ -101,6 +104,7 @@
       <app-filter-drawer
         *ngIf="isResponsiveView"
         class="home-filter home-filter-inline"
+        [values]="activeFilters"
         [etapas]="filterEtapas"
         [tiposPacto]="filterTiposPacto"
         [departamentos]="filterDepartamentos"
@@ -109,10 +113,15 @@
 
       <!-- Panel inferior con mapa y tabla filtrada -->
       <section class="home-detail-panel mt-2">
-        <div class="row g-3">
+        <div class="row g-3 align-items-stretch">
           <!-- Mapa que cambia según departamento -->
-          <div class="col-12 col-xl-5">
-            <app-departamento-map [departamento]="departamentoMapa" [homeSurface]="true"></app-departamento-map>
+          <div class="col-12 col-xl-5 d-flex flex-column">
+            <app-departamento-map
+              class="flex-grow-1"
+              [departamento]="departamentoMapa"
+              [homeSurface]="true"
+              [stretchVertical]="true"
+            ></app-departamento-map>
           </div>
 
           <!-- Tabla con los pactos que cumplen los filtros -->
@@ -121,10 +130,6 @@
               <header class="pactos-table-head d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-table me-1"></i> Pactos filtrados</span>
                 <div class="pactos-table-head-meta">
-                  <div class="pactos-source-legend" aria-label="Leyenda de origen de datos">
-                    <span class="pactos-source-chip pactos-source-chip-cache">Cache</span>
-                    <span class="pactos-source-chip pactos-source-chip-api">API</span>
-                  </div>
                   <span class="pactos-count">{{ pactosFiltrados.length }}</span>
                 </div>
               </header>
@@ -144,8 +149,11 @@
                   </thead>
                   <tbody>
                     <tr *ngIf="isLoadingPactos">
-                      <td colspan="7" class="text-center text-secondary py-3">
-                        Cargando pactos...
+                      <td colspan="7" class="text-center text-secondary py-4">
+                        <div class="d-inline-flex align-items-center gap-2" role="status" aria-live="polite">
+                          <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+                          <span>Cargando pactos desde el servicio...</span>
+                        </div>
                       </td>
                     </tr>
 
@@ -155,7 +163,7 @@
                       </td>
                     </tr>
 
-                    <tr *ngFor="let item of pactosFiltrados" [ngClass]="item.dataSource === 'cache' ? 'pacto-row-cache' : 'pacto-row-api'">
+                    <tr *ngFor="let item of pactosFiltrados" class="pacto-row-api">
                       <td data-label="Nombre del pacto">{{ item.nombrePacto }}</td>
                       <td data-label="Fecha suscripción">{{ item.fechaSubscripcion }}</td>
                       <td data-label="Fecha vencimiento">{{ item.fechaVencimiento }}</td>

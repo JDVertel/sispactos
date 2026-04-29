@@ -2,8 +2,7 @@ import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
-import { CatalogoOption, PactosService } from '../../core/services/pactos.service';
-import { Pacto as PactoModel } from '../../shared/models';
+import { PactosService, type PactoTablaDto } from '../../core/services/pactos.service';
 
 interface Pacto {
   id: number;
@@ -18,6 +17,8 @@ interface Pacto {
   fechaVencimiento?: string;
   idEtapa?: string;
   alcance?: string;
+  urlDocPEI?: string;
+  urlDocMinuta?: string;
 }
 
 interface AporteDetalle {
@@ -66,7 +67,6 @@ export class PactosTerritorialesComponent implements OnInit {
   tabActivo = 'info';
   etapaSeleccionada = '';
   tipoPactoSeleccionado = '';
-  tiposPactoCatalogo: CatalogoOption[] = [];
   pactos: Pacto[] = [];
   pactoSeleccionado: Pacto | null = null;
   isLoadingPactos = false;
@@ -539,14 +539,12 @@ export class PactosTerritorialesComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPactos();
-    this.loadTiposPacto();
-    this.pactosService.syncPactosFromApi().subscribe();
   }
 
   get pactosFiltrados() {
     return this.pactos.filter((pacto) => {
       const byEtapa = !this.etapaSeleccionada || pacto.idEtapa === this.etapaSeleccionada;
-      const byTipoPacto = !this.tipoPactoSeleccionado || String(pacto.idTipoPacto ?? pacto.tipoPacto ?? '') === this.tipoPactoSeleccionado;
+      const byTipoPacto = !this.tipoPactoSeleccionado || (pacto.tipoPacto || '') === this.tipoPactoSeleccionado;
       return byEtapa && byTipoPacto;
     });
   }
@@ -556,12 +554,8 @@ export class PactosTerritorialesComponent implements OnInit {
   }
 
   get opcionesTipoPacto() {
-    return this.tiposPactoCatalogo
-      .map((item) => ({
-        value: String(item.id),
-        label: item.texto
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    return this.obtenerOpcionesUnicas(this.pactos.map((item) => item.tipoPacto || 'No definido'))
+      .map((item) => ({ value: item, label: item }));
   }
 
   onFiltrosPactosChange() {
@@ -595,11 +589,17 @@ export class PactosTerritorialesComponent implements OnInit {
     if (!this.pactoSeleccionado) return null;
 
     const datosBase = this.datosClave[this.pactoSeleccionado.id] || {};
+    const fechaSuscripcion = this.pactoSeleccionado.fechaSuscripcion || datosBase.fechaSuscripcion || '';
+    const fechaVencimiento = this.pactoSeleccionado.fechaVencimiento || datosBase.vencimiento || '';
+    const plazoAniosCalculado = this.calculatePlazoAnios(fechaSuscripcion, fechaVencimiento);
+    const mesesParaVencimientoCalculado = this.calculateMesesParaVencimiento(fechaVencimiento);
 
     return {
       ...datosBase,
-      fechaSuscripcion: this.pactoSeleccionado.fechaSuscripcion || datosBase.fechaSuscripcion || 'N/A',
-      vencimiento: this.pactoSeleccionado.fechaVencimiento || datosBase.vencimiento || 'N/A'
+      fechaSuscripcion: fechaSuscripcion || 'N/A',
+      plazoAnios: plazoAniosCalculado ?? (datosBase.plazoAnios ?? 'N/A'),
+      vencimiento: fechaVencimiento || 'N/A',
+      mesesParaVencimiento: mesesParaVencimientoCalculado ?? (datosBase.mesesParaVencimiento ?? 'N/A')
     };
   }
 
@@ -610,19 +610,28 @@ export class PactosTerritorialesComponent implements OnInit {
 
     return [
       { label: 'Tipo de pacto', value: this.pactoSeleccionado.tipoPacto || 'N/A' },
-      { label: 'Etapa', value: this.formatEtapa(this.pactoSeleccionado.idEtapa) },
-      { label: 'Departamento', value: this.pactoSeleccionado.departamento || 'N/A' },
-      { label: 'Ciudad', value: this.pactoSeleccionado.ciudad || 'N/A' },
-      { label: 'Alcance', value: this.pactoSeleccionado.alcance || 'N/A' }
+      { label: 'Etapa', value: this.formatEtapa(this.pactoSeleccionado.idEtapa) }
     ];
   }
 
-  get descripcionPactoSeleccionado(): string {
-    return this.pactoSeleccionado?.descripcion || 'Sin descripción registrada.';
+  /** URL para «Ver PEI vigente pacto territorial» (API / documento PEI o pacto). */
+  get urlPeiVigentePacto(): string {
+    return (this.pactoSeleccionado?.urlDocPEI || '').trim();
+  }
+
+  /** URL para «Ver minuta pacto territorial». */
+  get urlMinutaPacto(): string {
+    return (this.pactoSeleccionado?.urlDocMinuta || '').trim();
+  }
+
+  get suscribientesPactoSeleccionado(): string {
+    const texto = (this.pactoSeleccionado?.descripcion || '').trim();
+    return texto || 'Sin suscribientes registrados.';
   }
 
   get objetivoPactoSeleccionado(): string {
-    return this.pactoSeleccionado?.objetivo || 'Sin objetivo registrado.';
+    const texto = (this.pactoSeleccionado?.objetivo || '').trim();
+    return texto || 'Sin objetivo registrado.';
   }
 
   get indicadoresEjecucion() {
@@ -635,7 +644,7 @@ export class PactosTerritorialesComponent implements OnInit {
       { label: 'Proyectos en ejecución', value: datos.proyectosEnEjecucion ?? 0 },
       { label: 'Valor en ejecución', value: this.formatearMoneda(datos.valorEnEjecucion) },
       { label: 'Proyectos terminados', value: datos.proyectosTerminados ?? 0 },
-      { label: 'Valor ejecutado', value: this.formatearMoneda(datos.valorEjecutado) },
+      { label: 'Valor en ejecución/terminado', value: this.formatearMoneda(datos.valorEjecutado) },
       { label: 'Por comprometer: proyectos no iniciados', value: datos.proyectosNoIniciados ?? 0 },
       { label: 'Por comprometer: valor no iniciados', value: this.formatearMoneda(datos.valorNoIniciados) }
     ];
@@ -648,7 +657,7 @@ export class PactosTerritorialesComponent implements OnInit {
     }
 
     return [
-      { label: 'Valor ejecutado', value: this.formatearMoneda(datos.valorEjecutado) },
+      { label: 'Valor en ejecución/terminado', value: this.formatearMoneda(datos.valorEjecutado) },
       { label: 'Comprometido sector', value: this.formatearMoneda(datos.comprometidoSector) },
       { label: 'Comprometido DNP FRPT', value: this.formatearMoneda(datos.comprometidoDnpFrpt) },
       { label: 'Comprometido Territorio', value: this.formatearMoneda(datos.comprometidoTerritorio) },
@@ -727,8 +736,8 @@ export class PactosTerritorialesComponent implements OnInit {
       ? (this.iniciativasTablaPorPacto[this.pactoSeleccionado.id] ?? [])
       : [];
     return [
-      { label: 'Total de iniciativas', value: tabla.length },
-      { label: 'Inversión total estimada', value: this.formatearMoneda(tabla.reduce((s, i) => s + i.inversionTotal, 0)) }
+      { label: 'Total de iniciativas PEI', value: tabla.length },
+      { label: 'Inversión total estimada (PEI)', value: this.formatearMoneda(tabla.reduce((s, i) => s + i.inversionTotal, 0)) }
     ];
   }
 
@@ -800,9 +809,9 @@ export class PactosTerritorialesComponent implements OnInit {
     this.isLoadingPactos = true;
     this.pactosError = '';
 
-    this.pactosService.getPactos().subscribe({
+    this.pactosService.getPactosTablaFromApi().subscribe({
       next: (rows) => {
-        this.pactos = rows.map((item) => this.mapPacto(item));
+        this.pactos = rows.map((item) => this.mapPactoFromTabla(item));
         this.pactoSeleccionado = this.pactosFiltrados[0] ?? this.pactos[0] ?? null;
         this.isLoadingPactos = false;
       },
@@ -815,35 +824,31 @@ export class PactosTerritorialesComponent implements OnInit {
     });
   }
 
-  private loadTiposPacto(): void {
-    this.pactosService.getPactoCatalogos().subscribe({
-      next: ({ tiposPacto }) => {
-        this.tiposPactoCatalogo = tiposPacto;
-      },
-      error: () => {
-        this.tiposPactoCatalogo = [];
-      }
-    });
+  private mapPactoFromTabla(item: PactoTablaDto): Pacto {
+    return {
+      id: this.readNumericId(item),
+      nombre: item.nombrePacto,
+      departamento: item.departamento || 'N/A',
+      ciudad: '',
+      tipoPacto: item.tipoPacto,
+      descripcion: (item.suscribientes || '').trim(),
+      objetivo: (item.objetivo || '').trim(),
+      fechaSuscripcion: item.fechaSubscripcion,
+      fechaVencimiento: item.fechaVencimiento,
+      idEtapa: item.etapa || 'Sin etapa',
+      alcance: '',
+      urlDocPEI: (item.urlDocPEI || '').trim(),
+      urlDocMinuta: (item.urlDocMinuta || '').trim()
+    };
   }
 
-  private mapPacto(item: PactoModel): Pacto {
-    const etapa = (item.idEtapa || '').trim();
-    const ubicacion = this.extractUbicacion(item.alcance);
-
-    return {
-      id: item.id,
-      nombre: item.nombre,
-      departamento: ubicacion.departamento,
-      ciudad: ubicacion.ciudad,
-      idTipoPacto: item.idTipoPacto,
-      tipoPacto: item.tipoPacto,
-      descripcion: item.descripcion,
-      objetivo: item.objetivo,
-      fechaSuscripcion: item.fechaSuscripcion,
-      fechaVencimiento: item.fechaVencimiento,
-      idEtapa: etapa,
-      alcance: item.alcance
-    };
+  private readNumericId(item: PactoTablaDto): number {
+    const encoded = `${item.nombrePacto}|${item.fechaSubscripcion}|${item.tipoPacto}`;
+    let hash = 0;
+    for (let i = 0; i < encoded.length; i += 1) {
+      hash = (hash * 31 + encoded.charCodeAt(i)) >>> 0;
+    }
+    return hash || Date.now();
   }
 
   getEtapaBadgeClass(etapa?: string): string {
@@ -875,6 +880,44 @@ export class PactosTerritorialesComponent implements OnInit {
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
+  }
+
+  private calculatePlazoAnios(fechaSuscripcion: string, fechaVencimiento: string): number | null {
+    if (!fechaSuscripcion || !fechaVencimiento) {
+      return null;
+    }
+
+    const start = new Date(fechaSuscripcion);
+    const end = new Date(fechaVencimiento);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+      return null;
+    }
+
+    const diffMs = end.getTime() - start.getTime();
+    const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+    return Math.round(years);
+  }
+
+  private calculateMesesParaVencimiento(fechaVencimiento: string): number | null {
+    if (!fechaVencimiento) {
+      return null;
+    }
+
+    const end = new Date(fechaVencimiento);
+    const now = new Date();
+
+    if (Number.isNaN(end.getTime())) {
+      return null;
+    }
+
+    if (end <= now) {
+      return 0;
+    }
+
+    const diffMs = end.getTime() - now.getTime();
+    const months = diffMs / (1000 * 60 * 60 * 24 * 30.4375);
+    return Math.ceil(months);
   }
 
   private mapEstado(etapa: string): 'implementacion' | 'cierre' {

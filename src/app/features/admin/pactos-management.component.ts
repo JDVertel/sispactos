@@ -11,6 +11,12 @@ type PactoFormData = Pick<
   'tipoPacto' | 'nombre' | 'descripcion' | 'objetivo' | 'lineasTematicas' | 'fechaSuscripcion' | 'idEtapa' | 'fechaVencimiento' | 'urlDocPacto' | 'urlDocMinuta'
 >;
 
+/** Par departamento–municipio (ciudad) incluido en el alcance del pacto. */
+interface UbicacionAlcance {
+  departamento: string;
+  municipio: string;
+}
+
 @Component({
   selector: 'app-pactos-management',
   standalone: true,
@@ -38,8 +44,11 @@ export class PactosManagementComponent implements OnInit {
   submitSuccess = '';
   // Campos auxiliares del formulario.
   lineaTematicaInput = '';
-  departamentoSeleccionado = '';
-  municipioSeleccionado = '';
+  /** Ubicaciones ya agregadas al alcance (varios departamentos y municipios). */
+  ubicacionesAlcance: UbicacionAlcance[] = [];
+  /** Borradores para agregar otra fila departamento + municipio. */
+  departamentoDraft = '';
+  municipioDraft = '';
   alcanceDetalle = '';
 
   readonly departamentosMunicipios: Record<string, string[]> = {
@@ -108,12 +117,17 @@ export class PactosManagementComponent implements OnInit {
       return;
     }
 
-    const territorio = this.departamentoSeleccionado && this.municipioSeleccionado
-      ? `${this.departamentoSeleccionado} - ${this.municipioSeleccionado}`
-      : '';
+    if (!this.ubicacionesAlcance.length) {
+      this.submitError = 'Agregue al menos un departamento y un municipio (ciudad) de alcance.';
+      return;
+    }
+
+    const bloquesUbicacion = this.ubicacionesAlcance.map(
+      (u) => `municipio: ${u.departamento.trim()} - ${u.municipio.trim()}`
+    );
     const detalle = this.alcanceDetalle.trim();
     const alcance = [
-      territorio ? `Dptos de intervencion del pacto - municipio: ${territorio}` : '',
+      bloquesUbicacion.length ? `Dptos de intervencion del pacto | ${bloquesUbicacion.join(' | ')}` : '',
       detalle ? `Detalle: ${detalle}` : ''
     ]
       .filter(Boolean)
@@ -171,13 +185,41 @@ export class PactosManagementComponent implements OnInit {
     return Object.keys(this.departamentosMunicipios);
   }
 
-  get municipiosDisponibles(): string[] {
-    return this.departamentosMunicipios[this.departamentoSeleccionado] ?? [];
+  get municipiosDisponiblesDraft(): string[] {
+    return this.departamentosMunicipios[this.departamentoDraft] ?? [];
   }
 
-  onDepartamentoChange(): void {
-    this.municipioSeleccionado = '';
-    this.alcanceDetalle = '';
+  onDepartamentoDraftChange(): void {
+    this.municipioDraft = '';
+  }
+
+  addUbicacionAlcance(): void {
+    const dep = this.departamentoDraft.trim();
+    const mun = this.municipioDraft.trim();
+
+    if (!dep || !mun) {
+      this.submitError = 'Seleccione departamento y municipio antes de agregar la ubicación.';
+      return;
+    }
+
+    const duplicado = this.ubicacionesAlcance.some(
+      (u) =>
+        u.departamento.toLowerCase() === dep.toLowerCase() &&
+        u.municipio.toLowerCase() === mun.toLowerCase()
+    );
+
+    if (duplicado) {
+      this.submitError = 'Esa combinación de departamento y municipio ya está en el alcance.';
+      return;
+    }
+
+    this.submitError = '';
+    this.ubicacionesAlcance = [...this.ubicacionesAlcance, { departamento: dep, municipio: mun }];
+    this.municipioDraft = '';
+  }
+
+  removeUbicacionAlcance(index: number): void {
+    this.ubicacionesAlcance = this.ubicacionesAlcance.filter((_, i) => i !== index);
   }
 
   removePacto(id: number): void {
@@ -198,8 +240,9 @@ export class PactosManagementComponent implements OnInit {
 
   private resetForm(): void {
     this.lineaTematicaInput = '';
-    this.departamentoSeleccionado = '';
-    this.municipioSeleccionado = '';
+    this.ubicacionesAlcance = [];
+    this.departamentoDraft = '';
+    this.municipioDraft = '';
     this.alcanceDetalle = '';
     this.newPacto = {
       tipoPacto: '',

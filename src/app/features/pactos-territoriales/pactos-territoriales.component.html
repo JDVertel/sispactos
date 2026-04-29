@@ -71,6 +71,9 @@
                [attr.aria-label]="'Seleccionar ' + pacto.nombre">
             <div class="pacto-card-numero">{{ i + 1 }}</div>
             <div class="pacto-card-nombre">{{ pacto.nombre }}</div>
+            <div class="pacto-card-tipo" [title]="pacto.tipoPacto || 'No definido'">
+              {{ pacto.tipoPacto || 'No definido' }}
+            </div>
             <div class="pacto-card-estado">
               <span class="badge" [ngClass]="getEtapaBadgeClass(pacto.idEtapa)">
                 {{ formatEtapa(pacto.idEtapa) }}
@@ -111,7 +114,7 @@
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link" [class.active]="tabActivo === 'iniciativas'" (click)="tabActivo = 'iniciativas'" type="button" role="tab">
-            <i class="bi bi-lightbulb"></i> Iniciativas
+            <i class="bi bi-lightbulb"></i> Iniciativas PEI
           </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -127,26 +130,15 @@
       </ul>
       <div class="tab-content pt-3">
         <div class="tab-pane fade show active" *ngIf="tabActivo === 'info'">
-          <!-- Cards de ejecución y valores debajo del selector, mostrando datos del pacto seleccionado -->
-          <div class="row g-2 mb-3">
-            <div class="col-12 col-md-3" *ngFor="let card of [
-              {label: 'Ejecución física', value: datosClave[pactoSeleccionado.id]?.ejecucionFisica ? (datosClave[pactoSeleccionado.id].ejecucionFisica + '%') : '62%', color: 'card-ejecucion'},
-              {label: 'Ejecución financiera', value: datosClave[pactoSeleccionado.id]?.ejecucionFinanciera ? (datosClave[pactoSeleccionado.id].ejecucionFinanciera + '%') : '55%', color: 'card-ejecucion'},
-              {label: 'Valor ejecutado', value: datosClave[pactoSeleccionado.id]?.valorEjecutado ? ('$' + datosClave[pactoSeleccionado.id].valorEjecutado.toLocaleString()) : '$120.000.000', color: 'card-ejecucion'},
-              {label: 'Valor por ejecutar', value: datosClave[pactoSeleccionado.id]?.valorPorEjecutar ? ('$' + datosClave[pactoSeleccionado.id].valorPorEjecutar.toLocaleString()) : '$80.000.000', color: 'card-ejecucion'}
-            ]">
-              <div class="card h-100 {{card.color}}">
-                <div class="card-body py-2 px-3">
-                  <div class="fw-bold small text-secondary">{{ card.label }}</div>
-                  <div class="fs-5">{{ card.value }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
           <!-- Panel de mapa y datos generales -->
-          <div class="row mb-4">
-            <div class="col-12 col-lg-6 mb-3 mb-lg-0 d-flex flex-column gap-3">
-              <app-departamento-map *ngIf="pactoSeleccionado" [departamento]="pactoSeleccionado.departamento || ''"></app-departamento-map>
+          <div class="row mb-4 align-items-lg-stretch">
+            <div class="col-12 col-lg-6 mb-3 mb-lg-0 d-flex flex-column">
+              <app-departamento-map
+                *ngIf="pactoSeleccionado"
+                class="flex-grow-1"
+                [departamento]="pactoSeleccionado.departamento || ''"
+                [stretchVertical]="true"
+              ></app-departamento-map>
             </div>
             <div class="col-12 col-lg-6 d-flex flex-column gap-3">
               <div class="row g-2 mb-2" *ngIf="pactoSeleccionado && galeria[pactoSeleccionado.id]">
@@ -156,12 +148,13 @@
                   </div>
                 </div>
               </div>
-              <div class="row g-2 mb-2">
-                <div class="col-6 col-md-3" *ngFor="let card of [
+              <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-2 mb-2">
+                <div class="col" *ngFor="let card of [
                   {label: 'Fecha suscripción', value: datosClaveSeguro.fechaSuscripcion},
                   {label: 'Plazo (años)', value: datosClaveSeguro.plazoAnios},
                   {label: 'Vencimiento', value: datosClaveSeguro.vencimiento},
-                  {label: 'Meses para vencimiento', value: datosClaveSeguro.mesesParaVencimiento}
+                  {label: 'Meses para vencimiento', value: datosClaveSeguro.mesesParaVencimiento},
+                  {label: '% Tiempo transcurrido', value: (datosClaveSeguro.porcentajeTiempo || 0) + '%'}
                 ]">
                   <div class="card card-dato h-100">
                     <div class="card-body py-2 px-3">
@@ -171,31 +164,8 @@
                   </div>
                 </div>
               </div>
-              <div class="card card-dato mb-2">
-                <div class="card-body py-2 px-3">
-                  <div class="fw-bold small text-secondary mb-1">Descripción</div>
-                  <div>{{ descripcionPactoSeleccionado }}</div>
-                </div>
-              </div>
-              <div class="card card-dato mb-2">
-                <div class="card-body py-2 px-3">
-                  <div class="fw-bold small text-secondary mb-1">Objetivo</div>
-                  <div>{{ objetivoPactoSeleccionado }}</div>
-                </div>
-              </div>
               <div class="row g-2 mb-2">
-                <div class="col-6 col-md-3" *ngFor="let card of resumenPactoSeleccionado">
-                  <div class="card card-dato h-100">
-                    <div class="card-body py-2 px-3">
-                      <div class="fw-bold small text-secondary">{{ card.label }}</div>
-                      <div class="fs-6">{{ card.value }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="row g-2">
                 <div class="col-6 col-md-3" *ngFor="let card of [
-                  {label: '% Tiempo transcurrido', value: (datosClaveSeguro.porcentajeTiempo || 0) + '%'},
                   {label: 'Total de proyectos', value: datosClaveSeguro.totalProyectos},
                   {label: 'Valor indicativo', value: datosClaveSeguro.valorIndicativo ? ('$' + datosClaveSeguro.valorIndicativo.toLocaleString()) : ''},
                   {label: 'Aporte ind. Nación', value: datosClaveSeguro.aporteNacion ? ('$' + datosClaveSeguro.aporteNacion.toLocaleString()) : ''},
@@ -205,6 +175,66 @@
                     <div class="card-body py-2 px-3">
                       <div class="fw-bold small text-secondary">{{ card.label }}</div>
                       <div class="fs-5">{{ card.value }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card card-dato mb-2">
+                <div class="card-body py-2 px-3">
+                  <div class="fw-bold small text-secondary mb-1">Suscribientes</div>
+                  <div>{{ suscribientesPactoSeleccionado }}</div>
+                </div>
+              </div>
+              <div class="card card-dato mb-2">
+                <div class="card-body py-2 px-3">
+                  <div class="fw-bold small text-secondary mb-1">Objetivo</div>
+                  <div>{{ objetivoPactoSeleccionado }}</div>
+                </div>
+              </div>
+              <div class="row g-2 mb-2" *ngIf="pactoSeleccionado">
+                <div class="col-6 col-md-3" *ngFor="let card of resumenPactoSeleccionado">
+                  <div class="card card-dato h-100">
+                    <div class="card-body py-2 px-3">
+                      <div class="fw-bold small text-secondary">{{ card.label }}</div>
+                      <div class="fs-6">{{ card.value }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="card card-dato h-100">
+                    <div class="card-body py-2 px-3">
+                      <div class="fw-bold small text-secondary">Ver PEI Vigente Pacto Territorial</div>
+                      <div class="fs-6 mt-1">
+                        <a
+                          *ngIf="urlPeiVigentePacto; else peiDocNoDisponible"
+                          [href]="urlPeiVigentePacto"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="link-primary text-decoration-none"
+                        >Consultar documento</a>
+                        <ng-template #peiDocNoDisponible>
+                          <span class="text-muted">No disponible</span>
+                        </ng-template>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-md-3">
+                  <div class="card card-dato h-100">
+                    <div class="card-body py-2 px-3">
+                      <div class="fw-bold small text-secondary">Ver minuta Pacto Territorial</div>
+                      <div class="fs-6 mt-1">
+                        <a
+                          *ngIf="urlMinutaPacto; else minutaDocNoDisponible"
+                          [href]="urlMinutaPacto"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="link-primary text-decoration-none"
+                        >Consultar documento</a>
+                        <ng-template #minutaDocNoDisponible>
+                          <span class="text-muted">No disponible</span>
+                        </ng-template>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -265,6 +295,9 @@
           </div>
         </div>
         <div class="tab-pane fade show active" *ngIf="tabActivo === 'aportes'">
+          <h2 class="h5 fw-semibold text-body mb-3 px-1">
+            Detalle Aportes por Tipo de Oferta y Entidad Ejecutora (valores en millones de pesos)
+          </h2>
           <div class="card mb-3">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -314,16 +347,22 @@
                   <thead>
                     <tr>
                       <th>Sector de inversión</th>
+                      <th>Tipo de oferta</th>
+                      <th>Estado del proyecto</th>
+                      <th>Entidad ejecutora</th>
                       <th>Total de aporte estimado</th>
-                      <th>Aporte estimado Nación</th>
-                      <th>Aporte estimado Territorio</th>
-                      <th>Aporte estimado Otros</th>
+                      <th>Aporte Nación</th>
+                      <th>Aporte Territorio</th>
+                      <th>Aporte otros</th>
                       <th>Total aporte</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let fila of aportesDetalleFiltrados">
                       <td>{{ fila.sectorInversion }}</td>
+                      <td>{{ fila.tipoOferta }}</td>
+                      <td>{{ fila.estadoProyecto }}</td>
+                      <td>{{ fila.entidadEjecutora }}</td>
                       <td>{{ '$' + fila.totalAporteEstimado.toLocaleString() }}</td>
                       <td>{{ '$' + fila.aporteEstimadoNacion.toLocaleString() }}</td>
                       <td>{{ '$' + fila.aporteEstimadoTerritorio.toLocaleString() }}</td>
@@ -331,7 +370,7 @@
                       <td>{{ '$' + fila.totalAporte.toLocaleString() }}</td>
                     </tr>
                     <tr *ngIf="aportesDetalleFiltrados.length === 0">
-                      <td colspan="6" class="text-center text-muted py-4">No hay resultados para los filtros seleccionados.</td>
+                      <td colspan="9" class="text-center text-muted py-4">No hay resultados para los filtros seleccionados.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -343,7 +382,7 @@
           <div class="card">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                <h6 class="indicator-title mb-0">Filtro de iniciativas</h6>
+                <h6 class="indicator-title mb-0">Filtro de iniciativas PEI</h6>
                 <button type="button" class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltrosIniciativas()">
                   Limpiar filtros
                 </button>
@@ -393,7 +432,7 @@
             <div class="col-12 col-lg-4">
               <div class="card h-100">
                 <div class="card-body">
-                  <h6 class="indicator-title">Indicadores de iniciativas</h6>
+                  <h6 class="indicator-title">Indicadores de iniciativas PEI</h6>
                   <div class="row g-2">
                     <div class="col-12" *ngFor="let card of indicadoresIniciativas">
                       <div class="card card-dato">
@@ -410,7 +449,7 @@
             <div class="col-12 col-lg-8">
               <div class="card h-100">
                 <div class="card-body">
-                  <h6 class="indicator-title">Proyectos por sector de inversión</h6>
+                  <h6 class="indicator-title">Proyectos PEI por sector de inversión</h6>
                   <div class="chart-bars-wrap">
                     <svg *ngIf="barrasGraficoIniciativas.barras.length > 0"
                          [attr.viewBox]="'0 0 ' + barrasGraficoIniciativas.svgWidth + ' 200'"
@@ -441,7 +480,7 @@
 
           <div class="card mt-3">
             <div class="card-body">
-              <h6 class="indicator-title">Iniciativas del pacto</h6>
+              <h6 class="indicator-title">Iniciativas PEI del pacto</h6>
               <div class="table-responsive">
                 <table class="table table-striped table-hover align-middle mb-0">
                   <thead>
@@ -462,7 +501,7 @@
                       <td>{{ '$' + fila.presupuestoComprometidoTotal.toLocaleString() }}</td>
                     </tr>
                     <tr *ngIf="iniciativasTablaFiltradas.length === 0">
-                      <td colspan="5" class="text-center text-muted py-4">No hay iniciativas para los filtros seleccionados.</td>
+                      <td colspan="5" class="text-center text-muted py-4">No hay iniciativas PEI para los filtros seleccionados.</td>
                     </tr>
                   </tbody>
                 </table>

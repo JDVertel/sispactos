@@ -1,13 +1,8 @@
 ﻿import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { AuthSessionStore } from '../store/auth-session.store';
-
-interface LoginRequest {
-  username: string;
-  password: string;
-}
 
 export interface LoginResult {
   isAuthenticated: boolean;
@@ -15,6 +10,7 @@ export interface LoginResult {
 }
 
 const AUTH_LOGIN_URL = '/api/Auth/Login';
+const AUTH_REFRESH_TOKEN_URL = '/api/Auth/RefreshToken';
 
 @Injectable({
   providedIn: 'root'
@@ -25,7 +21,7 @@ export class AuthService {
     private readonly authSessionStore: AuthSessionStore
   ) {}
 
-  // Valida el acceso contra el endpoint de autenticación AD y registra sesión local.
+  // Valida el acceso contra endpoint transaccional y registra sesión local.
   login(username: string, password: string): Observable<LoginResult> {
     const safeUsername = username.trim();
     const safePassword = password.trim();
@@ -37,14 +33,17 @@ export class AuthService {
       });
     }
 
-    const payload: LoginRequest = {
+    return this.http.post<unknown>(AUTH_LOGIN_URL, {
       username: safeUsername,
       password: safePassword
-    };
-
-    return this.http.post<unknown>(AUTH_LOGIN_URL, payload, { observe: 'response' }).pipe(
+    }).pipe(
+      tap((response) => {
+        console.groupCollapsed('[API OK] POST /api/Auth/Login');
+        console.log('response:', response);
+        console.groupEnd();
+      }),
       map((response) => {
-        const token = this.extractToken(response.body) || this.extractTokenFromHeaders(response.headers);
+        const token = this.extractToken(response);
 
         this.authSessionStore.setSession({
           username: safeUsername,
@@ -54,27 +53,47 @@ export class AuthService {
 
         return { isAuthenticated: true };
       }),
-      catchError((error: HttpErrorResponse) => {
+      catchError((error) => {
+        console.error('[API ERROR] POST /api/Auth/Login', error);
         this.logout();
-
-        if (error.status === 401 || error.status === 403) {
-          return of({
-            isAuthenticated: false,
-            message: 'Usuario o contrasena invalidos.'
-          });
-        }
-
-        if (error.status === 0) {
-          return of({
-            isAuthenticated: false,
-            message: 'No se pudo conectar al servicio de autenticacion.'
-          });
-        }
-
         return of({
           isAuthenticated: false,
-          message: 'Error inesperado en autenticacion.'
+          message: 'No fue posible autenticar el usuario.'
         });
+      })
+    );
+  }
+
+  refreshToken(): Observable<boolean> {
+    const token = this.authSessionStore.getToken().trim();
+    if (!token) {
+      return of(false);
+    }
+
+    return this.http.post<unknown>(AUTH_REFRESH_TOKEN_URL, token).pipe(
+      tap((response) => {
+        console.groupCollapsed('[API OK] POST /api/Auth/RefreshToken');
+        console.log('response:', response);
+        console.groupEnd();
+      }),
+      map((response) => {
+        const refreshedToken = this.extractToken(response) || token;
+        const current = this.authSessionStore.getSession();
+        if (!current) {
+          return false;
+        }
+
+        this.authSessionStore.setSession({
+          ...current,
+          token: refreshedToken
+        });
+
+        return true;
+      }),
+      catchError((error) => {
+        console.error('[API ERROR] POST /api/Auth/RefreshToken', error);
+        this.logout();
+        return of(false);
       })
     );
   }
@@ -109,66 +128,36 @@ export class AuthService {
     };
   }
 
-  private extractTokenFromHeaders(headers: HttpHeaders): string {
-    const headerToken = headers.get('Authorization')
-      || headers.get('authorization')
-      || headers.get('X-Access-Token')
-      || headers.get('x-access-token');
-
-    return this.normalizeToken(headerToken);
-  }
-
   private extractToken(payload: unknown): string {
-    if (!payload) {
-      return '';
-    }
-
     if (typeof payload === 'string') {
       return this.normalizeToken(payload);
     }
 
-    if (typeof payload !== 'object') {
+    if (!payload || typeof payload !== 'object') {
       return '';
     }
 
     const body = payload as Record<string, unknown>;
-    const nestedPayload = body['data'] ?? body['result'] ?? body['value'];
+    const direct = this.readString(body['token'])
+      || this.readString(body['accessToken'])
+      || this.readString(body['access_token'])
+      || this.readString(body['jwt'])
+      || this.readString(body['bearer']);
 
-    const directToken = this.readTokenCandidate(body);
-    if (directToken) {
-      return directToken;
+    if (direct) {
+      return this.normalizeToken(direct);
     }
 
-    if (nestedPayload && nestedPayload !== payload) {
-      return this.extractToken(nestedPayload);
-    }
-
-    return '';
-  }
-
-  private readTokenCandidate(payload: Record<string, unknown>): string {
-    return this.normalizeToken(
-      this.readString(payload['token'])
-      || this.readString(payload['accessToken'])
-      || this.readString(payload['access_token'])
-      || this.readString(payload['jwt'])
-      || this.readString(payload['bearerToken'])
-      || this.readString(payload['bearer'])
-    );
+    const nested = body['data'] ?? body['result'] ?? body['value'];
+    return nested && nested !== payload ? this.extractToken(nested) : '';
   }
 
   private readString(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
   }
 
-  private normalizeToken(value: string | null | undefined): string {
-    const rawValue = (value || '').trim();
-
-    if (!rawValue) {
-      return '';
-    }
-
-    return rawValue.replace(/^Bearer\s+/i, '').trim();
+  private normalizeToken(token: string): string {
+    return token.replace(/^Bearer\s+/i, '').trim();
   }
 
 }

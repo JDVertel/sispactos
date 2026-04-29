@@ -1,7 +1,7 @@
 ﻿import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, concat, forkJoin, of } from 'rxjs';
+import { BehaviorSubject, forkJoin, Observable, of } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError, map, tap, toArray } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Pacto } from '../../shared/models';
 
 export interface PactoTablaDto {
@@ -14,7 +14,12 @@ export interface PactoTablaDto {
   avanceComprometido: number;
   departamento: string;
   tipoPacto: string;
-  dataSource: 'cache' | 'api';
+  /** Integrantes del pacto (campo API `suscribientes`). */
+  suscribientes?: string;
+  objetivo?: string;
+  urlDocPEI?: string;
+  urlDocMinuta?: string;
+  dataSource: 'api';
 }
 
 export interface PactoTablaFilters {
@@ -69,8 +74,6 @@ interface CreatePactoCommand {
 export class PactosService {
   private readonly storageKey = 'sispactos.pactos';
   private readonly pactosApiUrl = '/api/PactoTerritorial';
-  private readonly catalogoApiUrl = '/api/Catalogo';
-  private readonly maxCatalogTypeProbe = 20;
 
   // Almacena la lista de pactos en memoria y permite notificar cambios.
   private pactos = new BehaviorSubject<Pacto[]>([]);
@@ -88,6 +91,7 @@ export class PactosService {
   ];
 
   constructor(private readonly http: HttpClient) {
+    this.clearStoredCache();
     this.loadFromStorage();
   }
 
@@ -96,19 +100,14 @@ export class PactosService {
     return this.pactos$;
   }
 
-  // Consulta el listado de pactos desde la API transaccional.
+  // Consulta el listado de pactos desde endpoint transaccional.
   getPactosTablaFromApi(): Observable<PactoTablaDto[]> {
-    const cachedRows = this.pactos.value.map((item) => this.mapStoredPactoToTabla(item));
-    const apiRows$ = this.http.get<unknown>(this.pactosApiUrl).pipe(
-      map((response) => this.normalizeApiPactos(response).map((item) => this.mapToTabla(item))),
-      catchError(() => of(cachedRows))
+    return this.fetchPactosApiBundle().pipe(
+      map(({ pactos, tiposPacto }) => {
+        const tiposPactoMap = this.buildCatalogMap(tiposPacto);
+        return this.normalizeApiPactos(pactos).map((item) => this.mapToTabla(item, tiposPactoMap));
+      })
     );
-
-    if (cachedRows.length === 0) {
-      return apiRows$;
-    }
-
-    return concat(of(cachedRows), apiRows$);
   }
 
   // Consulta el listado de pactos y aplica filtros funcionales para la vista Home.
@@ -118,49 +117,25 @@ export class PactosService {
     );
   }
 
-  /**
-   * Etapas, tipos de pacto y departamentos distintos que aparecen en los registros
-   * devueltos por getPactosTablaFromApi (incluye emisiones cache + API de concat).
-   */
+  /** Etapas, tipos de pacto y departamentos distintos presentes en la respuesta de API. */
   getPactosTablaFilterOptionsFromApi(): Observable<PactoTablaFilterOptions> {
     return this.getPactosTablaFromApi().pipe(
-      toArray(),
-      map((batches) => {
-        const rows = batches.flat();
-        return this.buildTablaFilterOptions(rows);
-      })
+      map((rows) => this.buildTablaFilterOptions(rows))
     );
   }
 
-  // Carga catalogos para el formulario de pactos.
+  // Carga catálogos desde la API (mismos endpoints que el listado de pactos).
   getPactoCatalogos(): Observable<PactoCatalogosResult> {
-    const tiposPacto$ = this.http.get<unknown>(`${this.catalogoApiUrl}/2`).pipe(
-      map((response) => this.normalizeCatalogoItems(response)),
-      catchError(() => of([] as CatalogoOption[]))
-    );
-
     return forkJoin({
-      tiposPacto: tiposPacto$,
-      etapas: this.getEtapasCatalogo()
-    });
-  }
-
-  private getEtapasCatalogo(): Observable<CatalogoOption[]> {
-    const catalogTypeIds = Array.from({ length: this.maxCatalogTypeProbe }, (_, index) => index + 1);
-
-    return forkJoin(
-      catalogTypeIds.map((catalogTypeId) =>
-        this.http.get<unknown>(`${this.catalogoApiUrl}/${catalogTypeId}`).pipe(
-          map((response) => ({
-            catalogTypeId,
-            items: this.normalizeCatalogoItems(response)
-          })),
-          catchError(() => of({ catalogTypeId, items: [] as CatalogoOption[] }))
-        )
+      tiposPacto: this.http.get<unknown>('/api/Catalogo/2').pipe(
+        map((response) => this.normalizeCatalogoItems(response)),
+        catchError(() => of([] as CatalogoOption[]))
+      ),
+      etapas: this.http.get<unknown>('/api/Catalogo/1').pipe(
+        map((response) => this.normalizeCatalogoItems(response)),
+        catchError(() => of([] as CatalogoOption[]))
       )
-    ).pipe(
-      map((catalogs) => this.resolveCatalogOptions(catalogs, ['construccion', 'implementacion', 'cierre']))
-    );
+    });
   }
 
   // Agrega un pacto nuevo y le asigna un ID consecutivo.
@@ -178,41 +153,24 @@ export class PactosService {
     this.saveToStorage();
   }
 
-  // Crea un pacto en backend y luego sincroniza el listado local.
+  // Crea un pacto en almacenamiento local.
   createPactoInApi(pacto: Omit<Pacto, 'id'>): Observable<CreatePactoResult> {
-    const payload = this.mapToCreateCommand(pacto);
-
-    return this.http.post<unknown>(this.pactosApiUrl, payload).pipe(
-      map(() => ({ success: true })),
-      catchError((error: HttpErrorResponse) => of({
-        success: false,
-        message: this.buildCreatePactoErrorMessage(error)
-      }))
-    );
+    this.addPacto(pacto);
+    return of({ success: true });
   }
 
-  // Sincroniza el listado interno de administración desde la API.
+  // Sincroniza el listado de administración desde el mismo servicio GET que la vista territorial.
   syncPactosFromApi(): Observable<Pacto[]> {
-    return forkJoin({
-      pactos: this.http.get<unknown>(this.pactosApiUrl),
-      catalogos: this.getPactoCatalogos().pipe(
-        catchError(() => of({
-          tiposPacto: [] as CatalogoOption[],
-          etapas: [] as CatalogoOption[]
-        }))
-      )
-    }).pipe(
-      map(({ pactos, catalogos }) => {
-        const tiposPactoMap = this.buildCatalogMap(catalogos.tiposPacto);
-        const etapasMap = this.buildCatalogMap(catalogos.etapas);
-
-        return this.normalizeApiPactos(pactos).map((item) => this.mapToAdminPacto(item, tiposPactoMap, etapasMap));
-      }),
-      tap((rows) => {
-        this.pactos.next(rows);
-        this.saveToStorage();
-      }),
-      catchError(() => of(this.pactos.value))
+    return this.fetchPactosApiBundle().pipe(
+      map(({ pactos, tiposPacto }) => {
+        const tiposPactoMap = this.buildCatalogMap(tiposPacto);
+        const etapasMap = new Map<number, string>();
+        const list = this.normalizeApiPactos(pactos).map((item) =>
+          this.mapToAdminPacto(item, tiposPactoMap, etapasMap)
+        );
+        this.pactos.next(list);
+        return list;
+      })
     );
   }
 
@@ -237,27 +195,15 @@ export class PactosService {
   }
 
   private loadFromStorage(): void {
-    const raw = localStorage.getItem(this.storageKey);
-    if (!raw) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Pacto[];
-      if (!Array.isArray(parsed)) {
-        this.pactos.next([]);
-        return;
-      }
-
-      this.pactos.next(parsed.map((pacto) => this.sanitizePactoRecord(pacto)));
-      this.saveToStorage();
-    } catch {
-      this.pactos.next([]);
-    }
+    this.pactos.next([]);
   }
 
   private saveToStorage(): void {
     localStorage.setItem(this.storageKey, JSON.stringify(this.pactos.value));
+  }
+
+  private clearStoredCache(): void {
+    localStorage.removeItem(this.storageKey);
   }
 
   private sanitizeRecord<T extends object>(record: T): T {
@@ -310,10 +256,13 @@ export class PactosService {
     return [payload];
   }
 
-  private mapToTabla(item: ApiPacto): PactoTablaDto {
+  private mapToTabla(item: ApiPacto, tiposPactoMap: Map<number, string>): PactoTablaDto {
     const fechaBase = this.readString(item['fechaSubscripcion'])
       || this.readString(item['fechaCreacion'])
       || '';
+    const idTipoPacto = this.readOptionalNumber(item['idTipoPacto']);
+    const tipoPactoTexto = this.readString(item['tipoPacto']) || this.readString(item['tipo']);
+    const tipoPacto = this.resolveCatalogValue(tipoPactoTexto, idTipoPacto, tiposPactoMap, 'No definido');
 
     return {
       nombrePacto: this.readString(item['nombre']) || this.readString(item['nombrePacto']) || 'Sin nombre',
@@ -324,7 +273,15 @@ export class PactosService {
       presupuestoComprometido: this.readNumber(item['presupuestoComprometido']),
       avanceComprometido: this.readNumber(item['avanceComprometido']),
       departamento: this.readString(item['departamento']) || 'N/A',
-      tipoPacto: this.readString(item['tipoPacto']) || this.readString(item['tipo']) || 'No definido',
+      tipoPacto,
+      suscribientes: this.readString(item['suscribientes']),
+      objetivo: this.readString(item['objetivo']),
+      urlDocPEI:
+        this.readString(item['urlDocPEI'])
+        || this.readString(item['urlPei'])
+        || this.readString(item['urlPEI'])
+        || this.readString(item['urlPacto']),
+      urlDocMinuta: this.readString(item['urlMinuta']),
       dataSource: 'api'
     };
   }
@@ -351,6 +308,8 @@ export class PactosService {
       ''
     );
 
+    const valorIndicativo = this.readNumber(item['valorIndicativo']);
+
     return this.sanitizePactoRecord({
       id: this.readNumber(item['id']),
       idTipoPacto,
@@ -363,12 +322,47 @@ export class PactosService {
       fechaVencimiento: this.formatDate(this.readString(item['fechaVencimiento'])),
       idEtapa: etapa || this.readString(item['idEtapa']) || '',
       alcance: this.readAreasIntervencion(item['areasIntervencion']),
+      valorEstimado: valorIndicativo > 0 ? valorIndicativo : undefined,
       urlDocPacto: this.readString(item['urlPacto']),
       urlDocMinuta: this.readString(item['urlMinuta']),
+      urlDocPEI:
+        this.readString(item['urlDocPEI'])
+        || this.readString(item['urlPei'])
+        || this.readString(item['urlPEI'])
+        || this.readString(item['urlPacto']),
       usuarioCreo: this.readString(item['usuarioCreacion']),
       fechaCreacion,
       usuarioModifico: this.readString(item['usuarioModificacion']),
       fechaModificacion: this.readString(item['fechaModificacion']) || fechaCreacion
+    });
+  }
+
+  private fetchPactosApiBundle(): Observable<{ pactos: unknown; tiposPacto: CatalogoOption[] }> {
+    return forkJoin({
+      pactos: this.http.get<unknown>(this.pactosApiUrl).pipe(
+        tap((response) => {
+          console.groupCollapsed('[API OK] GET /api/PactoTerritorial');
+          console.log('response:', response);
+          console.groupEnd();
+        }),
+        catchError((error) => {
+          console.error('[API ERROR] GET /api/PactoTerritorial', error);
+          throw error;
+        })
+      ),
+      tiposPacto: this.http.get<unknown>('/api/Catalogo/2').pipe(
+        tap((response) => {
+          console.groupCollapsed('[API OK] GET /api/Catalogo/2');
+          console.log('response:', response);
+          console.groupEnd();
+        }),
+        catchError((error) => {
+          console.error('[API ERROR] GET /api/Catalogo/2', error);
+          return of([] as CatalogoOption[]);
+        }),
+        map((response) => this.normalizeCatalogoItems(response)),
+        catchError(() => of([] as CatalogoOption[]))
+      )
     });
   }
 
@@ -383,7 +377,11 @@ export class PactosService {
       avanceComprometido: 0,
       departamento: this.extractDepartamentoFromAlcance(item.alcance),
       tipoPacto: (item.tipoPacto || '').trim() || 'No definido',
-      dataSource: 'cache'
+      suscribientes: (item.descripcion || '').trim(),
+      objetivo: (item.objetivo || '').trim(),
+      urlDocPEI: (item.urlDocPEI || '').trim(),
+      urlDocMinuta: (item.urlDocMinuta || '').trim(),
+      dataSource: 'api'
     };
   }
 
@@ -440,18 +438,29 @@ export class PactosService {
       return 'N/A';
     }
 
-    const lowerAlcance = safeAlcance.toLowerCase();
     const marker = 'municipio:';
-    const markerIndex = lowerAlcance.indexOf(marker);
+    const departamentos: string[] = [];
 
-    if (markerIndex === -1) {
+    for (const segment of safeAlcance.split('|')) {
+      const part = segment.trim();
+      const lower = part.toLowerCase();
+      const idx = lower.indexOf(marker);
+      if (idx === -1) {
+        continue;
+      }
+      const afterMarker = part.slice(idx + marker.length).trim();
+      const departamento = afterMarker.split('-')[0]?.trim() ?? '';
+      if (departamento) {
+        departamentos.push(departamento);
+      }
+    }
+
+    if (!departamentos.length) {
       return 'N/A';
     }
 
-    const afterMarker = safeAlcance.slice(markerIndex + marker.length).trim();
-    const departamento = afterMarker.split('|')[0].split('-')[0].trim();
-
-    return departamento || 'N/A';
+    const unique = [...new Set(departamentos)];
+    return unique.join(', ');
   }
 
   private mapTipoPactoToId(tipoPacto: string | undefined): number {

@@ -36,8 +36,8 @@
   gap: 0.32rem;
   width: 2.7rem;
   padding: 0.7rem 0;
-  /* Cuando está cerrado usa color amarillo. */
-  background: #ffbf39;
+  /* Degradado horizontal fijo (cerrado y abierto). */
+  background: linear-gradient(90deg, #d89f12 0%, #ffbf39 45%, #ffe6a6 100%);
   color: #5a3a00;
   border: none;
   border-radius: 0;
@@ -49,19 +49,19 @@
 }
 
 .filter-drawer__tab:hover {
-  background: #e5a800;
+  background: linear-gradient(90deg, #d89f12 0%, #ffbf39 45%, #ffe6a6 100%);
   box-shadow: 2px 0 18px rgba(255, 191, 57, 0.5);
 }
 
 /* Cuando está abierto, cambia a color teal. */
 .filter-drawer--open .filter-drawer__tab {
-  background: linear-gradient(180deg, #00c3c1, #00a2a0);
-  color: #ffffff;
-  box-shadow: 2px 0 14px rgba(0, 162, 160, 0.35);
+  background: linear-gradient(90deg, #d89f12 0%, #ffbf39 45%, #ffe6a6 100%);
+  color: #5a3a00;
+  box-shadow: 2px 0 14px rgba(255, 191, 57, 0.35);
 }
 
 .filter-drawer--open .filter-drawer__tab:hover {
-  background: linear-gradient(180deg, #00a2a0, #007e7c);
+  background: linear-gradient(90deg, #d89f12 0%, #ffbf39 45%, #ffe6a6 100%);
 }
 
 .filter-drawer__tab-icon {
@@ -126,7 +126,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.9rem;
-  background: linear-gradient(90deg, #ffd15f, #ffbf39);
+  background: linear-gradient(90deg, #d89f12 0%, #ffbf39 45%, #ffe6a6 100%);
   color: #5a3a00;
   flex-shrink: 0;
   white-space: nowrap;

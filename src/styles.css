@@ -35,11 +35,41 @@
 html,
 body {
   min-height: 100%;
+  width: 100%;
+  max-width: 100%;
   margin: 0;
   font-family: var(--app-font-family);
   color: var(--inst-gray-dark);
   background: #f4f4f4;
   background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+app-root {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Base responsive safety for flex/grid descendants. */
+.container,
+.container-fluid,
+.row {
+  max-width: 100%;
+}
+
+[class*="col-"] {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+table {
+  max-width: 100%;
 }
 
 input,
@@ -71,9 +101,9 @@ textarea {
 }
 
 .dashboard-shell .content .modal-header {
-  background: linear-gradient(135deg, #ffbf39, #e5a800);
+  background: linear-gradient(180deg, #59e0df 0%, #00c3c1 52%, #008080 100%);
   color: #ffffff;
-  border-bottom: 1px solid rgba(255, 191, 57, 0.55);
+  border-bottom: 1px solid rgba(0, 121, 120, 0.75);
 }
 
 .dashboard-shell .content .modal-header .btn-close {
@@ -87,6 +117,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .dashboard-shell .content .modal {

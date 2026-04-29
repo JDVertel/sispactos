@@ -7,4 +7,4 @@ En dashboard-page.component.ts use rutas asi:
 
 Angular copia esta carpeta a /assets/ al compilar y al hacer ng serve.
 
-Puede borrar los slide-0X.svg cuando suba las imagenes definitivas.
+Formatos: JPG y JPEG (slide-01.jpg, slide-02.jpg, slide-03.jpeg). Los .svg antiguos se pueden borrar si ya no se usan.

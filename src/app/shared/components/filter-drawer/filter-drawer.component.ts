@@ -26,6 +26,8 @@ export class FilterDrawerComponent implements OnChanges {
 
   /** Departamentos presentes en los registros del servicio (ordenados). */
   @Input() departamentos: string[] = [];
+  /** Estado de filtros controlado por el componente padre. */
+  @Input() values: FilterDrawerValues = { etapa: '', pacto: '', departamento: '' };
 
   // Controla si el panel de filtros está abierto o cerrado.
   isOpen = false;
@@ -35,6 +37,13 @@ export class FilterDrawerComponent implements OnChanges {
   selectedDepartamento = '';
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['values'] && changes['values'].currentValue) {
+      const incoming = changes['values'].currentValue as FilterDrawerValues;
+      this.selectedEtapa = incoming.etapa || '';
+      this.selectedPacto = incoming.pacto || '';
+      this.selectedDepartamento = incoming.departamento || '';
+    }
+
     if (changes['etapas'] || changes['tiposPacto'] || changes['departamentos']) {
       this.pruneInvalidSelections();
     }

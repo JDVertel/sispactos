@@ -121,22 +121,32 @@
 }
 
 .pacto-card-nombre {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #1a2e35;
-  line-height: 1.3;
+  line-height: 1.25;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  min-height: 3.3em;
+  min-height: 2.5em;
 }
 .pacto-card-active .pacto-card-nombre {
   color: #00a2a0;
 }
 
+.pacto-card-tipo {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #4b6470;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .pacto-card-estado {
-  margin-top: 0.4rem;
+  margin-top: 0.25rem;
 }
 .badge-etapa-construccion {
   background: #eef7ff;
@@ -195,27 +205,47 @@
 
 .carousel-nav-btn {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
-  border: 2px solid #00c3c1;
-  background: #fff;
-  color: #00a2a0;
+  border: none;
+  background: rgba(255, 255, 255, 0.88);
+  color: #1a2e35;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
-  box-shadow: 0 2px 8px rgba(0, 195, 193, 0.12);
   padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition:
+    opacity 0.2s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.2s ease;
 }
+
+.carousel-nav-btn:not(:disabled) {
+  opacity: 0.38;
+}
+
+.pactos-carousel-wrapper:hover .carousel-nav-btn:not(:disabled),
+.pactos-carousel-wrapper:focus-within .carousel-nav-btn:not(:disabled) {
+  opacity: 1;
+}
+
+.carousel-nav-btn .bi {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
 .carousel-nav-btn:hover:not(:disabled) {
-  background: #00c3c1;
-  color: #fff;
+  background: #ffffff;
+  color: #00a2a0;
 }
+
 .carousel-nav-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.28;
   cursor: default;
 }
 
@@ -319,19 +349,60 @@
 }
 
 .card-dato {
-  border: none;
-  border-radius: 0.35rem;
-  background: #f7fafd;
-  box-shadow: 0 2px 8px rgba(0, 195, 193, 0.08);
+  border: 0.8px solid #e2f7f7;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #e6f4fb 0%, #f5fbff 100%) !important;
+  box-shadow: 0 2px 10px rgba(0, 195, 193, 0.07);
   min-height: 70px;
-  transition: box-shadow 0.18s;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+  overflow: hidden;
 }
+
+.card-dato .card-body {
+  padding: 0.55rem 0.7rem !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  min-height: 100%;
+}
+
 .card-dato:hover {
-  box-shadow: 0 4px 18px rgba(0, 195, 193, 0.18);
+  border-color: #2b8dbf;
+  box-shadow: 0 4px 18px rgba(43, 141, 191, 0.2);
+  transform: translateY(-2px);
 }
+
+.card-dato .text-secondary {
+  color: #4b6470 !important;
+  font-size: clamp(0.54rem, 0.48rem + 0.22vw, 0.62rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
 .card-dato .fs-5 {
+  font-size: clamp(0.68rem, 0.54rem + 0.45vw, 0.88rem) !important;
   font-weight: 700;
-  color: #00a2a0;
+  color: #0d6f9f;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.card-dato .fs-6 {
+  font-size: clamp(0.64rem, 0.52rem + 0.38vw, 0.8rem) !important;
+  font-weight: 700;
+  color: #0d6f9f;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.card-dato .card-body > div:not(.text-secondary):not(.fs-5):not(.fs-6) {
+  font-size: clamp(0.64rem, 0.54rem + 0.28vw, 0.74rem);
+  line-height: 1.35;
+  color: #22353d;
+  text-align: center;
 }
 
 .card-ejecucion {

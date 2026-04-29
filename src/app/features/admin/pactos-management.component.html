@@ -202,44 +202,74 @@
               <input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="newPacto.fechaVencimiento" />
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Departamento de Alcance</label>
-              <select
-                class="form-select"
-                name="departamentoSeleccionado"
-                [(ngModel)]="departamentoSeleccionado"
-                (ngModelChange)="onDepartamentoChange()"
-              >
-                <option value="">Seleccione departamento</option>
-                <option *ngFor="let departamento of departamentosDisponibles" [value]="departamento">
-                  {{ departamento }}
-                </option>
-              </select>
+            <div class="col-12">
+              <label class="form-label">Departamentos y municipios (ciudades) de alcance</label>
+              <p class="text-secondary small mb-2">
+                Puede incluir varios departamentos y varias ciudades o municipios. Agregue cada combinación con el botón.
+              </p>
+              <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-5">
+                  <label class="form-label visually-hidden" for="departamentoDraft">Departamento</label>
+                  <select
+                    id="departamentoDraft"
+                    class="form-select"
+                    name="departamentoDraft"
+                    [(ngModel)]="departamentoDraft"
+                    (ngModelChange)="onDepartamentoDraftChange()"
+                  >
+                    <option value="">Departamento</option>
+                    <option *ngFor="let departamento of departamentosDisponibles" [value]="departamento">
+                      {{ departamento }}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-5">
+                  <label class="form-label visually-hidden" for="municipioDraft">Municipio o ciudad</label>
+                  <select
+                    id="municipioDraft"
+                    class="form-select"
+                    name="municipioDraft"
+                    [(ngModel)]="municipioDraft"
+                    [disabled]="!departamentoDraft"
+                  >
+                    <option value="">Municipio o ciudad</option>
+                    <option *ngFor="let municipio of municipiosDisponiblesDraft" [value]="municipio">
+                      {{ municipio }}
+                    </option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-2">
+                  <button type="button" class="btn btn-outline-primary w-100" (click)="addUbicacionAlcance()">
+                    Agregar
+                  </button>
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="ubicacionesAlcance.length > 0">
+                <span
+                  *ngFor="let u of ubicacionesAlcance; let i = index"
+                  class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3"
+                >
+                  {{ u.departamento }} — {{ u.municipio }}
+                  <button
+                    type="button"
+                    class="btn-close btn-close-white btn-sm"
+                    aria-label="Quitar ubicación"
+                    (click)="removeUbicacionAlcance(i)"
+                  ></button>
+                </span>
+              </div>
+              <div class="form-text" *ngIf="!ubicacionesAlcance.length">Debe agregar al menos una ubicación para crear el pacto.</div>
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Municipio de Alcance</label>
-              <select
-                class="form-select"
-                name="municipioSeleccionado"
-                [(ngModel)]="municipioSeleccionado"
-                [disabled]="!departamentoSeleccionado"
-              >
-                <option value="">Seleccione municipio</option>
-                <option *ngFor="let municipio of municipiosDisponibles" [value]="municipio">
-                  {{ municipio }}
-                </option>
-              </select>
-            </div>
-
-            <div class="col-12" *ngIf="municipioSeleccionado">
-              <label class="form-label">Detalle de Alcance</label>
+            <div class="col-12" *ngIf="ubicacionesAlcance.length">
+              <label class="form-label">Detalle de alcance (opcional)</label>
               <textarea
                 class="form-control"
                 name="alcanceDetalle"
                 [(ngModel)]="alcanceDetalle"
                 rows="3"
-                placeholder="Agrega el detalle del alcance para el departamento y municipio seleccionados"
+                placeholder="Complemento del alcance territorial (vigencias, notas, límites, etc.)"
               ></textarea>
             </div>
 
@@ -269,7 +299,7 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="isSubmitting || isLoadingCatalogos || !tiposPactos.length || !etapasPacto.length || !newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim() || !newPacto.idEtapa?.trim()"
+            [disabled]="isSubmitting || isLoadingCatalogos || !tiposPactos.length || !etapasPacto.length || !newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim() || !newPacto.idEtapa?.trim() || !ubicacionesAlcance.length"
           >
             {{ isSubmitting ? 'Guardando...' : 'Crear Pacto' }}
           </button>

@@ -109,6 +109,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   pactosFiltrados: PactoTablaDto[] = [];
+  private pactosBase: PactoTablaDto[] = [];
 
   /** Opciones de filtros derivadas de los mismos registros que alimentan la tabla. */
   filterEtapas: string[] = [];
@@ -118,7 +119,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   // Recibe los filtros del componente de filtros y actualiza la vista.
   onFiltersChange(values: FilterDrawerValues): void {
     this.activeFilters = values;
-    this.loadPactosTabla();
+    this.applyFilters();
   }
 
   // Si hay departamento elegido, el mapa se centra allí; si no, muestra Colombia.
@@ -209,22 +210,22 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   ];
 
   /**
-   * Imagenes desde src/assets/carousel/ (servidas como /assets/carousel/...).
+   * Imagenes JPG/JPEG desde src/assets/carousel/ (servidas como /assets/carousel/...).
    * Ver src/assets/carousel/LEEME.txt.
    */
   carouselImages = [
     {
-      src: '/assets/carousel/slide-01.svg',
+      src: '/assets/carousel/slide-01.jpg',
       alt: 'Proyecto de infraestructura',
       caption: 'Proyecto de infraestructura comunitaria'
     },
     {
-      src: '/assets/carousel/slide-02.svg',
+      src: '/assets/carousel/slide-02.jpg',
       alt: 'Comunidad participando',
       caption: 'Participación de la comunidad en proyectos sociales'
     },
     {
-      src: '/assets/carousel/slide-03.svg',
+      src: '/assets/carousel/slide-03.jpeg',
       alt: 'Educación y desarrollo',
       caption: 'Iniciativas de educación y desarrollo local'
     }
@@ -234,8 +235,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   carouselInterval: any;
 
   ngOnInit() {
-    this.loadPactosTabla();
-    this.loadFilterOptionsFromService();
+    this.loadPactosTablaAndFilters();
 
     // Aleatorizar imágenes al cargar
     this.carouselImages = this.shuffleArray(this.carouselImages);
@@ -279,6 +279,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     // Lee la ruta actual para cambiar título y descripción de la sección.
     this.route.paramMap.subscribe((params) => {
       const key = params.get('page') ?? 'home';
+      const previousPage = this.currentPage;
       this.currentPage = key;
       const data = PAGE_DATA[key] ?? {
         title: 'Seccion',
@@ -286,46 +287,101 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       };
       this.pageTitle = data.title;
       this.pageDescription = data.description;
+
+      if (key !== 'home') {
+        this.resetPactosViewState();
+      }
+
+      // La vista dashboard-page se reutiliza al cambiar entre subrutas.
+      // Al regresar a "home" debemos reintentar carga desde API.
+      if (key === 'home' && previousPage !== 'home') {
+        this.activeFilters = { etapa: '', pacto: '', departamento: '' };
+        this.resetPactosViewState();
+        this.loadPactosTablaAndFilters();
+      }
     });
 
   }
 
-  private loadFilterOptionsFromService(): void {
-    this.pactosService
-      .getPactosTablaFilterOptionsFromApi()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (opts: PactoTablaFilterOptions) => {
-          this.filterEtapas = opts.etapas;
-          this.filterTiposPacto = opts.tiposPacto;
-          this.filterDepartamentos = opts.departamentos;
-        },
-        error: () => {
-          this.filterEtapas = [];
-          this.filterTiposPacto = [];
-          this.filterDepartamentos = [];
-        }
-      });
-  }
-
-  private loadPactosTabla(): void {
+  private loadPactosTablaAndFilters(): void {
     this.isLoadingPactos = true;
     this.pactosError = '';
 
     this.pactosService
-      .getPactosTablaFiltradosFromApi(this.activeFilters)
+      .getPactosTablaFromApi()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (rows: PactoTablaDto[]) => {
-          this.pactosFiltrados = rows;
+          // Si la API responde vacía en un fallo transitorio, conservamos la última data válida.
+          if (rows.length === 0 && this.pactosBase.length > 0) {
+            this.applyFilters();
+            this.isLoadingPactos = false;
+            return;
+          }
+
+          this.pactosBase = rows;
+          this.applyFilterOptions(rows);
+          this.applyFilters();
+          this.pactosError = '';
           this.isLoadingPactos = false;
         },
         error: () => {
-          this.pactosFiltrados = [];
-          this.pactosError = 'No fue posible cargar el listado de pactos.';
+          // Si ya hay datos pintados, no los limpiamos ante un fallo transitorio.
+          if (this.pactosBase.length === 0) {
+            this.pactosFiltrados = [];
+            this.filterEtapas = [];
+            this.filterTiposPacto = [];
+            this.filterDepartamentos = [];
+            this.pactosError = 'No fue posible conectar con el servicio de pactos (API no disponible).';
+          }
           this.isLoadingPactos = false;
         }
       });
+  }
+
+  private applyFilterOptions(rows: PactoTablaDto[]): void {
+    const opts: PactoTablaFilterOptions = {
+      etapas: this.uniqueSortedFieldValues(rows.map((r) => r.etapa)),
+      tiposPacto: this.uniqueSortedFieldValues(rows.map((r) => r.tipoPacto)),
+      departamentos: this.uniqueSortedFieldValues(rows.map((r) => r.departamento))
+    };
+
+    this.filterEtapas = opts.etapas;
+    this.filterTiposPacto = opts.tiposPacto;
+    this.filterDepartamentos = opts.departamentos;
+  }
+
+  private applyFilters(): void {
+    const etapa = (this.activeFilters.etapa || '').trim();
+    const pacto = (this.activeFilters.pacto || '').trim();
+    const departamento = (this.activeFilters.departamento || '').trim();
+
+    this.pactosFiltrados = this.pactosBase.filter((item) => {
+      const byEtapa = !etapa || item.etapa === etapa;
+      const byPacto = !pacto || item.tipoPacto === pacto;
+      const byDepartamento = !departamento || item.departamento === departamento;
+      return byEtapa && byPacto && byDepartamento;
+    });
+  }
+
+  private uniqueSortedFieldValues(values: string[]): string[] {
+    const normalized = values
+      .map((v) => (v || '').trim())
+      .filter((v) => v.length > 0);
+
+    const unique = Array.from(new Set(normalized));
+    unique.sort((a, b) => a.localeCompare(b, 'es-CO', { sensitivity: 'base' }));
+    return unique;
+  }
+
+  private resetPactosViewState(): void {
+    this.pactosBase = [];
+    this.pactosFiltrados = [];
+    this.filterEtapas = [];
+    this.filterTiposPacto = [];
+    this.filterDepartamentos = [];
+    this.pactosError = '';
+    this.isLoadingPactos = false;
   }
 
   // Cuando cambia el tamaño de ventana, actualiza el modo responsive.
