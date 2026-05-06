@@ -1,0 +1,10 @@
+# Model Routing Logic
+- IF MODEL == "Gemini 3 Flash" OR "GPT-5.4 Mini": 
+  - Focus on: Syntax, CSS, simple Vue components, and Docker commands.
+  - Style: Be concise. Don't over-analyze.
+- IF MODEL == "Codex 5.1 Mini":
+  - Focus on: Backend logic (Express), SQL queries (MySQL), and complex Vue computed properties.
+  - Target: Professional, clean code.
+- IF MODEL == "Gemini 3.1 Pro":
+  - Focus on: Azure Architecture, SISPACTOS integration, Keycloak security flows, and RIPS/DNP compliance logic.
+  - Style: Deep analysis, check for edge cases and security vulnerabilities.

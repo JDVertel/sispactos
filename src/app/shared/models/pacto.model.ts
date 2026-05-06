@@ -15,6 +15,8 @@ export interface Pacto {
   fechaCreacion: string;
   usuarioModifico?: string;
   fechaModificacion?: string;
+  departamento?: string;
+  municipio?: string;
   idEtapa?: string;
   fechaVencimiento?: string;
   alcance?: string;
@@ -22,4 +24,5 @@ export interface Pacto {
   urlDocMinuta?: string;
   urlDocPEI?: string;
   urlDocFicha?: string;
+  idAreasIntervencion?: string[];
 }

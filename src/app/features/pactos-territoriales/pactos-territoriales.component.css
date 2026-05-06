@@ -424,6 +424,42 @@
   color: #b48a00 !important;
 }
 
+.card-compromiso {
+  border-left: 4px solid #00c3c1;
+}
+
+.compromiso-metricas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.compromiso-valor {
+  font-size: clamp(0.7rem, 0.58rem + 0.42vw, 0.9rem);
+  font-weight: 800;
+  color: #1a2e35;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.compromiso-porcentaje {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.2rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #e8fafa;
+  color: #00a2a0;
+  border: 1px solid #00c3c1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 .indicator-title {
   color: #00a2a0;
   font-weight: 700;

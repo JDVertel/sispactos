@@ -107,6 +107,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   isLoadingPactos = false;
   pactosError = '';
   private readonly destroy$ = new Subject<void>();
+  pactoSeleccionado: PactoTablaDto | null = null;
 
   pactosFiltrados: PactoTablaDto[] = [];
   private pactosBase: PactoTablaDto[] = [];
@@ -122,9 +123,16 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  // Si hay departamento elegido, el mapa se centra allí; si no, muestra Colombia.
-  get departamentoMapa(): string {
-    return this.activeFilters.departamento;
+  get departamentosMapaHome(): string[] {
+    if (this.pactoSeleccionado?.alcance) {
+      const departamentos = this.extractDepartamentosFromAlcance(this.pactoSeleccionado.alcance);
+      if (departamentos.length) {
+        return departamentos;
+      }
+    }
+
+    const filtroDepartamento = (this.activeFilters.departamento || '').trim();
+    return filtroDepartamento ? [filtroDepartamento] : [];
   }
 
   // Da formato de moneda para que los valores se lean de forma clara.
@@ -322,6 +330,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
           this.pactosBase = rows;
           this.applyFilterOptions(rows);
           this.applyFilters();
+          this.ensureSelectedPacto();
           this.pactosError = '';
           this.isLoadingPactos = false;
         },
@@ -362,6 +371,8 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       const byDepartamento = !departamento || item.departamento === departamento;
       return byEtapa && byPacto && byDepartamento;
     });
+
+    this.ensureSelectedPacto();
   }
 
   private uniqueSortedFieldValues(values: string[]): string[] {
@@ -377,6 +388,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private resetPactosViewState(): void {
     this.pactosBase = [];
     this.pactosFiltrados = [];
+    this.pactoSeleccionado = null;
     this.filterEtapas = [];
     this.filterTiposPacto = [];
     this.filterDepartamentos = [];
@@ -403,5 +415,48 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   // Devuelve el ícono que se debe pintar en cada tarjeta.
   getIconClass(iconName: string): string {
     return this.iconClassMap[iconName] ?? 'bi-bar-chart-fill';
+  }
+
+  seleccionarPacto(item: PactoTablaDto): void {
+    this.pactoSeleccionado = item;
+  }
+
+  private ensureSelectedPacto(): void {
+    if (this.pactosFiltrados.length === 0) {
+      this.pactoSeleccionado = null;
+      return;
+    }
+
+    if (!this.pactoSeleccionado || !this.pactosFiltrados.includes(this.pactoSeleccionado)) {
+      this.pactoSeleccionado = this.pactosFiltrados[0];
+    }
+  }
+
+  private extractDepartamentosFromAlcance(alcance?: string): string[] {
+    const safeAlcance = (alcance || '').trim();
+    if (!safeAlcance) {
+      return [];
+    }
+
+    const departments = new Set<string>();
+    const segments = safeAlcance.split('|').map((segment) => segment.trim()).filter(Boolean);
+
+    for (const segment of segments) {
+      const normalized = segment
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      if (normalized.startsWith('departamentos:') || normalized.startsWith('departamento:')) {
+        const value = segment.includes(':') ? segment.slice(segment.indexOf(':') + 1).trim() : segment.trim();
+        value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach((item) => departments.add(item));
+      }
+    }
+
+    return [...departments];
   }
 }

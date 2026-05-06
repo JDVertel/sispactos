@@ -136,7 +136,15 @@
               <app-departamento-map
                 *ngIf="pactoSeleccionado"
                 class="flex-grow-1"
-                [departamento]="pactoSeleccionado.departamento || ''"
+                [departamentos]="departamentosPactoSeleccionado"
+                [municipios]="municipiosPactoSeleccionado"
+                [municipioContextos]="municipiosContextoPactoSeleccionado"
+                [showMunicipalities]="true"
+                [showDepartments]="true"
+                [selectedDepartmentFill]="'#00c3c1'"
+                [selectedDepartmentStroke]="'#008f8d'"
+                [municipalityFill]="'rgba(255, 111, 165, 0.72)'"
+                [municipalityStroke]="'#ff6fa5'"
                 [stretchVertical]="true"
               ></app-departamento-map>
             </div>
@@ -265,7 +273,7 @@
                 <div class="card-body">
                   <h6 class="indicator-title">Indicadores de ejecución</h6>
                   <div class="row g-2">
-                    <div class="col-6 col-md-4" *ngFor="let card of indicadoresEjecucion">
+                    <div class="col-6" *ngFor="let card of indicadoresEjecucion">
                       <div class="card card-dato h-100">
                         <div class="card-body py-2 px-3">
                           <div class="fw-bold small text-secondary">{{ card.label }}</div>
@@ -283,10 +291,13 @@
               <h6 class="indicator-title">Indicadores de compromisos</h6>
               <div class="row g-2">
                 <div class="col-6 col-md-4 col-xl-2" *ngFor="let card of indicadoresCompromisos">
-                  <div class="card card-ejecucion h-100">
+                  <div class="card card-ejecucion card-compromiso h-100">
                     <div class="card-body py-2 px-3">
                       <div class="fw-bold small text-secondary">{{ card.label }}</div>
-                      <div class="fs-5">{{ card.value }}</div>
+                      <div class="compromiso-metricas">
+                        <div class="compromiso-valor">{{ card.value }}</div>
+                        <div class="compromiso-porcentaje">{{ card.porcentaje }}</div>
+                      </div>
                     </div>
                   </div>
                 </div>

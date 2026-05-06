@@ -118,7 +118,7 @@
           <div class="col-12 col-xl-5 d-flex flex-column">
             <app-departamento-map
               class="flex-grow-1"
-              [departamento]="departamentoMapa"
+              [departamentos]="departamentosMapaHome"
               [homeSurface]="true"
               [stretchVertical]="true"
             ></app-departamento-map>
@@ -163,7 +163,14 @@
                       </td>
                     </tr>
 
-                    <tr *ngFor="let item of pactosFiltrados" class="pacto-row-api">
+                    <tr
+                      *ngFor="let item of pactosFiltrados"
+                      class="pacto-row-api"
+                      [class.pacto-row-selected]="pactoSeleccionado === item"
+                      (click)="seleccionarPacto(item)"
+                      role="button"
+                      tabindex="0"
+                    >
                       <td data-label="Nombre del pacto">{{ item.nombrePacto }}</td>
                       <td data-label="Fecha suscripción">{{ item.fechaSubscripcion }}</td>
                       <td data-label="Fecha vencimiento">{{ item.fechaVencimiento }}</td>

@@ -1,19 +1,91 @@
-<!-- Tarjeta del mapa enfocada en el departamento elegido -->
 <article class="card map-card h-100 border-0" [class.home-surface-card]="homeSurface" [class.map-card--stretch]="stretchVertical">
-  <!-- Encabezado con título y nombre del departamento -->
   <header class="map-card-head d-flex align-items-center justify-content-between">
-    <span><i class="bi bi-map me-1"></i> Mapa por departamento</span>
-    <span class="map-chip">{{ displayDepartamento }}</span>
+    <span><i class="bi bi-map me-1"></i> Mapa territorial</span>
+    <span class="map-chip map-chip--department" *ngIf="displayDepartamento">{{ displayDepartamento }}</span>
   </header>
 
-  <!-- Contenedor del mapa embebido -->
   <div class="map-frame-wrap">
-    <iframe
-      class="map-frame"
-      [src]="mapUrl"
-      title="Mapa del departamento seleccionado"
-      loading="lazy"
-      referrerpolicy="no-referrer-when-downgrade"
-    ></iframe>
+    <div class="territory-canvas" [class.territory-canvas--empty]="!hasSelectedDepartment">
+      <ng-container *ngIf="hasTerritorySelection && mapReady && !mapError; else emptyState">
+        <svg
+          #mapSvg
+          class="territory-map-svg"
+          viewBox="0 0 613 694"
+          role="img"
+          [attr.aria-label]="mapLabel + (displayDepartamento ? '. Departamento ' + displayDepartamento : '') + (hasMunicipio ? ', municipio ' + displayMunicipio : '')"
+          (wheel)="onMapWheel($event)"
+          (pointerdown)="onMapPointerDown($event)"
+        >
+          <g [attr.transform]="mapTransform">
+            <g *ngFor="let region of departmentPaths">
+              <title>{{ region.name }}</title>
+              <path
+                [attr.d]="region.d"
+                class="territory-path"
+                [class.territory-path--selected]="region.selected"
+                [class.territory-path--dimmed]="region.dimmed"
+                [style.fill]="region.selected ? selectedDepartmentFill : null"
+                [style.stroke]="region.selected ? selectedDepartmentStroke : null"
+              ></path>
+            </g>
+
+            <g *ngFor="let label of departmentLabels">
+              <text
+                class="territory-department-label"
+                [attr.transform]="'translate(' + label.x + ' ' + label.y + ') translate(' + label.dx + ' ' + label.dy + ') scale(' + label.scale + ')'"
+                text-anchor="middle"
+                dominant-baseline="middle"
+              >
+                {{ label.name }}
+              </text>
+            </g>
+
+            <g *ngFor="let municipality of municipalityPaths">
+              <title>{{ municipality.name }}</title>
+              <path
+                [attr.d]="municipality.d"
+                class="territory-municipio-path"
+                [class.territory-path--dimmed]="municipality.dimmed"
+                [style.fill]="municipalityFill"
+                [style.stroke]="municipalityStroke"
+              ></path>
+            </g>
+
+            <g *ngFor="let label of municipalityLabels">
+              <text
+                class="territory-municipality-label"
+                [attr.transform]="'translate(' + label.x + ' ' + label.y + ') scale(' + label.scale + ')'"
+                text-anchor="middle"
+                dominant-baseline="middle"
+              >
+                {{ label.name }}
+              </text>
+            </g>
+          </g>
+        </svg>
+
+        <div class="territory-zoom-controls">
+          <button type="button" class="territory-zoom-button" (click)="zoomIn()" aria-label="Acercar mapa">+</button>
+          <button type="button" class="territory-zoom-button" (click)="zoomOut()" aria-label="Alejar mapa">-</button>
+          <button type="button" class="territory-zoom-button territory-zoom-button--reset" (click)="resetZoom()" aria-label="Restablecer zoom">
+            {{ zoomPercent }}%
+          </button>
+        </div>
+      </ng-container>
+
+      <ng-template #emptyState>
+        <div class="territory-empty-state" *ngIf="mapReady && !mapError; else pendingState">
+          <i class="bi bi-geo-alt-fill territory-empty-state__icon"></i>
+          <span class="territory-empty-state__title">Selecciona un departamento o municipio</span>
+          <span class="territory-empty-state__text">El mapa aparecerá centrado cuando exista un territorio seleccionado.</span>
+        </div>
+      </ng-template>
+
+      <ng-template #pendingState>
+        <div class="territory-empty-state">
+          <span class="territory-empty-state__title">{{ mapError || 'Cargando mapa...' }}</span>
+        </div>
+      </ng-template>
+    </div>
   </div>
 </article>

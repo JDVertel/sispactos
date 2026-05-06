@@ -8,6 +8,7 @@ interface Pacto {
   id: number;
   nombre: string;
   departamento: string;
+  municipio?: string;
   ciudad?: string;
   idTipoPacto?: number;
   tipoPacto?: string;
@@ -614,6 +615,41 @@ export class PactosTerritorialesComponent implements OnInit {
     ];
   }
 
+  get departamentosPactoSeleccionado(): string[] {
+    if (!this.pactoSeleccionado) {
+      return [];
+    }
+
+    return this.extractDepartamentosFromAlcance(this.pactoSeleccionado.alcance);
+  }
+
+  get municipiosPactoSeleccionado(): string[] {
+    if (!this.pactoSeleccionado) {
+      return [];
+    }
+
+    const municipio = (this.pactoSeleccionado.municipio || '').trim();
+    return municipio ? [municipio] : [];
+  }
+
+  get municipiosContextoPactoSeleccionado(): Array<{ name: string; department?: string }> {
+    if (!this.pactoSeleccionado) {
+      return [];
+    }
+
+    const municipio = (this.pactoSeleccionado.municipio || '').trim();
+    const departamento = (this.pactoSeleccionado.departamento || '').trim();
+
+    return municipio
+      ? [
+          {
+            name: municipio,
+            department: departamento || undefined
+          }
+        ]
+      : [];
+  }
+
   /** URL para «Ver PEI vigente pacto territorial» (API / documento PEI o pacto). */
   get urlPeiVigentePacto(): string {
     return (this.pactoSeleccionado?.urlDocPEI || '').trim();
@@ -656,12 +692,32 @@ export class PactosTerritorialesComponent implements OnInit {
       return [];
     }
 
+    const valorEnEjecucion = datos.valorEjecutado ?? 0;
+    const comprometidoSector = datos.comprometidoSector ?? 0;
+    const comprometidoDnpFrpt = datos.comprometidoDnpFrpt ?? 0;
+    const comprometidoTerritorio = datos.comprometidoTerritorio ?? 0;
+    const comprometidoAportesOtros = datos.comprometidoAportesOtros ?? 0;
+    const totalReferencia =
+      valorEnEjecucion +
+      comprometidoSector +
+      comprometidoDnpFrpt +
+      comprometidoTerritorio +
+      comprometidoAportesOtros;
+
+    const porcentaje = (valor: number) => {
+      if (!totalReferencia) {
+        return '0%';
+      }
+
+      return `${((valor / totalReferencia) * 100).toFixed(1)}%`;
+    };
+
     return [
-      { label: 'Valor en ejecución/terminado', value: this.formatearMoneda(datos.valorEjecutado) },
-      { label: 'Comprometido sector', value: this.formatearMoneda(datos.comprometidoSector) },
-      { label: 'Comprometido DNP FRPT', value: this.formatearMoneda(datos.comprometidoDnpFrpt) },
-      { label: 'Comprometido Territorio', value: this.formatearMoneda(datos.comprometidoTerritorio) },
-      { label: 'Comprometido Aportes Otros', value: this.formatearMoneda(datos.comprometidoAportesOtros) }
+      { label: 'Valor en ejecución/terminado', value: this.formatearMoneda(valorEnEjecucion), porcentaje: porcentaje(valorEnEjecucion) },
+      { label: 'Comprometido sector', value: this.formatearMoneda(comprometidoSector), porcentaje: porcentaje(comprometidoSector) },
+      { label: 'Comprometido DNP FRPT', value: this.formatearMoneda(comprometidoDnpFrpt), porcentaje: porcentaje(comprometidoDnpFrpt) },
+      { label: 'Comprometido Territorio', value: this.formatearMoneda(comprometidoTerritorio), porcentaje: porcentaje(comprometidoTerritorio) },
+      { label: 'Comprometido Aportes Otros', value: this.formatearMoneda(comprometidoAportesOtros), porcentaje: porcentaje(comprometidoAportesOtros) }
     ];
   }
 
@@ -736,8 +792,8 @@ export class PactosTerritorialesComponent implements OnInit {
       ? (this.iniciativasTablaPorPacto[this.pactoSeleccionado.id] ?? [])
       : [];
     return [
-      { label: 'Total de iniciativas PEI', value: tabla.length },
-      { label: 'Inversión total estimada (PEI)', value: this.formatearMoneda(tabla.reduce((s, i) => s + i.inversionTotal, 0)) }
+      { label: 'Total de proyectos PEI', value: tabla.length },
+      { label: 'Valor indicativo', value: this.formatearMoneda(tabla.reduce((s, i) => s + i.inversionTotal, 0)) }
     ];
   }
 
@@ -829,6 +885,7 @@ export class PactosTerritorialesComponent implements OnInit {
       id: this.readNumericId(item),
       nombre: item.nombrePacto,
       departamento: item.departamento || 'N/A',
+      municipio: item.municipio || '',
       ciudad: '',
       tipoPacto: item.tipoPacto,
       descripcion: (item.suscribientes || '').trim(),
@@ -836,7 +893,7 @@ export class PactosTerritorialesComponent implements OnInit {
       fechaSuscripcion: item.fechaSubscripcion,
       fechaVencimiento: item.fechaVencimiento,
       idEtapa: item.etapa || 'Sin etapa',
-      alcance: '',
+      alcance: item.alcance || '',
       urlDocPEI: (item.urlDocPEI || '').trim(),
       urlDocMinuta: (item.urlDocMinuta || '').trim()
     };
@@ -978,4 +1035,33 @@ export class PactosTerritorialesComponent implements OnInit {
       ciudad: ''
     };
   }
+
+  private extractDepartamentosFromAlcance(alcance?: string): string[] {
+    const safeAlcance = (alcance || '').trim();
+    if (!safeAlcance) {
+      return [];
+    }
+
+    const departments = new Set<string>();
+    const segments = safeAlcance.split('|').map((segment) => segment.trim()).filter(Boolean);
+
+    for (const segment of segments) {
+      const normalized = segment
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      if (normalized.startsWith('departamentos:') || normalized.startsWith('departamento:')) {
+        const value = segment.includes(':') ? segment.slice(segment.indexOf(':') + 1).trim() : segment.trim();
+        value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach((item) => departments.add(item));
+      }
+    }
+
+    return [...departments];
+  }
+
 }

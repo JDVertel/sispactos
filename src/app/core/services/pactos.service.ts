@@ -13,6 +13,8 @@ export interface PactoTablaDto {
   presupuestoComprometido: number;
   avanceComprometido: number;
   departamento: string;
+  municipio: string;
+  alcance?: string;
   tipoPacto: string;
   /** Integrantes del pacto (campo API `suscribientes`). */
   suscribientes?: string;
@@ -49,12 +51,33 @@ export interface CatalogoOption {
   texto: string;
 }
 
+export interface EntidadTerritorialOption {
+  idEntidadTerritorial: string;
+  nombreEntidadTerritorial: string;
+  nombreDepartamento: string;
+  idDepartamento?: string;
+  displayName: string;
+}
+
 interface PactoCatalogosResult {
   tiposPacto: CatalogoOption[];
   etapas: CatalogoOption[];
 }
 
-interface CreatePactoCommand {
+interface ApiEntidadTerritorialMunicipio {
+  idEntidadTerritorial?: unknown;
+  nombreEntidadTerritorial?: unknown;
+  tipologia?: unknown;
+  orden?: unknown;
+}
+
+interface ApiEntidadTerritorialDepartamento {
+  idDepartamento?: unknown;
+  nombreDepartamento?: unknown;
+  entidadesTerritoriales?: unknown;
+}
+
+export interface CreatePactoCommand {
   idTipoPacto: number;
   nombre: string;
   suscribientes: string;
@@ -63,7 +86,22 @@ interface CreatePactoCommand {
   fechaSubscripcion: string;
   fechaVencimiento: string;
   idEtapa: number;
-  areasIntervencion: string[];
+  idAreasIntervencion: string[];
+  urlPacto: string;
+  urlMinuta: string;
+}
+
+export interface UpdatePactoCommand {
+  id: number;
+  idTipoPacto: number;
+  nombre: string;
+  suscribientes: string;
+  objetivo: string;
+  lineasTematicas: string;
+  fechaSubscripcion: string;
+  fechaVencimiento: string;
+  idEtapa: number;
+  idAreasIntervencion: string[];
   urlPacto: string;
   urlMinuta: string;
 }
@@ -103,9 +141,9 @@ export class PactosService {
   // Consulta el listado de pactos desde endpoint transaccional.
   getPactosTablaFromApi(): Observable<PactoTablaDto[]> {
     return this.fetchPactosApiBundle().pipe(
-      map(({ pactos, tiposPacto }) => {
+      map(({ pactos, tiposPacto, entidadesTerritoriales }) => {
         const tiposPactoMap = this.buildCatalogMap(tiposPacto);
-        return this.normalizeApiPactos(pactos).map((item) => this.mapToTabla(item, tiposPactoMap));
+        return this.normalizeApiPactos(pactos).map((item) => this.mapToTabla(item, tiposPactoMap, entidadesTerritoriales));
       })
     );
   }
@@ -138,6 +176,14 @@ export class PactosService {
     });
   }
 
+  // Consulta el catálogo de entidades territoriales y lo aplana para el formulario.
+  getEntidadTerritorialCatalogo(): Observable<EntidadTerritorialOption[]> {
+    return this.http.get<unknown>('/api/EntidadTerritorial').pipe(
+      map((response) => this.normalizeEntidadTerritorialItems(response)),
+      catchError(() => of([] as EntidadTerritorialOption[]))
+    );
+  }
+
   // Agrega un pacto nuevo y le asigna un ID consecutivo.
   addPacto(pacto: Omit<Pacto, 'id'>): void {
 
@@ -154,19 +200,53 @@ export class PactosService {
   }
 
   // Crea un pacto en almacenamiento local.
-  createPactoInApi(pacto: Omit<Pacto, 'id'>): Observable<CreatePactoResult> {
-    this.addPacto(pacto);
-    return of({ success: true });
+  createPactoInApi(pacto: CreatePactoCommand): Observable<CreatePactoResult> {
+    return this.http.post<unknown>(this.pactosApiUrl, pacto).pipe(
+      tap((response) => {
+        console.groupCollapsed('[API OK] POST /api/PactoTerritorial');
+        console.log('request:', pacto);
+        console.log('response:', response);
+        console.groupEnd();
+      }),
+      map(() => ({ success: true })),
+      catchError((error: HttpErrorResponse) => {
+        console.error('[API ERROR] POST /api/PactoTerritorial', error);
+        return of({
+          success: false,
+          message: this.buildPactoMutationErrorMessage(error)
+        });
+      })
+    );
+  }
+
+  // Actualiza un pacto territorial mediante la API.
+  updatePactoInApi(pacto: UpdatePactoCommand): Observable<CreatePactoResult> {
+    return this.http.put<unknown>(this.pactosApiUrl, pacto).pipe(
+      tap((response) => {
+        console.groupCollapsed('[API OK] PUT /api/PactoTerritorial');
+        console.log('request:', pacto);
+        console.log('response:', response);
+        console.groupEnd();
+      }),
+      map(() => ({ success: true })),
+      catchError((error: HttpErrorResponse) => {
+        console.error('[API ERROR] PUT /api/PactoTerritorial', error);
+        return of({
+          success: false,
+          message: this.buildPactoMutationErrorMessage(error)
+        });
+      })
+    );
   }
 
   // Sincroniza el listado de administración desde el mismo servicio GET que la vista territorial.
   syncPactosFromApi(): Observable<Pacto[]> {
     return this.fetchPactosApiBundle().pipe(
-      map(({ pactos, tiposPacto }) => {
+      map(({ pactos, tiposPacto, entidadesTerritoriales }) => {
         const tiposPactoMap = this.buildCatalogMap(tiposPacto);
         const etapasMap = new Map<number, string>();
         const list = this.normalizeApiPactos(pactos).map((item) =>
-          this.mapToAdminPacto(item, tiposPactoMap, etapasMap)
+          this.mapToAdminPacto(item, tiposPactoMap, etapasMap, entidadesTerritoriales)
         );
         this.pactos.next(list);
         return list;
@@ -256,13 +336,19 @@ export class PactosService {
     return [payload];
   }
 
-  private mapToTabla(item: ApiPacto, tiposPactoMap: Map<number, string>): PactoTablaDto {
+  private mapToTabla(
+    item: ApiPacto,
+    tiposPactoMap: Map<number, string>,
+    entidadesTerritoriales: EntidadTerritorialOption[]
+  ): PactoTablaDto {
     const fechaBase = this.readString(item['fechaSubscripcion'])
       || this.readString(item['fechaCreacion'])
       || '';
     const idTipoPacto = this.readOptionalNumber(item['idTipoPacto']);
     const tipoPactoTexto = this.readString(item['tipoPacto']) || this.readString(item['tipo']);
     const tipoPacto = this.resolveCatalogValue(tipoPactoTexto, idTipoPacto, tiposPactoMap, 'No definido');
+    const idsAreasIntervencion = this.mapAreasIntervencionIds(item['idAreasIntervencion'] ?? item['areasIntervencion']);
+    const ubicacion = this.resolveUbicacionFromAreasIntervencion(idsAreasIntervencion, entidadesTerritoriales);
 
     return {
       nombrePacto: this.readString(item['nombre']) || this.readString(item['nombrePacto']) || 'Sin nombre',
@@ -272,7 +358,9 @@ export class PactosService {
       valorIndicativo: this.readNumber(item['valorIndicativo']),
       presupuestoComprometido: this.readNumber(item['presupuestoComprometido']),
       avanceComprometido: this.readNumber(item['avanceComprometido']),
-      departamento: this.readString(item['departamento']) || 'N/A',
+      departamento: this.readString(item['departamento']) || ubicacion.departamento || 'N/A',
+      municipio: this.readString(item['municipio']) || ubicacion.municipio || '',
+      alcance: this.buildAlcanceSummary(idsAreasIntervencion, entidadesTerritoriales),
       tipoPacto,
       suscribientes: this.readString(item['suscribientes']),
       objetivo: this.readString(item['objetivo']),
@@ -289,7 +377,8 @@ export class PactosService {
   private mapToAdminPacto(
     item: ApiPacto,
     tiposPactoMap: Map<number, string>,
-    etapasMap: Map<number, string>
+    etapasMap: Map<number, string>,
+    entidadesTerritoriales: EntidadTerritorialOption[]
   ): Pacto {
     const nombre = this.readString(item['nombre']) || this.readString(item['nombrePacto']) || 'Sin nombre';
     const fechaCreacion = this.readString(item['fechaCreacion']) || new Date().toISOString();
@@ -310,6 +399,11 @@ export class PactosService {
 
     const valorIndicativo = this.readNumber(item['valorIndicativo']);
 
+    const ubicacion = this.resolveUbicacionFromAreasIntervencion(
+      this.mapAreasIntervencionIds(item['idAreasIntervencion'] ?? item['areasIntervencion']),
+      entidadesTerritoriales
+    );
+
     return this.sanitizePactoRecord({
       id: this.readNumber(item['id']),
       idTipoPacto,
@@ -321,7 +415,10 @@ export class PactosService {
       fechaSuscripcion: this.formatDate(this.readString(item['fechaSubscripcion'])),
       fechaVencimiento: this.formatDate(this.readString(item['fechaVencimiento'])),
       idEtapa: etapa || this.readString(item['idEtapa']) || '',
-      alcance: this.readAreasIntervencion(item['areasIntervencion']),
+      idAreasIntervencion: this.mapAreasIntervencionIds(item['idAreasIntervencion'] ?? item['areasIntervencion']),
+      alcance: this.readAreasIntervencion(item['areasIntervencion'] ?? item['idAreasIntervencion']),
+      departamento: ubicacion.departamento,
+      municipio: ubicacion.municipio,
       valorEstimado: valorIndicativo > 0 ? valorIndicativo : undefined,
       urlDocPacto: this.readString(item['urlPacto']),
       urlDocMinuta: this.readString(item['urlMinuta']),
@@ -337,7 +434,7 @@ export class PactosService {
     });
   }
 
-  private fetchPactosApiBundle(): Observable<{ pactos: unknown; tiposPacto: CatalogoOption[] }> {
+  private fetchPactosApiBundle(): Observable<{ pactos: unknown; tiposPacto: CatalogoOption[]; entidadesTerritoriales: EntidadTerritorialOption[] }> {
     return forkJoin({
       pactos: this.http.get<unknown>(this.pactosApiUrl).pipe(
         tap((response) => {
@@ -362,6 +459,10 @@ export class PactosService {
         }),
         map((response) => this.normalizeCatalogoItems(response)),
         catchError(() => of([] as CatalogoOption[]))
+      ),
+      entidadesTerritoriales: this.http.get<unknown>('/api/EntidadTerritorial').pipe(
+        map((response) => this.normalizeEntidadTerritorialItems(response)),
+        catchError(() => of([] as EntidadTerritorialOption[]))
       )
     });
   }
@@ -376,6 +477,8 @@ export class PactosService {
       presupuestoComprometido: 0,
       avanceComprometido: 0,
       departamento: this.extractDepartamentoFromAlcance(item.alcance),
+      municipio: (item.municipio || '').trim(),
+      alcance: (item.alcance || '').trim(),
       tipoPacto: (item.tipoPacto || '').trim() || 'No definido',
       suscribientes: (item.descripcion || '').trim(),
       objetivo: (item.objetivo || '').trim(),
@@ -386,6 +489,10 @@ export class PactosService {
   }
 
   private mapToCreateCommand(pacto: Omit<Pacto, 'id'>): CreatePactoCommand {
+    const idAreasIntervencion = pacto.idAreasIntervencion?.length
+      ? pacto.idAreasIntervencion
+      : this.mapAreasIntervencion(pacto.alcance);
+
     return {
       idTipoPacto: this.mapTipoPactoToId(pacto.tipoPacto),
       nombre: (pacto.nombre || '').trim(),
@@ -395,9 +502,29 @@ export class PactosService {
       fechaSubscripcion: this.toIsoDate(pacto.fechaSuscripcion),
       fechaVencimiento: this.toIsoDate(pacto.fechaVencimiento),
       idEtapa: this.mapEtapaToId(pacto.idEtapa),
-      areasIntervencion: this.mapAreasIntervencion(pacto.alcance),
+      idAreasIntervencion,
       urlPacto: (pacto.urlDocPacto || '').trim(),
       urlMinuta: (pacto.urlDocMinuta || '').trim()
+    };
+  }
+
+  private mapCreateCommandToStoredPacto(pacto: CreatePactoCommand): Omit<Pacto, 'id'> {
+    return {
+      idTipoPacto: pacto.idTipoPacto,
+      tipoPacto: this.resolveTipoPactoLabel(pacto.idTipoPacto),
+      nombre: pacto.nombre,
+      descripcion: pacto.suscribientes,
+      objetivo: pacto.objetivo,
+      lineasTematicas: this.readLineasTematicas(pacto.lineasTematicas),
+      fechaSuscripcion: this.formatDate(pacto.fechaSubscripcion),
+      fechaVencimiento: this.formatDate(pacto.fechaVencimiento),
+      idEtapa: this.resolveEtapaLabel(pacto.idEtapa),
+      idAreasIntervencion: [...pacto.idAreasIntervencion],
+      alcance: this.mapAreasIntervencionLabel(pacto.idAreasIntervencion),
+      urlDocPacto: pacto.urlPacto,
+      urlDocMinuta: pacto.urlMinuta,
+      fechaCreacion: new Date().toISOString(),
+      fechaModificacion: new Date().toISOString()
     };
   }
 
@@ -438,18 +565,17 @@ export class PactosService {
       return 'N/A';
     }
 
-    const marker = 'municipio:';
     const departamentos: string[] = [];
 
     for (const segment of safeAlcance.split('|')) {
       const part = segment.trim();
       const lower = part.toLowerCase();
-      const idx = lower.indexOf(marker);
-      if (idx === -1) {
+
+      if (lower.startsWith('departamentos de intervencion') || lower.startsWith('municipios de intervencion') || lower.startsWith('detalle:')) {
         continue;
       }
-      const afterMarker = part.slice(idx + marker.length).trim();
-      const departamento = afterMarker.split('-')[0]?.trim() ?? '';
+
+      const departamento = this.extractDepartamentoFromSegment(part);
       if (departamento) {
         departamentos.push(departamento);
       }
@@ -461,6 +587,21 @@ export class PactosService {
 
     const unique = [...new Set(departamentos)];
     return unique.join(', ');
+  }
+
+  private extractDepartamentoFromSegment(segment: string): string {
+    const lower = segment.toLowerCase();
+
+    if (lower.startsWith('departamento:')) {
+      return segment.slice(segment.indexOf(':') + 1).trim();
+    }
+
+    if (lower.startsWith('municipio:')) {
+      const afterMarker = segment.slice(segment.indexOf(':') + 1).trim();
+      return afterMarker.split('-')[0]?.trim() ?? '';
+    }
+
+    return '';
   }
 
   private mapTipoPactoToId(tipoPacto: string | undefined): number {
@@ -523,9 +664,112 @@ export class PactosService {
     return safeValue ? [safeValue] : [];
   }
 
+  private mapAreasIntervencionIds(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.readString(item)).filter(Boolean);
+    }
+
+    const singleValue = this.readString(value);
+    return singleValue ? [singleValue] : [];
+  }
+
+  private mapAreasIntervencionLabel(ids: string[]): string {
+    return ids.join(', ');
+  }
+
+  private resolveUbicacionFromAreasIntervencion(
+    ids: string[],
+    entidadesTerritoriales: EntidadTerritorialOption[]
+  ): { departamento: string; municipio: string } {
+    for (const id of ids) {
+      const municipio = entidadesTerritoriales.find((item) => item.idEntidadTerritorial === id);
+      if (municipio) {
+        return {
+          departamento: municipio.nombreDepartamento || 'N/A',
+          municipio: municipio.nombreEntidadTerritorial || ''
+        };
+      }
+    }
+
+    for (const id of ids) {
+      const departamento = entidadesTerritoriales.find((item) => item.idDepartamento === id);
+      if (departamento) {
+        return {
+          departamento: departamento.nombreDepartamento || 'N/A',
+          municipio: ''
+        };
+      }
+    }
+
+    return { departamento: 'N/A', municipio: '' };
+  }
+
+  private buildAlcanceSummary(ids: string[], entidadesTerritoriales: EntidadTerritorialOption[]): string {
+    const departamentos = new Set<string>();
+    const municipios = new Set<string>();
+
+    for (const id of ids) {
+      const municipio = entidadesTerritoriales.find((item) => item.idEntidadTerritorial === id);
+      if (municipio) {
+        municipios.add(municipio.nombreEntidadTerritorial);
+        if (municipio.nombreDepartamento) {
+          departamentos.add(municipio.nombreDepartamento);
+        }
+        continue;
+      }
+
+      const departamento = entidadesTerritoriales.find((item) => item.idDepartamento === id);
+      if (departamento?.nombreDepartamento) {
+        departamentos.add(departamento.nombreDepartamento);
+      }
+    }
+
+    const parts: string[] = [];
+    if (municipios.size) {
+      parts.push(`Municipios: ${[...municipios].join(', ')}`);
+    }
+    if (departamentos.size) {
+      parts.push(`Departamentos: ${[...departamentos].join(', ')}`);
+    }
+
+    return parts.join(' | ');
+  }
+
+  private resolveTipoPactoLabel(idTipoPacto: number): string {
+    if (idTipoPacto === 1) {
+      return 'Territorio';
+    }
+
+    if (idTipoPacto === 2) {
+      return 'Nación';
+    }
+
+    return 'No definido';
+  }
+
+  private resolveEtapaLabel(idEtapa: number): string {
+    if (idEtapa === 1) {
+      return 'Construcción y suscripción';
+    }
+
+    if (idEtapa === 2) {
+      return 'Implementación';
+    }
+
+    if (idEtapa === 3) {
+      return 'Cierre';
+    }
+
+    return 'Sin etapa';
+  }
+
   private buildCreatePactoErrorMessage(error: HttpErrorResponse): string {
+    return this.buildPactoMutationErrorMessage(error);
+  }
+
+  private buildPactoMutationErrorMessage(error: HttpErrorResponse): string {
     if (error.status === 401 || error.status === 403) {
-      return 'La sesión no está autorizada para crear pactos. Inicie sesión nuevamente.';
+      return 'La sesión no está autorizada para modificar pactos. Inicie sesión nuevamente.';
     }
 
     if (error.status === 0) {
@@ -549,7 +793,7 @@ export class PactosService {
       return 'La API rechazó los datos enviados del pacto. Revise los campos obligatorios.';
     }
 
-    return 'No fue posible crear el pacto en el servidor.';
+    return 'No fue posible guardar el pacto en el servidor.';
   }
 
   private extractApiErrorMessage(errorBody: unknown): string {
@@ -603,6 +847,54 @@ export class PactosService {
         texto: this.readString(item['texto'])
       }))
       .filter((item) => item.id > 0 && !!item.texto);
+  }
+
+  private normalizeEntidadTerritorialItems(response: unknown): EntidadTerritorialOption[] {
+    if (!Array.isArray(response)) {
+      return [];
+    }
+
+    const items: EntidadTerritorialOption[] = [];
+
+    for (const departamento of response) {
+      if (!departamento || typeof departamento !== 'object') {
+        continue;
+      }
+
+      const payload = departamento as ApiEntidadTerritorialDepartamento;
+      const nombreDepartamento = this.readString(payload.nombreDepartamento);
+      const entidadesTerritoriales = Array.isArray(payload.entidadesTerritoriales)
+        ? payload.entidadesTerritoriales
+        : [];
+
+      for (const entidad of entidadesTerritoriales) {
+        if (!entidad || typeof entidad !== 'object') {
+          continue;
+        }
+
+        const municipio = entidad as ApiEntidadTerritorialMunicipio;
+        const idEntidadTerritorial = this.readString(municipio.idEntidadTerritorial);
+        const nombreEntidadTerritorial = this.readString(municipio.nombreEntidadTerritorial);
+      const idDepartamento = this.readString(payload.idDepartamento);
+
+        if (!idEntidadTerritorial || !nombreEntidadTerritorial) {
+          continue;
+        }
+
+        items.push({
+          idEntidadTerritorial,
+          nombreEntidadTerritorial,
+          nombreDepartamento,
+        idDepartamento,
+          displayName: nombreDepartamento
+            ? `${nombreEntidadTerritorial} (${nombreDepartamento})`
+            : nombreEntidadTerritorial
+        });
+      }
+    }
+
+    items.sort((a, b) => a.displayName.localeCompare(b.displayName, 'es-CO', { sensitivity: 'base' }));
+    return items;
   }
 
   private buildCatalogMap(items: CatalogoOption[]): Map<number, string> {

@@ -1,3 +1,121 @@
+/* Bloques territoriales del modal */
+.territorial-selector {
+  padding: 0.9rem 1rem;
+  border: 1px solid #d9f3f3;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f7ffff 0%, #ffffff 100%);
+}
+
+.territorial-selector-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.territorial-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.territorial-chip {
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  padding-left: 0.65rem !important;
+  padding-right: 0.65rem !important;
+}
+
+.territorial-chip-municipio {
+  background: #00c3c1;
+  color: #fff;
+}
+
+.territorial-chip-departamento {
+  background: #ffbf39;
+  color: #232323;
+}
+
+.territorial-chip .btn-close {
+  filter: none;
+  opacity: 1;
+}
+
+.municipio-sugerencias {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid #d9f3f3;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(0, 195, 193, 0.08);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.municipio-sugerencia {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.58rem 0.75rem;
+  border: 1px solid #e4f5f5;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfefe 100%);
+  color: #1a2e35;
+  text-align: left;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.municipio-sugerencia:hover {
+  background: #f4fbfb;
+  border-color: #bfeeee;
+  box-shadow: 0 3px 10px rgba(0, 195, 193, 0.12);
+  transform: translateX(1px);
+}
+
+.municipio-sugerencia-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.municipio-sugerencia-nombre {
+  font-weight: 700;
+  line-height: 1.15;
+  color: #0d6f9f;
+  font-size: 0.78rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.municipio-sugerencia-depto-badge {
+  flex-shrink: 0;
+  padding: 0.16rem 0.5rem;
+  border-radius: 999px;
+  background: #ffbf39;
+  color: #232323;
+  font-size: 0.64rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.municipio-sin-resultados {
+  padding: 0.45rem 0.65rem 0.35rem;
+  color: #6c757d;
+  font-size: 0.74rem;
+  text-align: center;
+}
+
 :host {
   display: block;
   --home-font-size: 0.82rem;
@@ -67,11 +185,38 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
+.pacto-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.pacto-action-btn .bi {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .form-label,
 .form-control,
 .form-select,
 textarea {
-  font-size: var(--home-font-size);
+  font-size: 0.76rem;
+}
+
+.form-control,
+.form-select,
+textarea {
+  min-height: calc(1.4em + 0.6rem + 2px);
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
+  padding-left: 0.65rem;
+  padding-right: 0.65rem;
+}
+
+.form-label {
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 @media (max-width: 991px) {

@@ -1,18 +1,35 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CatalogoOption, PactosService } from '../../core/services/pactos.service';
+import {
+  CreatePactoCommand,
+  CatalogoOption,
+  EntidadTerritorialOption,
+  PactosService,
+  type UpdatePactoCommand
+} from '../../core/services/pactos.service';
 import { Pacto } from '../../shared/models';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
-type PactoFormData = Pick<
-  Pacto,
-  'tipoPacto' | 'nombre' | 'descripcion' | 'objetivo' | 'lineasTematicas' | 'fechaSuscripcion' | 'idEtapa' | 'fechaVencimiento' | 'urlDocPacto' | 'urlDocMinuta'
->;
+type PactoFormData = {
+  id: number | null;
+  tipoPacto: string;
+  nombre: string;
+  descripcion: string;
+  objetivo: string;
+  lineasTematicas: string[];
+  fechaSuscripcion: string;
+  idEtapa: string;
+  fechaVencimiento: string;
+  urlDocPacto: string;
+  urlDocMinuta: string;
+};
 
 /** Par departamento–municipio (ciudad) incluido en el alcance del pacto. */
-interface UbicacionAlcance {
+interface MunicipioAlcance {
+  idEntidadTerritorial: string;
+  idDepartamento?: string;
   departamento: string;
   municipio: string;
 }
@@ -28,6 +45,7 @@ export class PactosManagementComponent implements OnInit {
   // Lista observable de pactos para mostrar en la vista.
   pactos$: Observable<Pacto[]>;
   readonly etapaPorDefecto = 'implementacion';
+  modoFormulario: 'crear' | 'editar' = 'crear';
   readonly tiposPactoFallback: CatalogoOption[] = [
     { id: 1, codigo: 'TERRITORIO', texto: 'Territorio' },
     { id: 2, codigo: 'NACION', texto: 'Nación' }
@@ -44,22 +62,25 @@ export class PactosManagementComponent implements OnInit {
   submitSuccess = '';
   // Campos auxiliares del formulario.
   lineaTematicaInput = '';
-  /** Ubicaciones ya agregadas al alcance (varios departamentos y municipios). */
-  ubicacionesAlcance: UbicacionAlcance[] = [];
-  /** Borradores para agregar otra fila departamento + municipio. */
+  /** Municipios ya agregados al alcance. */
+  municipiosAlcance: MunicipioAlcance[] = [];
+  /** Departamentos disponibles derivados de los municipios agregados. */
+  departamentosDisponibles: string[] = [];
+  /** Departamentos agregados por separado y filtrados por los municipios seleccionados. */
+  departamentosAlcance: string[] = [];
+  /** Catálogo de municipios cargado desde la API. */
+  entidadesTerritoriales: EntidadTerritorialOption[] = [];
+  isLoadingEntidadesTerritoriales = false;
+  /** Borradores para agregar ubicaciones al alcance. */
   departamentoDraft = '';
   municipioDraft = '';
+  municipioSearch = '';
+  municipioSeleccionadoId = '';
   alcanceDetalle = '';
+  idAreasIntervencionSeleccionadas: string[] = [];
 
-  readonly departamentosMunicipios: Record<string, string[]> = {
-    Antioquia: ['Medellin', 'Bello', 'Itagui', 'Rionegro'],
-    Atlantico: ['Barranquilla', 'Soledad', 'Malambo'],
-    Cundinamarca: ['Bogota D.C.', 'Soacha', 'Zipaquira', 'Facatativa'],
-    ValleDelCauca: ['Cali', 'Palmira', 'Buenaventura'],
-    Santander: ['Bucaramanga', 'Floridablanca', 'Barrancabermeja']
-  };
-
-  newPacto: PactoFormData = {
+  pactoForm: PactoFormData = {
+    id: null,
     tipoPacto: '',
     nombre: '',
     descripcion: '',
@@ -82,28 +103,56 @@ export class PactosManagementComponent implements OnInit {
   ngOnInit(): void {
     this.refreshPactos();
     this.loadCatalogos();
+    this.loadEntidadesTerritoriales();
   }
 
   // Guarda el nombre del archivo seleccionado en el campo correspondiente.
   onFileSelected(event: Event, field: 'urlDocPacto' | 'urlDocMinuta'): void {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0] ?? null;
-    this.newPacto[field] = file ? file.name : '';
+    this.pactoForm[field] = file ? file.name : this.pactoForm[field];
   }
 
-  // Crea un pacto nuevo si los datos esenciales están completos.
-  addPacto(): void {
-    const { nombre, descripcion, objetivo, tipoPacto, fechaSuscripcion, fechaVencimiento, idEtapa } = this.newPacto;
+  // Abre el modal limpio para crear un pacto.
+  abrirModalNuevoPacto(): void {
+    this.modoFormulario = 'crear';
+    this.resetForm();
+    this.submitError = '';
+    this.submitSuccess = '';
+    this.openPactoModal();
+  }
+
+  // Abre el modal con los datos del pacto seleccionado.
+  abrirModalEditarPacto(pacto: Pacto): void {
+    this.submitError = '';
+    this.submitSuccess = '';
+    this.modoFormulario = 'editar';
+    this.cargarFormularioDesdePacto(pacto);
+    this.openPactoModal();
+  }
+
+  // Crea o actualiza un pacto dependiendo del modo del formulario.
+  guardarPacto(): void {
+    const {
+      id,
+      nombre,
+      descripcion,
+      objetivo,
+      tipoPacto,
+      fechaSuscripcion,
+      fechaVencimiento,
+      idEtapa
+    } = this.pactoForm;
     this.submitError = '';
     this.submitSuccess = '';
 
     if (!nombre.trim() || !descripcion.trim() || !objetivo.trim() || !tipoPacto.trim()) {
-      this.submitError = 'Faltan campos obligatorios para crear el pacto.';
+      this.submitError = 'Faltan campos obligatorios para guardar el pacto.';
       return;
     }
 
     if (!this.tiposPactos.length || !this.etapasPacto.length) {
-      this.submitError = 'No fue posible cargar los catálogos requeridos para crear el pacto.';
+      this.submitError = 'No fue posible cargar los catálogos requeridos para guardar el pacto.';
       return;
     }
 
@@ -117,43 +166,33 @@ export class PactosManagementComponent implements OnInit {
       return;
     }
 
-    if (!this.ubicacionesAlcance.length) {
-      this.submitError = 'Agregue al menos un departamento y un municipio (ciudad) de alcance.';
+    const idAreasIntervencion = this.obtenerIdAreasIntervencion();
+    if (!idAreasIntervencion.length) {
+      this.submitError = 'Agregue al menos un municipio o área de intervención.';
       return;
     }
 
-    const bloquesUbicacion = this.ubicacionesAlcance.map(
-      (u) => `municipio: ${u.departamento.trim()} - ${u.municipio.trim()}`
-    );
-    const detalle = this.alcanceDetalle.trim();
-    const alcance = [
-      bloquesUbicacion.length ? `Dptos de intervencion del pacto | ${bloquesUbicacion.join(' | ')}` : '',
-      detalle ? `Detalle: ${detalle}` : ''
-    ]
-      .filter(Boolean)
-      .join(' | ');
-
-    const payload: Omit<Pacto, 'id'> = this.cleanPayload({
-      ...this.newPacto,
-      alcance,
-      fechaCreacion: new Date().toISOString(),
-      fechaModificacion: new Date().toISOString()
-    });
+    const isEditMode = this.modoFormulario === 'editar' && typeof id === 'number' && id > 0;
 
     this.isSubmitting = true;
 
-    this.pactosService
-      .createPactoInApi(payload)
+    const request$ = isEditMode
+      ? this.pactosService.updatePactoInApi(this.buildUpdatePayload(id, idAreasIntervencion))
+      : this.pactosService.createPactoInApi(this.buildCreatePayload());
+
+    request$
       .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe((result) => {
         if (!result.success) {
-          this.submitError = result.message || 'No se pudo crear el pacto.';
+          this.submitError = result.message || 'No se pudo guardar el pacto.';
           return;
         }
 
-        this.submitSuccess = 'Pacto creado correctamente.';
+        this.submitSuccess = this.modoFormulario === 'editar'
+          ? 'Pacto actualizado correctamente.'
+          : 'Pacto creado correctamente.';
         this.resetForm();
-        this.closeNuevoPactoModal();
+        this.closePactoModal();
         this.refreshPactos();
       });
   }
@@ -166,64 +205,167 @@ export class PactosManagementComponent implements OnInit {
       return;
     }
 
-    const existe = this.newPacto.lineasTematicas.some(
+    const existe = this.pactoForm.lineasTematicas.some(
       (linea) => linea.toLowerCase() === nuevaLinea.toLowerCase()
     );
 
     if (!existe) {
-      this.newPacto.lineasTematicas = [...this.newPacto.lineasTematicas, nuevaLinea];
+      this.pactoForm.lineasTematicas = [...this.pactoForm.lineasTematicas, nuevaLinea];
     }
 
     this.lineaTematicaInput = '';
   }
 
   removeLineaTematica(index: number): void {
-    this.newPacto.lineasTematicas = this.newPacto.lineasTematicas.filter((_, i) => i !== index);
+    this.pactoForm.lineasTematicas = this.pactoForm.lineasTematicas.filter((_, i) => i !== index);
   }
 
-  get departamentosDisponibles(): string[] {
-    return Object.keys(this.departamentosMunicipios);
+  get municipiosDisponiblesDraft(): EntidadTerritorialOption[] {
+    const seleccionados = new Set(this.municipiosAlcance.map((item) => item.idEntidadTerritorial));
+    return this.entidadesTerritoriales.filter((item) => !seleccionados.has(item.idEntidadTerritorial));
   }
 
-  get municipiosDisponiblesDraft(): string[] {
-    return this.departamentosMunicipios[this.departamentoDraft] ?? [];
+  get municipiosFiltrados(): EntidadTerritorialOption[] {
+    const filtro = this.normalizeText(this.municipioSearch);
+
+    return this.municipiosDisponiblesDraft
+      .filter((municipio) => {
+        if (!filtro) {
+          return true;
+        }
+
+        const nombre = this.normalizeText(municipio.nombreEntidadTerritorial);
+        const departamento = this.normalizeText(municipio.nombreDepartamento);
+        return nombre.includes(filtro) || departamento.includes(filtro);
+      })
+      .sort((a, b) => a.nombreEntidadTerritorial.localeCompare(b.nombreEntidadTerritorial, 'es-CO', { sensitivity: 'base' }));
   }
 
-  onDepartamentoDraftChange(): void {
-    this.municipioDraft = '';
-  }
+  addMunicipioAlcance(): void {
+    const seleccion = this.resolverMunicipioDraft();
 
-  addUbicacionAlcance(): void {
-    const dep = this.departamentoDraft.trim();
-    const mun = this.municipioDraft.trim();
-
-    if (!dep || !mun) {
-      this.submitError = 'Seleccione departamento y municipio antes de agregar la ubicación.';
+    if (!seleccion) {
+      this.submitError = 'Seleccione un municipio antes de agregar la ubicación.';
       return;
     }
 
-    const duplicado = this.ubicacionesAlcance.some(
-      (u) =>
-        u.departamento.toLowerCase() === dep.toLowerCase() &&
-        u.municipio.toLowerCase() === mun.toLowerCase()
+    const duplicado = this.municipiosAlcance.some(
+      (u) => u.idEntidadTerritorial === seleccion.idEntidadTerritorial
     );
 
     if (duplicado) {
-      this.submitError = 'Esa combinación de departamento y municipio ya está en el alcance.';
+      this.submitError = 'Ese municipio ya está agregado en el alcance.';
       return;
     }
 
     this.submitError = '';
-    this.ubicacionesAlcance = [...this.ubicacionesAlcance, { departamento: dep, municipio: mun }];
+    this.municipiosAlcance = [
+      ...this.municipiosAlcance,
+      {
+        idEntidadTerritorial: seleccion.idEntidadTerritorial,
+        idDepartamento: seleccion.idDepartamento,
+        departamento: seleccion.nombreDepartamento || 'N/A',
+        municipio: seleccion.nombreEntidadTerritorial
+      }
+    ];
+    this.idAreasIntervencionSeleccionadas = [];
+    this.municipioDraft = '';
+    this.municipioSearch = '';
+    this.municipioSeleccionadoId = '';
+    this.actualizarDepartamentosDisponibles();
+  }
+
+  seleccionarMunicipio(municipio: EntidadTerritorialOption): void {
+    this.municipioSeleccionadoId = municipio.idEntidadTerritorial;
+    this.municipioDraft = municipio.idEntidadTerritorial;
+    this.municipioSearch = municipio.nombreEntidadTerritorial;
+  }
+
+  onMunicipioSearchChange(): void {
+    this.municipioSeleccionadoId = '';
     this.municipioDraft = '';
   }
 
-  removeUbicacionAlcance(index: number): void {
-    this.ubicacionesAlcance = this.ubicacionesAlcance.filter((_, i) => i !== index);
+  addDepartamentoAlcance(): void {
+    const departamento = this.departamentoDraft.trim();
+
+    if (!departamento) {
+      this.submitError = 'Seleccione un departamento antes de agregarlo.';
+      return;
+    }
+
+    if (!this.departamentosDisponibles.includes(departamento)) {
+      this.submitError = 'El departamento seleccionado no corresponde a los municipios agregados.';
+      return;
+    }
+
+    const duplicado = this.departamentosAlcance.some(
+      (item) => item.toLowerCase() === departamento.toLowerCase()
+    );
+
+    if (duplicado) {
+      this.submitError = 'Ese departamento ya está agregado en el alcance.';
+      return;
+    }
+
+    this.submitError = '';
+    this.departamentosAlcance = [...this.departamentosAlcance, departamento];
+    this.idAreasIntervencionSeleccionadas = [];
+    this.departamentoDraft = '';
+  }
+
+  removeMunicipioAlcance(index: number): void {
+    this.municipiosAlcance = this.municipiosAlcance.filter((_, i) => i !== index);
+    this.actualizarDepartamentosDisponibles();
+  }
+
+  removeDepartamentoAlcance(index: number): void {
+    this.departamentosAlcance = this.departamentosAlcance.filter((_, i) => i !== index);
   }
 
   removePacto(id: number): void {
     this.pactosService.removePacto(id);
+  }
+
+  getMunicipiosAlcancePacto(pacto: Pacto): MunicipioAlcance[] {
+    const ids = this.obtenerIdsAreasIntervencionPacto(pacto);
+    const municipios: MunicipioAlcance[] = [];
+
+    for (const id of ids) {
+      const municipio = this.entidadesTerritoriales.find((item) => item.idEntidadTerritorial === id);
+      if (!municipio) {
+        continue;
+      }
+
+      municipios.push({
+        idEntidadTerritorial: municipio.idEntidadTerritorial,
+        idDepartamento: municipio.idDepartamento,
+        departamento: municipio.nombreDepartamento || 'N/A',
+        municipio: municipio.nombreEntidadTerritorial
+      });
+    }
+
+    return municipios;
+  }
+
+  getDepartamentosAlcancePacto(pacto: Pacto): string[] {
+    const ids = this.obtenerIdsAreasIntervencionPacto(pacto);
+    const departamentos = new Set<string>();
+
+    for (const id of ids) {
+      const municipio = this.entidadesTerritoriales.find((item) => item.idEntidadTerritorial === id);
+      if (municipio?.nombreDepartamento) {
+        departamentos.add(municipio.nombreDepartamento);
+        continue;
+      }
+
+      const departamento = this.entidadesTerritoriales.find((item) => item.idDepartamento === id);
+      if (departamento?.nombreDepartamento) {
+        departamentos.add(departamento.nombreDepartamento);
+      }
+    }
+
+    return [...departamentos];
   }
 
   formatCurrency(amount: number): string {
@@ -238,13 +380,42 @@ export class PactosManagementComponent implements OnInit {
     return this.pactosService.getTotalValorEstimado();
   }
 
+  get puedeGuardarPacto(): boolean {
+    const camposBasicosValidos =
+      !!this.pactoForm.nombre.trim()
+      && !!this.pactoForm.descripcion.trim()
+      && !!this.pactoForm.objetivo.trim()
+      && !!this.pactoForm.tipoPacto.trim()
+      && !!this.pactoForm.idEtapa.trim()
+      && !this.isSubmitting
+      && !this.isLoadingCatalogos
+      && !!this.tiposPactos.length
+      && !!this.etapasPacto.length;
+
+    if (!camposBasicosValidos) {
+      return false;
+    }
+
+    if (this.modoFormulario === 'editar') {
+      return !!this.pactoForm.id;
+    }
+
+    return this.obtenerIdAreasIntervencion().length > 0;
+  }
+
   private resetForm(): void {
     this.lineaTematicaInput = '';
-    this.ubicacionesAlcance = [];
+    this.municipiosAlcance = [];
+    this.departamentosDisponibles = [];
+    this.departamentosAlcance = [];
     this.departamentoDraft = '';
     this.municipioDraft = '';
+    this.municipioSearch = '';
+    this.municipioSeleccionadoId = '';
     this.alcanceDetalle = '';
-    this.newPacto = {
+    this.idAreasIntervencionSeleccionadas = [];
+    this.pactoForm = {
+      id: null,
       tipoPacto: '',
       nombre: '',
       descripcion: '',
@@ -269,7 +440,7 @@ export class PactosManagementComponent implements OnInit {
         next: ({ tiposPacto, etapas }) => {
           this.tiposPactos = tiposPacto.length ? tiposPacto : this.tiposPactoFallback;
           this.etapasPacto = etapas.length ? etapas : this.etapasPactoFallback;
-          this.newPacto.idEtapa = this.getDefaultEtapaId();
+          this.pactoForm.idEtapa = this.getDefaultEtapaId();
 
           if (!tiposPacto.length || !etapas.length) {
             this.submitError = 'Se usaron opciones por defecto para tipo de pacto y etapa.';
@@ -278,10 +449,66 @@ export class PactosManagementComponent implements OnInit {
         error: () => {
           this.tiposPactos = this.tiposPactoFallback;
           this.etapasPacto = this.etapasPactoFallback;
-          this.newPacto.idEtapa = this.getDefaultEtapaId();
+          this.pactoForm.idEtapa = this.getDefaultEtapaId();
           this.submitError = 'Se usaron opciones por defecto para tipo de pacto y etapa.';
         }
       });
+  }
+
+  private loadEntidadesTerritoriales(): void {
+    this.isLoadingEntidadesTerritoriales = true;
+
+    this.pactosService
+      .getEntidadTerritorialCatalogo()
+      .pipe(finalize(() => (this.isLoadingEntidadesTerritoriales = false)))
+      .subscribe({
+        next: (items) => {
+          this.entidadesTerritoriales = items;
+        },
+        error: () => {
+          this.entidadesTerritoriales = [];
+          this.submitError = 'No fue posible cargar los municipios desde la API de entidades territoriales.';
+        }
+      });
+  }
+
+  private actualizarDepartamentosDisponibles(): void {
+    this.departamentosDisponibles = this.obtenerOpcionesUnicas(
+      this.municipiosAlcance.map((item) => item.departamento).filter(Boolean)
+    );
+
+    const permitidos = new Set(this.departamentosDisponibles.map((item) => item.toLowerCase()));
+    this.departamentosAlcance = this.departamentosAlcance.filter((departamento) => permitidos.has(departamento.toLowerCase()));
+
+    if (this.departamentoDraft && !permitidos.has(this.departamentoDraft.toLowerCase())) {
+      this.departamentoDraft = '';
+    }
+  }
+
+  private resolverMunicipioDraft(): EntidadTerritorialOption | undefined {
+    const idSeleccionado = this.municipioSeleccionadoId.trim() || this.municipioDraft.trim();
+    if (idSeleccionado) {
+      const porId = this.entidadesTerritoriales.find((municipio) => municipio.idEntidadTerritorial === idSeleccionado);
+      if (porId) {
+        return porId;
+      }
+    }
+
+    const texto = this.normalizeText(this.municipioSearch);
+    if (!texto) {
+      return undefined;
+    }
+
+    return this.municipiosDisponiblesDraft.find((municipio) => {
+      const nombre = this.normalizeText(municipio.nombreEntidadTerritorial);
+      return nombre === texto || nombre.includes(texto);
+    });
+  }
+
+  private obtenerOpcionesUnicas(valores: string[]): string[] {
+    return [...new Set(valores.map((valor) => valor.trim()).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, 'es-CO', { sensitivity: 'base' })
+    );
   }
 
   private refreshPactos(): void {
@@ -292,12 +519,45 @@ export class PactosManagementComponent implements OnInit {
       .subscribe();
   }
 
-  private closeNuevoPactoModal(): void {
+  private openPactoModal(): void {
     if (typeof document === 'undefined') {
       return;
     }
 
-    const modalElement = document.getElementById('nuevoPactoModal');
+    const modalElement = document.getElementById('pactoModal');
+    if (!modalElement) {
+      return;
+    }
+
+    const bootstrapModal = (window as Window & {
+      bootstrap?: {
+        Modal?: {
+          getInstance(element: Element): { show(): void; hide(): void } | null;
+          getOrCreateInstance?(element: Element): { show(): void; hide(): void };
+        };
+      };
+    }).bootstrap?.Modal;
+
+    const modalInstance = bootstrapModal?.getInstance(modalElement)
+      || bootstrapModal?.getOrCreateInstance?.(modalElement)
+      || (bootstrapModal ? new (bootstrapModal as any)(modalElement) : null);
+
+    if (modalInstance) {
+      modalInstance.show();
+      return;
+    }
+
+    modalElement.classList.add('show');
+    modalElement.setAttribute('style', 'display: block;');
+    document.body.classList.add('modal-open');
+  }
+
+  private closePactoModal(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const modalElement = document.getElementById('pactoModal');
     if (!modalElement) {
       return;
     }
@@ -319,7 +579,9 @@ export class PactosManagementComponent implements OnInit {
       return;
     }
 
-    modalElement.querySelector<HTMLElement>('[data-bs-dismiss="modal"]')?.click();
+    modalElement.classList.remove('show');
+    modalElement.removeAttribute('style');
+    document.body.classList.remove('modal-open');
   }
 
   private getDefaultEtapaId(): string {
@@ -357,5 +619,225 @@ export class PactosManagementComponent implements OnInit {
     });
 
     return Object.fromEntries(entries) as Omit<Pacto, 'id'>;
+  }
+
+  private cargarFormularioDesdePacto(pacto: Pacto): void {
+    this.resetForm();
+
+    this.pactoForm = {
+      id: pacto.id,
+      tipoPacto: this.resolveTipoPactoValue(pacto),
+      nombre: pacto.nombre || '',
+      descripcion: pacto.descripcion || '',
+      objetivo: pacto.objetivo || '',
+      lineasTematicas: [...(pacto.lineasTematicas || [])],
+      fechaSuscripcion: this.toDateInputValue(pacto.fechaSuscripcion),
+      idEtapa: this.resolveEtapaValue(pacto),
+      fechaVencimiento: this.toDateInputValue(pacto.fechaVencimiento),
+      urlDocPacto: pacto.urlDocPacto || '',
+      urlDocMinuta: pacto.urlDocMinuta || ''
+    };
+
+    this.idAreasIntervencionSeleccionadas = [...(pacto.idAreasIntervencion || [])];
+    this.cargarAlcanceDesdeIds(this.idAreasIntervencionSeleccionadas, pacto.alcance || '');
+  }
+
+  private obtenerIdsAreasIntervencionPacto(pacto: Pacto): string[] {
+    return [...new Set((pacto.idAreasIntervencion || []).map((item) => item.trim()).filter(Boolean))];
+  }
+
+  private cargarAlcanceDesdeIds(idAreasIntervencion: string[], alcanceTexto: string): void {
+    const ids = [...new Set(idAreasIntervencion.map((item) => item.trim()).filter(Boolean))];
+    const municipios: MunicipioAlcance[] = [];
+    const departamentos: string[] = [];
+
+    for (const id of ids) {
+      const municipio = this.entidadesTerritoriales.find((item) => item.idEntidadTerritorial === id);
+      if (municipio) {
+        municipios.push({
+          idEntidadTerritorial: municipio.idEntidadTerritorial,
+          idDepartamento: municipio.idDepartamento,
+          departamento: municipio.nombreDepartamento || 'N/A',
+          municipio: municipio.nombreEntidadTerritorial
+        });
+        continue;
+      }
+
+      const departamento = this.entidadesTerritoriales.find((item) => item.idDepartamento === id);
+      if (departamento && !departamentos.includes(departamento.nombreDepartamento)) {
+        departamentos.push(departamento.nombreDepartamento);
+      }
+    }
+
+    this.municipiosAlcance = municipios;
+    this.departamentosAlcance = departamentos;
+    this.actualizarDepartamentosDisponibles();
+    this.alcanceDetalle = this.extractDetalleDesdeAlcance(alcanceTexto);
+    this.idAreasIntervencionSeleccionadas = ids.length ? ids : this.extraerIdAreasIntervencionDesdeAlcance(alcanceTexto);
+  }
+
+  private buildCreatePayload(): CreatePactoCommand {
+    return {
+      idTipoPacto: this.readNumericSelection(this.pactoForm.tipoPacto),
+      nombre: this.pactoForm.nombre.trim(),
+      suscribientes: this.pactoForm.descripcion.trim(),
+      objetivo: this.pactoForm.objetivo.trim(),
+      lineasTematicas: this.pactoForm.lineasTematicas.join(', ').trim(),
+      fechaSubscripcion: this.toIsoDateValue(this.pactoForm.fechaSuscripcion),
+      fechaVencimiento: this.toIsoDateValue(this.pactoForm.fechaVencimiento),
+      idEtapa: this.readNumericSelection(this.pactoForm.idEtapa),
+      idAreasIntervencion: this.obtenerIdAreasIntervencion(),
+      urlPacto: this.pactoForm.urlDocPacto.trim(),
+      urlMinuta: this.pactoForm.urlDocMinuta.trim()
+    };
+  }
+
+  private buildUpdatePayload(id: number, idAreasIntervencion: string[]): UpdatePactoCommand {
+    const tipoPactoId = this.readNumericSelection(this.pactoForm.tipoPacto);
+    const etapaId = this.readNumericSelection(this.pactoForm.idEtapa);
+
+    return {
+      id,
+      idTipoPacto: tipoPactoId,
+      nombre: this.pactoForm.nombre.trim(),
+      suscribientes: this.pactoForm.descripcion.trim(),
+      objetivo: this.pactoForm.objetivo.trim(),
+      lineasTematicas: this.pactoForm.lineasTematicas.join(', ').trim(),
+      fechaSubscripcion: this.toIsoDateValue(this.pactoForm.fechaSuscripcion),
+      fechaVencimiento: this.toIsoDateValue(this.pactoForm.fechaVencimiento),
+      idEtapa: etapaId,
+      idAreasIntervencion,
+      urlPacto: this.pactoForm.urlDocPacto.trim(),
+      urlMinuta: this.pactoForm.urlDocMinuta.trim()
+    };
+  }
+
+  obtenerIdAreasIntervencion(): string[] {
+    const municipios = this.municipiosAlcance.map((item) => item.idEntidadTerritorial.trim()).filter(Boolean);
+    const departamentos = this.departamentosAlcance
+      .map((departamento) => this.resolveDepartamentoId(departamento))
+      .filter(Boolean);
+
+    if (municipios.length || departamentos.length) {
+      return [...new Set([...municipios, ...departamentos])];
+    }
+
+    return [...this.idAreasIntervencionSeleccionadas];
+  }
+
+  private extraerIdAreasIntervencionDesdeAlcance(alcanceTexto: string): string[] {
+    const texto = (alcanceTexto || '').trim();
+    if (!texto) {
+      return [];
+    }
+
+    const ids: string[] = [];
+    const segmentos = texto.split('|').map((segmento) => segmento.trim()).filter(Boolean);
+
+    for (const segmento of segmentos) {
+      const normalized = this.normalizeText(segmento);
+
+      if (normalized.startsWith('municipio:')) {
+        const payload = segmento.slice(segmento.indexOf(':') + 1).trim();
+        const parts = payload.split('-').map((part) => part.trim()).filter(Boolean);
+        const departamento = parts[0] || '';
+        const municipio = parts.slice(1).join(' - ');
+
+        const coincidencia = this.entidadesTerritoriales.find((item) =>
+          this.normalizeText(item.nombreEntidadTerritorial) === this.normalizeText(municipio)
+          && this.normalizeText(item.nombreDepartamento) === this.normalizeText(departamento)
+        );
+
+        if (coincidencia) {
+          ids.push(coincidencia.idEntidadTerritorial);
+        }
+        continue;
+      }
+
+      if (normalized.startsWith('departamento:')) {
+        const departamento = segmento.slice(segmento.indexOf(':') + 1).trim();
+        const coincidencia = this.entidadesTerritoriales.find((item) =>
+          !!item.idDepartamento && this.normalizeText(item.nombreDepartamento) === this.normalizeText(departamento)
+        );
+
+        if (coincidencia?.idDepartamento) {
+          ids.push(coincidencia.idDepartamento);
+        }
+      }
+    }
+
+    return [...new Set(ids)];
+  }
+
+  private resolveTipoPactoValue(pacto: Pacto): string {
+    if (pacto.idTipoPacto) {
+      return String(pacto.idTipoPacto);
+    }
+
+    const normalizedValue = this.normalizeText(pacto.tipoPacto || '');
+    const coincidencia = this.tiposPactos.find((item) =>
+      this.normalizeText(item.texto) === normalizedValue
+      || this.normalizeText(item.codigo) === normalizedValue
+    );
+
+    return coincidencia ? String(coincidencia.id) : '';
+  }
+
+  private resolveEtapaValue(pacto: Pacto): string {
+    const normalizedValue = this.normalizeText(pacto.idEtapa || '');
+    const coincidencia = this.etapasPacto.find((item) =>
+      this.normalizeText(item.texto) === normalizedValue
+      || this.normalizeText(item.codigo) === normalizedValue
+      || String(item.id) === pacto.idEtapa
+    );
+
+    return coincidencia ? String(coincidencia.id) : this.getDefaultEtapaId();
+  }
+
+  private readNumericSelection(value: string | undefined): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  }
+
+  private resolveDepartamentoId(nombreDepartamento: string): string {
+    const normalized = this.normalizeText(nombreDepartamento);
+    const coincidencia = this.entidadesTerritoriales.find((item) =>
+      !!item.idDepartamento && this.normalizeText(item.nombreDepartamento) === normalized
+    );
+
+    return coincidencia?.idDepartamento || '';
+  }
+
+  private extractDetalleDesdeAlcance(alcance?: string): string {
+    const texto = (alcance || '').trim();
+    if (!texto) {
+      return '';
+    }
+
+    const segmentos = texto.split('|').map((segmento) => segmento.trim()).filter(Boolean);
+    const detalle = segmentos.find((segmento) => this.normalizeText(segmento).startsWith('detalle:'));
+    return detalle ? detalle.slice(detalle.indexOf(':') + 1).trim() : '';
+  }
+
+  private toDateInputValue(value?: string): string {
+    if (!value) {
+      return '';
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+      return value.slice(0, 10);
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+  }
+
+  private toIsoDateValue(value?: string): string {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString();
   }
 }

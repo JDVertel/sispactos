@@ -11,8 +11,7 @@
       <button
         type="button"
         class="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#nuevoPactoModal"
+        (click)="abrirModalNuevoPacto()"
       >
         <span class="me-1">+</span> Nuevo Pacto
       </button>
@@ -43,8 +42,8 @@
                   <h3 class="h5 mb-1">{{ pacto.nombre }}</h3>
                   <span class="badge text-bg-secondary">{{ pacto.tipoPacto }}</span>
                 </div>
-                <button type="button" class="btn btn-outline-danger btn-sm" (click)="removePacto(pacto.id)">
-                  Eliminar
+                <button type="button" class="btn btn-outline-primary btn-sm pacto-action-btn" (click)="abrirModalEditarPacto(pacto)">
+                  <i class="bi bi-pencil-square me-1"></i> Editar
                 </button>
               </div>
 
@@ -90,9 +89,41 @@
                 </div>
               </div>
 
-              <div class="mb-3" *ngIf="pacto.alcance">
+              <div class="mb-3" *ngIf="pacto.alcance || getMunicipiosAlcancePacto(pacto).length || getDepartamentosAlcancePacto(pacto).length">
                 <div class="small text-uppercase text-secondary fw-semibold">Alcance</div>
-                <p class="mb-0">{{ pacto.alcance }}</p>
+                <div class="territorial-alcance-view">
+                  <div class="territorial-alcance-group">
+                    <div class="territorial-alcance-group__label">Municipios</div>
+                    <div class="territorial-chip-list" *ngIf="getMunicipiosAlcancePacto(pacto).length; else noMunicipiosAlcance">
+                      <span
+                        *ngFor="let item of getMunicipiosAlcancePacto(pacto)"
+                        class="badge territorial-chip territorial-chip-municipio d-inline-flex align-items-center gap-2 py-2 px-3"
+                      >
+                        {{ item.municipio }}
+                      </span>
+                    </div>
+                    <ng-template #noMunicipiosAlcance>
+                      <p class="mb-0 text-secondary">Sin municipios registrados.</p>
+                    </ng-template>
+                  </div>
+
+                  <div class="territorial-alcance-group" *ngIf="getDepartamentosAlcancePacto(pacto).length">
+                    <div class="territorial-alcance-group__label">Departamentos</div>
+                    <div class="territorial-chip-list">
+                      <span
+                        *ngFor="let departamento of getDepartamentosAlcancePacto(pacto)"
+                        class="badge territorial-chip territorial-chip-departamento d-inline-flex align-items-center gap-2 py-2 px-3"
+                      >
+                        {{ departamento }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="territorial-alcance-group" *ngIf="pacto.alcance && !getMunicipiosAlcancePacto(pacto).length && !getDepartamentosAlcancePacto(pacto).length">
+                    <div class="territorial-alcance-group__label">Detalle</div>
+                    <p class="mb-0 text-secondary">{{ pacto.alcance }}</p>
+                  </div>
+                </div>
               </div>
 
               <div class="d-flex flex-column flex-md-row gap-2 pt-2 border-top small text-secondary">
@@ -118,14 +149,19 @@
 </section>
 
 <!-- Modal para registrar un nuevo pacto -->
-<div class="modal fade" id="nuevoPactoModal" tabindex="-1" aria-labelledby="nuevoPactoModalLabel" aria-hidden="true">
+<div class="modal fade" id="pactoModal" tabindex="-1" aria-labelledby="pactoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-md-down pacto-modal-dialog">
     <div class="modal-content pacto-modal-content">
-      <form class="d-flex flex-column h-100 pacto-modal-form" (ngSubmit)="addPacto()">
+      <form class="d-flex flex-column h-100 pacto-modal-form" (ngSubmit)="guardarPacto()">
         <div class="modal-header pacto-modal-header">
           <div>
-            <h2 class="modal-title pacto-modal-title" id="nuevoPactoModalLabel"><i class="bi bi-handshake"></i> Nuevo Pacto Territorial</h2>
-            <p class="pacto-modal-subtitle mb-0">Diligencia los datos principales para crear el pacto.</p>
+            <h2 class="modal-title pacto-modal-title" id="pactoModalLabel">
+              <i class="bi" [ngClass]="modoFormulario === 'editar' ? 'bi-pencil-square' : 'bi-handshake'"></i>
+              {{ modoFormulario === 'editar' ? 'Editar Pacto Territorial' : 'Nuevo Pacto Territorial' }}
+            </h2>
+            <p class="pacto-modal-subtitle mb-0">
+              {{ modoFormulario === 'editar' ? 'Actualiza los datos principales del pacto.' : 'Diligencia los datos principales para crear el pacto.' }}
+            </p>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
@@ -138,7 +174,7 @@
           <div class="row g-3">
             <div class="col-12 col-md-6">
               <label class="form-label">Tipo de Pacto</label>
-              <select class="form-select" name="tipoPacto" [(ngModel)]="newPacto.tipoPacto" [disabled]="isLoadingCatalogos || !tiposPactos.length" required>
+              <select class="form-select" name="tipoPacto" [(ngModel)]="pactoForm.tipoPacto" [disabled]="isLoadingCatalogos || !tiposPactos.length" required>
                 <option value="">Seleccionar tipo</option>
                 <option *ngFor="let tipo of tiposPactos" [value]="tipo.id">{{ tipo.texto }}</option>
               </select>
@@ -146,17 +182,17 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">Nombre del pacto</label>
-              <input class="form-control" type="text" name="nombre" [(ngModel)]="newPacto.nombre" required />
+              <input class="form-control" type="text" name="nombre" [(ngModel)]="pactoForm.nombre" required />
             </div>
 
             <div class="col-12">
               <label class="form-label">Suscribientes o integrantes</label>
-              <textarea class="form-control" name="descripcion" [(ngModel)]="newPacto.descripcion" rows="3" required></textarea>
+              <textarea class="form-control" name="descripcion" [(ngModel)]="pactoForm.descripcion" rows="3" required></textarea>
             </div>
 
             <div class="col-12">
               <label class="form-label">Objetivo</label>
-              <textarea class="form-control" name="objetivo" [(ngModel)]="newPacto.objetivo" rows="3" required></textarea>
+              <textarea class="form-control" name="objetivo" [(ngModel)]="pactoForm.objetivo" rows="3" required></textarea>
             </div>
 
             <div class="col-12">
@@ -170,8 +206,8 @@
                 placeholder="Escribe una línea temática y presiona Enter"
               />
 
-              <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="newPacto.lineasTematicas.length > 0">
-                <span *ngFor="let linea of newPacto.lineasTematicas; let i = index" class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3">
+              <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="pactoForm.lineasTematicas.length > 0">
+                <span *ngFor="let linea of pactoForm.lineasTematicas; let i = index" class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3">
                   {{ linea }}
                   <button
                     type="button"
@@ -186,12 +222,12 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">Fecha de Suscripción</label>
-              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="newPacto.fechaSuscripcion" />
+              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="pactoForm.fechaSuscripcion" />
             </div>
 
             <div class="col-12 col-md-6">
               <label class="form-label">ID Etapa</label>
-              <select class="form-select" name="idEtapa" [(ngModel)]="newPacto.idEtapa" [disabled]="isLoadingCatalogos || !etapasPacto.length">
+              <select class="form-select" name="idEtapa" [(ngModel)]="pactoForm.idEtapa" [disabled]="isLoadingCatalogos || !etapasPacto.length">
                 <option value="">Seleccionar etapa</option>
                 <option *ngFor="let etapa of etapasPacto" [value]="etapa.id">{{ etapa.texto }}</option>
               </select>
@@ -199,70 +235,128 @@
 
             <div class="col-12 col-md-6">
               <label class="form-label">Fecha de Vencimiento</label>
-              <input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="newPacto.fechaVencimiento" />
+              <input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="pactoForm.fechaVencimiento" />
             </div>
 
             <div class="col-12">
-              <label class="form-label">Departamentos y municipios (ciudades) de alcance</label>
-              <p class="text-secondary small mb-2">
-                Puede incluir varios departamentos y varias ciudades o municipios. Agregue cada combinación con el botón.
-              </p>
-              <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-5">
-                  <label class="form-label visually-hidden" for="departamentoDraft">Departamento</label>
-                  <select
-                    id="departamentoDraft"
-                    class="form-select"
-                    name="departamentoDraft"
-                    [(ngModel)]="departamentoDraft"
-                    (ngModelChange)="onDepartamentoDraftChange()"
-                  >
-                    <option value="">Departamento</option>
-                    <option *ngFor="let departamento of departamentosDisponibles" [value]="departamento">
-                      {{ departamento }}
-                    </option>
-                  </select>
+              <div class="territorial-selector">
+                <div class="territorial-selector-header">
+                  <div>
+                    <label class="form-label mb-1">Municipio de alcance</label>
+                    <p class="text-secondary small mb-0">
+                      Agrega cada municipio por separado.
+                    </p>
+                  </div>
                 </div>
-                <div class="col-12 col-md-5">
-                  <label class="form-label visually-hidden" for="municipioDraft">Municipio o ciudad</label>
-                  <select
-                    id="municipioDraft"
-                    class="form-select"
-                    name="municipioDraft"
-                    [(ngModel)]="municipioDraft"
-                    [disabled]="!departamentoDraft"
-                  >
-                    <option value="">Municipio o ciudad</option>
-                    <option *ngFor="let municipio of municipiosDisponiblesDraft" [value]="municipio">
-                      {{ municipio }}
-                    </option>
-                  </select>
+                <div class="row g-2 align-items-end">
+                  <div class="col-12 col-md-10">
+                    <label class="form-label visually-hidden" for="municipioSearch">Municipio</label>
+                    <input
+                      id="municipioSearch"
+                      class="form-control"
+                      type="text"
+                      name="municipioSearch"
+                      [(ngModel)]="municipioSearch"
+                      (ngModelChange)="onMunicipioSearchChange()"
+                      [disabled]="isLoadingEntidadesTerritoriales || !municipiosDisponiblesDraft.length"
+                      placeholder="Escribe para buscar un municipio"
+                      autocomplete="off"
+                    />
+                    <div class="municipio-sugerencias mt-1" *ngIf="municipioSearch.trim()">
+                      <button
+                        type="button"
+                        class="municipio-sugerencia"
+                        *ngFor="let municipio of municipiosFiltrados"
+                        (click)="seleccionarMunicipio(municipio)"
+                      >
+                        <span class="municipio-sugerencia-content">
+                          <span class="municipio-sugerencia-nombre">{{ municipio.nombreEntidadTerritorial }}</span>
+                        </span>
+                      </button>
+                      <div class="municipio-sin-resultados" *ngIf="municipiosFiltrados.length === 0">
+                        No hay municipios que coincidan con la búsqueda.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-2">
+                    <button type="button" class="btn btn-outline-primary w-100" (click)="addMunicipioAlcance()">
+                      Agregar
+                    </button>
+                  </div>
                 </div>
-                <div class="col-12 col-md-2">
-                  <button type="button" class="btn btn-outline-primary w-100" (click)="addUbicacionAlcance()">
-                    Agregar
-                  </button>
-                </div>
-              </div>
 
-              <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="ubicacionesAlcance.length > 0">
-                <span
-                  *ngFor="let u of ubicacionesAlcance; let i = index"
-                  class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3"
-                >
-                  {{ u.departamento }} — {{ u.municipio }}
-                  <button
-                    type="button"
-                    class="btn-close btn-close-white btn-sm"
-                    aria-label="Quitar ubicación"
-                    (click)="removeUbicacionAlcance(i)"
-                  ></button>
-                </span>
+                <div class="territorial-chip-list mt-2" *ngIf="municipiosAlcance.length > 0">
+                  <span
+                    *ngFor="let u of municipiosAlcance; let i = index"
+                    class="badge territorial-chip territorial-chip-municipio d-inline-flex align-items-center gap-2 py-2 px-3"
+                  >
+                    {{ u.municipio }}
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white btn-sm"
+                      aria-label="Quitar municipio"
+                      (click)="removeMunicipioAlcance(i)"
+                    ></button>
+                  </span>
+                </div>
+                <div class="form-text" *ngIf="!municipiosAlcance.length">Debe agregar al menos un municipio para crear el pacto.</div>
               </div>
-              <div class="form-text" *ngIf="!ubicacionesAlcance.length">Debe agregar al menos una ubicación para crear el pacto.</div>
             </div>
 
-            <div class="col-12" *ngIf="ubicacionesAlcance.length">
+            <div class="col-12" *ngIf="municipiosAlcance.length">
+              <div class="territorial-selector">
+                <div class="territorial-selector-header">
+                  <div>
+                    <label class="form-label mb-1">Departamento de alcance</label>
+                    <p class="text-secondary small mb-0">
+                      Solo aparecen los departamentos asociados a los municipios ya agregados.
+                    </p>
+                  </div>
+                </div>
+                <div class="row g-2 align-items-end">
+                  <div class="col-12 col-md-10">
+                    <label class="form-label visually-hidden" for="departamentoDraft">Departamento</label>
+                    <select
+                      id="departamentoDraft"
+                      class="form-select"
+                      name="departamentoDraft"
+                      [(ngModel)]="departamentoDraft"
+                      [disabled]="!departamentosDisponibles.length"
+                    >
+                      <option value="">Departamento</option>
+                      <option *ngFor="let departamento of departamentosDisponibles" [value]="departamento">
+                        {{ departamento }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="col-12 col-md-2">
+                    <button type="button" class="btn btn-outline-primary w-100" (click)="addDepartamentoAlcance()">
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+
+                <div class="territorial-chip-list mt-2" *ngIf="departamentosAlcance.length > 0">
+                  <span
+                    *ngFor="let departamento of departamentosAlcance; let i = index"
+                    class="badge territorial-chip territorial-chip-departamento d-inline-flex align-items-center gap-2 py-2 px-3"
+                  >
+                    {{ departamento }}
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white btn-sm"
+                      aria-label="Quitar departamento"
+                      (click)="removeDepartamentoAlcance(i)"
+                    ></button>
+                  </span>
+                </div>
+                <div class="form-text" *ngIf="!departamentosDisponibles.length">
+                  Agrega municipios para habilitar la selección de departamentos.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12" *ngIf="municipiosAlcance.length || departamentosAlcance.length">
               <label class="form-label">Detalle de alcance (opcional)</label>
               <textarea
                 class="form-control"
@@ -276,11 +370,13 @@
             <div class="col-12 col-md-6">
               <label class="form-label">Documento Pacto</label>
               <input class="form-control" type="file" name="urlDocPacto" (change)="onFileSelected($event, 'urlDocPacto')" />
+              <div class="form-text" *ngIf="pactoForm.urlDocPacto">Archivo actual: {{ pactoForm.urlDocPacto }}</div>
             </div>
 
             <div class="col-12 col-md-6">
               <label class="form-label">Documento Minuta</label>
               <input class="form-control" type="file" name="urlDocMinuta" (change)="onFileSelected($event, 'urlDocMinuta')" />
+              <div class="form-text" *ngIf="pactoForm.urlDocMinuta">Archivo actual: {{ pactoForm.urlDocMinuta }}</div>
             </div>
 
           </div>
@@ -299,9 +395,9 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="isSubmitting || isLoadingCatalogos || !tiposPactos.length || !etapasPacto.length || !newPacto.nombre.trim() || !newPacto.descripcion.trim() || !newPacto.objetivo.trim() || !newPacto.tipoPacto.trim() || !newPacto.idEtapa?.trim() || !ubicacionesAlcance.length"
+            [disabled]="!puedeGuardarPacto"
           >
-            {{ isSubmitting ? 'Guardando...' : 'Crear Pacto' }}
+            {{ isSubmitting ? 'Guardando...' : (modoFormulario === 'editar' ? 'Actualizar Pacto' : 'Crear Pacto') }}
           </button>
         </div>
       </form>
