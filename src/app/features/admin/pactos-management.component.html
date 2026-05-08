@@ -23,112 +23,109 @@
   </div>
 
   <!-- Listado de pactos existentes -->
-  <div class="card border-0 shadow-sm">
-    <div class="card-header bg-body-tertiary py-3">
+  <div class="card pactos-list-card">
+    <div class="card-header pactos-list-card__head">
       <h2 class="h5 mb-0">Listado de Pactos Territoriales</h2>
     </div>
 
-    <div class="card-body p-2 p-md-3">
+    <div class="card-body pactos-list-card__body">
       <ng-container *ngIf="(pactos$ | async) as pactos; else noPactos">
-        <div class="alert alert-info border text-center mb-3" *ngIf="isLoadingPactos" role="status">
+        <div class="alert alert-light border text-center mb-3" *ngIf="isLoadingPactos" role="status">
           Cargando pactos territoriales desde el servicio...
         </div>
 
-        <div class="overflow-auto" style="max-height: 65vh;">
-          <div class="card mb-3 border" *ngFor="let pacto of pactos">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
-                <div>
-                  <h3 class="h5 mb-1">{{ pacto.nombre }}</h3>
-                  <span class="badge text-bg-secondary">{{ pacto.tipoPacto }}</span>
-                </div>
-                <button type="button" class="btn btn-outline-primary btn-sm pacto-action-btn" (click)="abrirModalEditarPacto(pacto)">
-                  <i class="bi bi-pencil-square me-1"></i> Editar
-                </button>
-              </div>
-
-              <div class="mb-3">
-                <div class="small text-uppercase text-secondary fw-semibold">Descripción</div>
-                <p class="mb-0">{{ pacto.descripcion }}</p>
-              </div>
-
-              <div class="mb-3">
-                <div class="small text-uppercase text-secondary fw-semibold">Objetivo</div>
-                <p class="mb-0">{{ pacto.objetivo }}</p>
-              </div>
-
-              <div class="row g-3 mb-3">
-                <div class="col-12 col-md-6" *ngIf="pacto.lineasTematicas.length">
-                  <div class="small text-uppercase text-secondary fw-semibold">Líneas Temáticas</div>
-                  <p class="mb-0">{{ pacto.lineasTematicas.join(', ') }}</p>
-                </div>
-
-                <div class="col-12 col-md-6" *ngIf="pacto.valorEstimado">
-                  <div class="small text-uppercase text-secondary fw-semibold">Valor Estimado</div>
-                  <p class="mb-0">{{ formatCurrency(pacto.valorEstimado) }}</p>
-                </div>
-
-                <div class="col-12 col-md-6" *ngIf="pacto.porcentajeEstimado">
-                  <div class="small text-uppercase text-secondary fw-semibold">Porcentaje Estimado</div>
-                  <p class="mb-0">{{ pacto.porcentajeEstimado }}%</p>
-                </div>
-
-                <div class="col-12 col-md-6" *ngIf="pacto.fechaSuscripcion">
-                  <div class="small text-uppercase text-secondary fw-semibold">Fecha Suscripción</div>
-                  <p class="mb-0">{{ pacto.fechaSuscripcion }}</p>
-                </div>
-
-                <div class="col-12 col-md-6" *ngIf="pacto.fechaVencimiento">
-                  <div class="small text-uppercase text-secondary fw-semibold">Fecha Vencimiento</div>
-                  <p class="mb-0">{{ pacto.fechaVencimiento }}</p>
-                </div>
-
-                <div class="col-12 col-md-6" *ngIf="pacto.idEtapa">
-                  <div class="small text-uppercase text-secondary fw-semibold">ID Etapa</div>
-                  <p class="mb-0">{{ pacto.idEtapa }}</p>
-                </div>
-              </div>
-
-              <div class="mb-3" *ngIf="pacto.alcance || getMunicipiosAlcancePacto(pacto).length || getDepartamentosAlcancePacto(pacto).length">
-                <div class="small text-uppercase text-secondary fw-semibold">Alcance</div>
-                <div class="territorial-alcance-view">
-                  <div class="territorial-alcance-group">
-                    <div class="territorial-alcance-group__label">Municipios</div>
-                    <div class="territorial-chip-list" *ngIf="getMunicipiosAlcancePacto(pacto).length; else noMunicipiosAlcance">
-                      <span
-                        *ngFor="let item of getMunicipiosAlcancePacto(pacto)"
-                        class="badge territorial-chip territorial-chip-municipio d-inline-flex align-items-center gap-2 py-2 px-3"
+        <div class="overflow-auto pactos-grid-scroll" style="max-height: 65vh;">
+          <div class="pactos-grid">
+            <div class="card pacto-item-card" *ngFor="let pacto of pactos" [ngClass]="getPactoCardClass(pacto.idEtapa)">
+              <div class="card-body pacto-item-card__body">
+                <div class="pacto-item-card__grid">
+                  <!-- Col 1: nombre + tipo -->
+                  <div class="pacto-item-card__col pacto-item-card__col--main">
+                    <div class="pacto-item-card__top">
+                      <div class="pacto-item-card__title" [title]="pacto.nombre">{{ pacto.nombre }}</div>
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm pacto-action-btn"
+                        (click)="abrirModalEditarPacto(pacto)"
+                        aria-label="Editar pacto"
                       >
-                        {{ item.municipio }}
-                      </span>
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
                     </div>
-                    <ng-template #noMunicipiosAlcance>
-                      <p class="mb-0 text-secondary">Sin municipios registrados.</p>
-                    </ng-template>
-                  </div>
-
-                  <div class="territorial-alcance-group" *ngIf="getDepartamentosAlcancePacto(pacto).length">
-                    <div class="territorial-alcance-group__label">Departamentos</div>
-                    <div class="territorial-chip-list">
-                      <span
-                        *ngFor="let departamento of getDepartamentosAlcancePacto(pacto)"
-                        class="badge territorial-chip territorial-chip-departamento d-inline-flex align-items-center gap-2 py-2 px-3"
-                      >
-                        {{ departamento }}
-                      </span>
+                    <div class="pacto-item-card__meta">
+                      <span class="badge tipo-badge text-bg-secondary" [title]="pacto.tipoPacto">{{ pacto.tipoPacto }}</span>
+                    </div>
+                    <div class="pacto-item-card__text">
+                      <div class="pacto-item-card__label">Descripción</div>
+                      <div class="pacto-item-card__value">{{ pacto.descripcion || '—' }}</div>
                     </div>
                   </div>
 
-                  <div class="territorial-alcance-group" *ngIf="pacto.alcance && !getMunicipiosAlcancePacto(pacto).length && !getDepartamentosAlcancePacto(pacto).length">
-                    <div class="territorial-alcance-group__label">Detalle</div>
-                    <p class="mb-0 text-secondary">{{ pacto.alcance }}</p>
+                  <!-- Col 2: etapa + valor -->
+                  <div class="pacto-item-card__col">
+                    <div class="pacto-item-card__meta">
+                      <span class="badge etapa-badge" [ngClass]="getEtapaBadgeClass(pacto.idEtapa)" [title]="'Etapa: ' + getEtapaTexto(pacto.idEtapa)">
+                        {{ getEtapaTexto(pacto.idEtapa) }}
+                      </span>
+                      <span class="badge text-bg-light border" *ngIf="pacto.valorEstimado" [title]="'Valor: ' + formatCurrency(pacto.valorEstimado)">{{ formatCurrency(pacto.valorEstimado) }}</span>
+                    </div>
+
+                    <div class="pacto-item-card__text">
+                      <div class="pacto-item-card__label">Objetivo</div>
+                      <div class="pacto-item-card__value">{{ pacto.objetivo || '—' }}</div>
+                    </div>
+
+                    <div class="pacto-item-card__text" *ngIf="pacto.lineasTematicas?.length">
+                      <div class="pacto-item-card__label">Líneas temáticas</div>
+                      <div class="pacto-item-card__value">{{ pacto.lineasTematicas.join(', ') }}</div>
+                    </div>
+
+                    <div class="pacto-item-card__text" *ngIf="pacto.porcentajeEstimado">
+                      <div class="pacto-item-card__label">% estimado</div>
+                      <div class="pacto-item-card__value">{{ pacto.porcentajeEstimado }}%</div>
+                    </div>
+                  </div>
+
+                  <!-- Col 3: fechas + auditoría -->
+                  <div class="pacto-item-card__col">
+                    <div class="pacto-item-card__dates">
+                      <span *ngIf="pacto.fechaSuscripcion">Suscripción: {{ pacto.fechaSuscripcion }}</span>
+                      <span *ngIf="pacto.fechaVencimiento">Vence: {{ pacto.fechaVencimiento }}</span>
+                      <span *ngIf="!pacto.fechaSuscripcion && !pacto.fechaVencimiento">Fechas: —</span>
+                    </div>
+
+                    <div class="pacto-item-card__text" *ngIf="pacto.alcance || getMunicipiosAlcancePacto(pacto).length || getDepartamentosAlcancePacto(pacto).length">
+                      <div class="pacto-item-card__label">Alcance</div>
+                      <div class="pacto-item-card__alcance">
+                        <div class="territorial-chip-list" *ngIf="getMunicipiosAlcancePacto(pacto).length">
+                          <span
+                            *ngFor="let item of getMunicipiosAlcancePacto(pacto)"
+                            class="badge territorial-chip territorial-chip-municipio d-inline-flex align-items-center py-1 px-2"
+                          >
+                            {{ item.municipio }}
+                          </span>
+                        </div>
+
+                        <div class="territorial-chip-list mt-1" *ngIf="getDepartamentosAlcancePacto(pacto).length">
+                          <span
+                            *ngFor="let departamento of getDepartamentosAlcancePacto(pacto)"
+                            class="badge territorial-chip territorial-chip-departamento d-inline-flex align-items-center py-1 px-2"
+                          >
+                            {{ departamento }}
+                          </span>
+                        </div>
+
+                        <div class="pacto-item-card__value" *ngIf="pacto.alcance && !getMunicipiosAlcancePacto(pacto).length && !getDepartamentosAlcancePacto(pacto).length">
+                          {{ pacto.alcance }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="pacto-item-card__footer">
+                      <span class="text-truncate">Modificado: {{ pacto.fechaModificacion }}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              <div class="d-flex flex-column flex-md-row gap-2 pt-2 border-top small text-secondary">
-                <span>Creado por: {{ pacto.usuarioCreo || 'N/A' }}</span>
-                <span>Modificado: {{ pacto.fechaModificacion }}</span>
               </div>
             </div>
           </div>
@@ -172,7 +169,7 @@
           </div>
 
           <div class="row g-3">
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Tipo de Pacto</label>
               <select class="form-select" name="tipoPacto" [(ngModel)]="pactoForm.tipoPacto" [disabled]="isLoadingCatalogos || !tiposPactos.length" required>
                 <option value="">Seleccionar tipo</option>
@@ -180,9 +177,17 @@
               </select>
             </div>
 
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Nombre del pacto</label>
               <input class="form-control" type="text" name="nombre" [(ngModel)]="pactoForm.nombre" required />
+            </div>
+
+            <div class="col-12 col-lg-4">
+              <label class="form-label">ID Etapa</label>
+              <select class="form-select" name="idEtapa" [(ngModel)]="pactoForm.idEtapa" [disabled]="isLoadingCatalogos || !etapasPacto.length">
+                <option value="">Seleccionar etapa</option>
+                <option *ngFor="let etapa of etapasPacto" [value]="etapa.id">{{ etapa.texto }}</option>
+              </select>
             </div>
 
             <div class="col-12">
@@ -195,7 +200,7 @@
               <textarea class="form-control" name="objetivo" [(ngModel)]="pactoForm.objetivo" rows="3" required></textarea>
             </div>
 
-            <div class="col-12">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Líneas Temáticas</label>
               <input
                 class="form-control"
@@ -220,20 +225,12 @@
 
             </div>
 
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Fecha de Suscripción</label>
               <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="pactoForm.fechaSuscripcion" />
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">ID Etapa</label>
-              <select class="form-select" name="idEtapa" [(ngModel)]="pactoForm.idEtapa" [disabled]="isLoadingCatalogos || !etapasPacto.length">
-                <option value="">Seleccionar etapa</option>
-                <option *ngFor="let etapa of etapasPacto" [value]="etapa.id">{{ etapa.texto }}</option>
-              </select>
-            </div>
-
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-lg-4">
               <label class="form-label">Fecha de Vencimiento</label>
               <input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="pactoForm.fechaVencimiento" />
             </div>

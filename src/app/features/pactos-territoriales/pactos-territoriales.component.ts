@@ -1,6 +1,7 @@
 import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
 import { PactosService, type PactoTablaDto } from '../../core/services/pactos.service';
 
@@ -52,6 +53,34 @@ interface IniciativaTabla {
   estadoProyecto: string;
   entidadAportante: string;
   entidadTerritorioAportante: string;
+}
+
+type ProyectoFuente = 'FRPT' | 'NT';
+
+interface ProyectoTabla {
+  fuente: ProyectoFuente;
+  sector: string;
+  proyecto: string;
+  estadoProyecto: 'En ejecución' | 'No iniciado' | 'Terminado';
+  nivelEstadoProyecto: string;
+  valorIndicativo: number;
+  aporteConsolidadoNacion: number;
+  aporteIndicativoEntidadesTerritoriales: number;
+  aporteIndicativoOtros: number;
+  entidadResponsablePei: string;
+}
+
+type CompromisoEstado = 'No iniciado' | 'En trámite' | 'Cumplido';
+
+interface CompromisoTabla {
+  id: string;
+  instancia: string;
+  noSesion: string;
+  fechaSesion: string; // YYYY-MM-DD
+  compromiso: string;
+  fechaCumplimiento: string; // YYYY-MM-DD
+  responsable: string;
+  estado: CompromisoEstado;
 }
 // ...existing code...
 
@@ -528,6 +557,197 @@ export class PactosTerritorialesComponent implements OnInit {
     ]
   };
 
+  proyectosPorPacto: Record<number, ProyectoTabla[]> = {
+    1: [
+      {
+        fuente: 'FRPT',
+        sector: 'Transporte',
+        proyecto: 'Mejoramiento vía Barranquilla–Puerto Colombia',
+        estadoProyecto: 'En ejecución',
+        nivelEstadoProyecto: 'Fase II',
+        valorIndicativo: 18500000,
+        aporteConsolidadoNacion: 12000000,
+        aporteIndicativoEntidadesTerritoriales: 6500000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'INVIAS'
+      },
+      {
+        fuente: 'NT',
+        sector: 'Educación',
+        proyecto: 'Dotación de aulas rurales Atlántico',
+        estadoProyecto: 'No iniciado',
+        nivelEstadoProyecto: 'Formulación',
+        valorIndicativo: 9200000,
+        aporteConsolidadoNacion: 5000000,
+        aporteIndicativoEntidadesTerritoriales: 4200000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'MEN'
+      },
+      {
+        fuente: 'FRPT',
+        sector: 'Agua y saneamiento',
+        proyecto: 'Acueducto veredal Palmar de Varela',
+        estadoProyecto: 'Terminado',
+        nivelEstadoProyecto: 'Cierre',
+        valorIndicativo: 12300000,
+        aporteConsolidadoNacion: 7000000,
+        aporteIndicativoEntidadesTerritoriales: 5300000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'MVCT'
+      }
+    ],
+    2: [
+      {
+        fuente: 'FRPT',
+        sector: 'Salud',
+        proyecto: 'Ampliación hospital San Juan de Dios',
+        estadoProyecto: 'En ejecución',
+        nivelEstadoProyecto: 'Obra',
+        valorIndicativo: 22000000,
+        aporteConsolidadoNacion: 12000000,
+        aporteIndicativoEntidadesTerritoriales: 10000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'Minsalud'
+      },
+      {
+        fuente: 'NT',
+        sector: 'Vivienda',
+        proyecto: 'Subsidios vivienda rural Santander',
+        estadoProyecto: 'Terminado',
+        nivelEstadoProyecto: 'Entrega',
+        valorIndicativo: 15000000,
+        aporteConsolidadoNacion: 7000000,
+        aporteIndicativoEntidadesTerritoriales: 8000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'FONVIVIENDA'
+      }
+    ],
+    3: [
+      {
+        fuente: 'NT',
+        sector: 'Agua y saneamiento',
+        proyecto: 'Alcantarillado Tumaco',
+        estadoProyecto: 'No iniciado',
+        nivelEstadoProyecto: 'Prefactibilidad',
+        valorIndicativo: 19000000,
+        aporteConsolidadoNacion: 10000000,
+        aporteIndicativoEntidadesTerritoriales: 9000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'MVCT'
+      },
+      {
+        fuente: 'FRPT',
+        sector: 'Transporte',
+        proyecto: 'Pavimentación vía Ipiales–Tumaco',
+        estadoProyecto: 'En ejecución',
+        nivelEstadoProyecto: 'Obra',
+        valorIndicativo: 21000000,
+        aporteConsolidadoNacion: 14000000,
+        aporteIndicativoEntidadesTerritoriales: 7000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'INVIAS'
+      }
+    ],
+    4: [
+      {
+        fuente: 'NT',
+        sector: 'Educación',
+        proyecto: 'Liceos del Futuro Antioquia Fase II',
+        estadoProyecto: 'En ejecución',
+        nivelEstadoProyecto: 'Fase II',
+        valorIndicativo: 28000000,
+        aporteConsolidadoNacion: 16000000,
+        aporteIndicativoEntidadesTerritoriales: 12000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'MEN'
+      }
+    ],
+    5: [
+      {
+        fuente: 'FRPT',
+        sector: 'Transporte',
+        proyecto: 'Corredor vial Buenaventura–Cali',
+        estadoProyecto: 'No iniciado',
+        nivelEstadoProyecto: 'Formulación',
+        valorIndicativo: 24000000,
+        aporteConsolidadoNacion: 16000000,
+        aporteIndicativoEntidadesTerritoriales: 8000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'INVIAS'
+      },
+      {
+        fuente: 'NT',
+        sector: 'Agua y saneamiento',
+        proyecto: 'Planta de tratamiento Dagua',
+        estadoProyecto: 'En ejecución',
+        nivelEstadoProyecto: 'Obra',
+        valorIndicativo: 16000000,
+        aporteConsolidadoNacion: 9000000,
+        aporteIndicativoEntidadesTerritoriales: 7000000,
+        aporteIndicativoOtros: 0,
+        entidadResponsablePei: 'MVCT'
+      }
+    ]
+  };
+
+  proyectosTabActivo: ProyectoFuente = 'FRPT';
+
+  filtrosProyectos = {
+    estadoProyecto: '',
+    nivelEstadoProyecto: '',
+    frpt: '', // '', 'si', 'no'
+    sector: '',
+    entidadResponsablePei: ''
+  };
+
+  compromisosPorPacto: Record<number, CompromisoTabla[]> = {
+    1: [
+      {
+        id: 'c-1',
+        instancia: 'Mesa técnica',
+        noSesion: '001',
+        fechaSesion: '2025-02-15',
+        compromiso: 'Entregar cronograma de obra.',
+        fechaCumplimiento: '2025-03-30',
+        responsable: 'INVIAS',
+        estado: 'En trámite'
+      },
+      {
+        id: 'c-2',
+        instancia: 'Comité directivo',
+        noSesion: '002',
+        fechaSesion: '2025-04-10',
+        compromiso: 'Radicar soporte financiero.',
+        fechaCumplimiento: '2025-05-20',
+        responsable: 'Gobernación',
+        estado: 'No iniciado'
+      }
+    ],
+    2: [],
+    3: [],
+    4: [],
+    5: []
+  };
+
+  filtrosCompromisos = {
+    instancia: '',
+    responsable: '',
+    estado: '' as '' | CompromisoEstado,
+    fechaCumplimientoDesde: '',
+    fechaCumplimientoHasta: ''
+  };
+
+  showNuevoCompromisoModal = false;
+  nuevoCompromisoForm: Omit<CompromisoTabla, 'id'> = {
+    instancia: '',
+    noSesion: '',
+    fechaSesion: '',
+    compromiso: '',
+    fechaCumplimiento: '',
+    responsable: '',
+    estado: 'No iniciado'
+  };
+
   filtrosIniciativas = {
     sectorInversion: '',
     tipoOferta: '',
@@ -536,9 +756,18 @@ export class PactosTerritorialesComponent implements OnInit {
     entidadTerritorioAportante: ''
   };
 
-  constructor(private readonly pactosService: PactosService) {}
+  private requestedDepartamento = '';
+
+  constructor(
+    private readonly pactosService: PactosService,
+    private readonly route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
+    this.route.queryParamMap.subscribe((params) => {
+      this.requestedDepartamento = (params.get('departamento') || '').trim();
+      this.applyRequestedDepartamentoSelection();
+    });
     this.loadPactos();
   }
 
@@ -584,6 +813,41 @@ export class PactosTerritorialesComponent implements OnInit {
     this.pactoSeleccionado = pacto;
     this.limpiarFiltrosAportes();
     this.limpiarFiltrosIniciativas();
+    this.limpiarFiltrosProyectos();
+    this.limpiarFiltrosCompromisos();
+  }
+
+  private applyRequestedDepartamentoSelection(): void {
+    const dep = (this.requestedDepartamento || '').trim();
+    if (!dep || !this.pactos?.length) {
+      return;
+    }
+
+    const match = this.findPactoForDepartamento(dep);
+    if (!match) {
+      return;
+    }
+
+    this.seleccionarPacto(match);
+  }
+
+  private findPactoForDepartamento(departamento: string): Pacto | null {
+    const target = this.normalizeText(departamento);
+    if (!target) return null;
+
+    // 1) Match directo por campo `departamento`.
+    const direct = this.pactos.find((p) => this.normalizeText(p.departamento) === target);
+    if (direct) return direct;
+
+    // 2) Match por alcance (si el backend entrega "Departamentos: ...")
+    const byAlcance = this.pactos.find((p) => {
+      const deps = this.extractDepartamentosFromAlcance(p.alcance);
+      return deps.some((d) => this.normalizeText(d) === target);
+    });
+    if (byAlcance) return byAlcance;
+
+    // 3) Fallback: contains (por variaciones de nombre)
+    return this.pactos.find((p) => this.normalizeText(p.departamento).includes(target) || target.includes(this.normalizeText(p.departamento))) ?? null;
   }
 
   get datosClaveSeguro() {
@@ -628,6 +892,11 @@ export class PactosTerritorialesComponent implements OnInit {
       return [];
     }
 
+    const fromAlcance = this.extractMunicipiosFromAlcance(this.pactoSeleccionado.alcance);
+    if (fromAlcance.length) {
+      return fromAlcance;
+    }
+
     const municipio = (this.pactoSeleccionado.municipio || '').trim();
     return municipio ? [municipio] : [];
   }
@@ -637,17 +906,20 @@ export class PactosTerritorialesComponent implements OnInit {
       return [];
     }
 
-    const municipio = (this.pactoSeleccionado.municipio || '').trim();
-    const departamento = (this.pactoSeleccionado.departamento || '').trim();
+    const municipios = this.municipiosPactoSeleccionado;
+    if (!municipios.length) {
+      return [];
+    }
 
-    return municipio
-      ? [
-          {
-            name: municipio,
-            department: departamento || undefined
-          }
-        ]
-      : [];
+    const departamentos = this.extractDepartamentosFromAlcance(this.pactoSeleccionado.alcance);
+    const fallbackDepartamento = (this.pactoSeleccionado.departamento || '').trim();
+    const uniqueDepartment = departamentos.length === 1 ? departamentos[0] : (fallbackDepartamento || '');
+    const department = uniqueDepartment && uniqueDepartment !== 'N/A' ? uniqueDepartment : undefined;
+
+    return municipios.map((name) => ({
+      name,
+      department
+    }));
   }
 
   /** URL para «Ver PEI vigente pacto territorial» (API / documento PEI o pacto). */
@@ -787,6 +1059,214 @@ export class PactosTerritorialesComponent implements OnInit {
     };
   }
 
+  limpiarFiltrosProyectos(): void {
+    this.filtrosProyectos = {
+      estadoProyecto: '',
+      nivelEstadoProyecto: '',
+      frpt: '',
+      sector: '',
+      entidadResponsablePei: ''
+    };
+  }
+
+  limpiarFiltrosCompromisos(): void {
+    this.filtrosCompromisos = {
+      instancia: '',
+      responsable: '',
+      estado: '',
+      fechaCumplimientoDesde: '',
+      fechaCumplimientoHasta: ''
+    };
+  }
+
+  get compromisosBaseActual(): CompromisoTabla[] {
+    if (!this.pactoSeleccionado) return [];
+    return this.compromisosPorPacto[this.pactoSeleccionado.id] ?? [];
+  }
+
+  get compromisosFiltrados(): CompromisoTabla[] {
+    const base = this.compromisosBaseActual;
+    if (!base.length) return [];
+
+    const f = this.filtrosCompromisos;
+    const desde = f.fechaCumplimientoDesde ? new Date(f.fechaCumplimientoDesde) : null;
+    const hasta = f.fechaCumplimientoHasta ? new Date(f.fechaCumplimientoHasta) : null;
+
+    return base.filter((c) => {
+      const byInstancia = !f.instancia || c.instancia === f.instancia;
+      const byResp = !f.responsable || c.responsable === f.responsable;
+      const byEstado = !f.estado || c.estado === f.estado;
+
+      const fecha = c.fechaCumplimiento ? new Date(c.fechaCumplimiento) : null;
+      const byDesde = !desde || (fecha && fecha >= desde);
+      const byHasta = !hasta || (fecha && fecha <= hasta);
+
+      return byInstancia && byResp && byEstado && byDesde && byHasta;
+    });
+  }
+
+  get opcionesCompromisosInstancia(): string[] {
+    return this.obtenerOpcionesUnicas(this.compromisosBaseActual.map((c) => c.instancia));
+  }
+
+  get opcionesCompromisosResponsable(): string[] {
+    return this.obtenerOpcionesUnicas(this.compromisosBaseActual.map((c) => c.responsable));
+  }
+
+  get resumenCompromisosCards(): Array<{ label: string; value: number; color: string }> {
+    const base = this.compromisosFiltrados;
+    const total = base.length;
+    const noIniciados = base.filter((c) => c.estado === 'No iniciado').length;
+    const enTramite = base.filter((c) => c.estado === 'En trámite').length;
+    const cumplidos = base.filter((c) => c.estado === 'Cumplido').length;
+    return [
+      { label: 'Total compromisos', value: total, color: '#00a2a0' },
+      { label: 'No iniciados', value: noIniciados, color: '#ffbf39' },
+      { label: 'En trámite', value: enTramite, color: '#2ea3ff' },
+      { label: 'Cumplidos', value: cumplidos, color: '#66bb6a' }
+    ];
+  }
+
+  openNuevoCompromisoModal(): void {
+    this.showNuevoCompromisoModal = true;
+  }
+
+  closeNuevoCompromisoModal(): void {
+    this.showNuevoCompromisoModal = false;
+  }
+
+  guardarNuevoCompromiso(): void {
+    if (!this.pactoSeleccionado) {
+      this.closeNuevoCompromisoModal();
+      return;
+    }
+
+    const form = this.nuevoCompromisoForm;
+    const requiredOk =
+      !!form.instancia.trim()
+      && !!form.noSesion.trim()
+      && !!form.fechaSesion.trim()
+      && !!form.compromiso.trim()
+      && !!form.fechaCumplimiento.trim()
+      && !!form.responsable.trim()
+      && !!form.estado;
+
+    if (!requiredOk) {
+      return;
+    }
+
+    const id = `c-${Date.now()}`;
+    const next: CompromisoTabla = {
+      id,
+      ...form,
+      instancia: form.instancia.trim(),
+      noSesion: form.noSesion.trim(),
+      compromiso: form.compromiso.trim(),
+      responsable: form.responsable.trim()
+    };
+
+    const pactoId = this.pactoSeleccionado.id;
+    const current = this.compromisosPorPacto[pactoId] ?? [];
+    this.compromisosPorPacto[pactoId] = [next, ...current];
+
+    this.nuevoCompromisoForm = {
+      instancia: '',
+      noSesion: '',
+      fechaSesion: '',
+      compromiso: '',
+      fechaCumplimiento: '',
+      responsable: '',
+      estado: 'No iniciado'
+    };
+
+    this.closeNuevoCompromisoModal();
+  }
+
+  get proyectosBaseActual(): ProyectoTabla[] {
+    if (!this.pactoSeleccionado) {
+      return [];
+    }
+    return this.proyectosPorPacto[this.pactoSeleccionado.id] ?? [];
+  }
+
+  get proyectosFiltradosTodos(): ProyectoTabla[] {
+    const base = this.proyectosBaseActual;
+    if (!base.length) return [];
+
+    const f = this.filtrosProyectos;
+    return base.filter((p) => {
+      const byEstado = !f.estadoProyecto || p.estadoProyecto === f.estadoProyecto;
+      const byNivel = !f.nivelEstadoProyecto || p.nivelEstadoProyecto === f.nivelEstadoProyecto;
+      const byFrpt = !f.frpt || (f.frpt === 'si' ? p.fuente === 'FRPT' : p.fuente !== 'FRPT');
+      const bySector = !f.sector || p.sector === f.sector;
+      const byEntidad = !f.entidadResponsablePei || p.entidadResponsablePei === f.entidadResponsablePei;
+      return byEstado && byNivel && byFrpt && bySector && byEntidad;
+    });
+  }
+
+  get proyectosTablaFiltrada(): ProyectoTabla[] {
+    return this.proyectosFiltradosTodos.filter((p) => p.fuente === this.proyectosTabActivo);
+  }
+
+  get opcionesProyectosEstado(): string[] {
+    return this.obtenerOpcionesUnicas(this.proyectosBaseActual.map((p) => p.estadoProyecto));
+  }
+
+  get opcionesProyectosNivelEstado(): string[] {
+    return this.obtenerOpcionesUnicas(this.proyectosBaseActual.map((p) => p.nivelEstadoProyecto));
+  }
+
+  get opcionesProyectosSector(): string[] {
+    return this.obtenerOpcionesUnicas(this.proyectosBaseActual.map((p) => p.sector));
+  }
+
+  get opcionesProyectosEntidadResponsablePei(): string[] {
+    return this.obtenerOpcionesUnicas(this.proyectosBaseActual.map((p) => p.entidadResponsablePei));
+  }
+
+  get proyectosResumenEstados(): Array<{ key: 'En ejecución' | 'No iniciado' | 'Terminado'; label: string; value: number; color: string }> {
+    const base = this.proyectosFiltradosTodos;
+    if (!base.length) {
+      // Dummy data para que siempre se vea la gráfica.
+      return [
+        { key: 'En ejecución', label: 'En ejecución', value: 6, color: '#00c3c1' },
+        { key: 'No iniciado', label: 'No iniciados', value: 3, color: '#ffbf39' },
+        { key: 'Terminado', label: 'Terminados', value: 2, color: '#66bb6a' }
+      ];
+    }
+    const count = (k: 'En ejecución' | 'No iniciado' | 'Terminado') => base.filter((p) => p.estadoProyecto === k).length;
+    return [
+      { key: 'En ejecución', label: 'En ejecución', value: count('En ejecución'), color: '#00c3c1' },
+      { key: 'No iniciado', label: 'No iniciados', value: count('No iniciado'), color: '#ffbf39' },
+      { key: 'Terminado', label: 'Terminados', value: count('Terminado'), color: '#66bb6a' }
+    ];
+  }
+
+  get proyectosSectoresResumen(): Array<{ sector: string; cantidad: number; color: string }> {
+    const base = this.proyectosFiltradosTodos;
+    if (!base.length) {
+      // Dummy data para que siempre se vea la gráfica.
+      return [
+        { sector: 'Transporte', cantidad: 4, color: 'hsl(0, 70%, 45%)' },
+        { sector: 'Salud', cantidad: 3, color: 'hsl(137.508, 70%, 45%)' },
+        { sector: 'Educación', cantidad: 2, color: 'hsl(275.016, 70%, 45%)' },
+        { sector: 'Agua y saneamiento', cantidad: 2, color: 'hsl(52.524, 70%, 45%)' }
+      ];
+    }
+    const mapa: Record<string, number> = {};
+    for (const p of base) {
+      const key = (p.sector || '').trim() || 'Sin sector';
+      mapa[key] = (mapa[key] ?? 0) + 1;
+    }
+    const entries = Object.entries(mapa).map(([sector, cantidad], idx) => ({
+      sector,
+      cantidad,
+      color: `hsl(${(idx * 137.508) % 360}, 70%, 45%)`
+    }));
+    entries.sort((a, b) => b.cantidad - a.cantidad);
+    return entries;
+  }
+
   get indicadoresIniciativas() {
     const tabla = this.pactoSeleccionado
       ? (this.iniciativasTablaPorPacto[this.pactoSeleccionado.id] ?? [])
@@ -869,6 +1349,7 @@ export class PactosTerritorialesComponent implements OnInit {
       next: (rows) => {
         this.pactos = rows.map((item) => this.mapPactoFromTabla(item));
         this.pactoSeleccionado = this.pactosFiltrados[0] ?? this.pactos[0] ?? null;
+        this.applyRequestedDepartamentoSelection();
         this.isLoadingPactos = false;
       },
       error: () => {
@@ -1062,6 +1543,34 @@ export class PactosTerritorialesComponent implements OnInit {
     }
 
     return [...departments];
+  }
+
+  private extractMunicipiosFromAlcance(alcance?: string): string[] {
+    const safeAlcance = (alcance || '').trim();
+    if (!safeAlcance) {
+      return [];
+    }
+
+    const municipios = new Set<string>();
+    const segments = safeAlcance.split('|').map((segment) => segment.trim()).filter(Boolean);
+
+    for (const segment of segments) {
+      const normalized = segment
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      if (normalized.startsWith('municipios:') || normalized.startsWith('municipio:')) {
+        const value = segment.includes(':') ? segment.slice(segment.indexOf(':') + 1).trim() : segment.trim();
+        value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach((item) => municipios.add(item));
+      }
+    }
+
+    return [...municipios];
   }
 
 }

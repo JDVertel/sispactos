@@ -2,8 +2,87 @@
   display: block;
 }
 
-.footer-bootstrap {
-  background: #ebebeb;
-  font-size: 0.86rem;
-  line-height: 1.2;
+.dnp-footer {
+  background: #f1f1f1;
+  border-top: 1px solid rgba(26, 46, 53, 0.18);
+  font-size: 0.78rem;
+  line-height: 1.15;
+  color: #1a2e35;
+  font-family: "Segoe UI", SegoeUI, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.dnp-footer:focus-visible {
+  outline: 2px solid rgba(0, 162, 160, 0.55);
+  outline-offset: 2px;
+}
+
+.dnp-footer__inner {
+  padding: 0.55rem 0.7rem;
+  background: transparent;
+  text-align: center;
+}
+
+.dnp-footer__compact {
+  max-width: 1500px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.dnp-footer__brand {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: 0.85rem;
+}
+
+.dnp-footer__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.35rem;
+  color: #4b6470;
+}
+
+.dnp-footer__line--primary {
+  color: #1a2e35;
+}
+
+.dnp-footer__collapsible {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    max-height 220ms ease,
+    opacity 180ms ease,
+    transform 220ms ease;
+}
+
+.dnp-footer__collapsible.is-open {
+  max-height: 220px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dnp-footer__sep {
+  color: rgba(75, 100, 112, 0.75);
+}
+
+.dnp-footer__bottom {
+  display: none;
+}
+
+.dnp-footer__legal {
+  color: #4b6470;
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+@media (max-width: 576px) {
+  .dnp-footer {
+    font-size: 0.74rem;
+  }
 }

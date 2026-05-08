@@ -1,49 +1,45 @@
-<!-- Pie de página con información institucional y enlaces rápidos -->
-<footer class="footer-bootstrap border-top mt-2" role="contentinfo">
-  <div class="container-fluid py-2">
-    <div class="row g-2 align-items-start">
-      <!-- Bloque de identidad del sistema -->
-      <div class="col-12 col-md-4">
-        <h3 class="h6 mb-2">SISPACTOS</h3>
-        <p class="mb-0 small text-secondary">Sistema de Informacion para el seguimiento de Pactos Territoriales.</p>
+<footer
+  class="dnp-footer mt-2"
+  role="contentinfo"
+  tabindex="0"
+  [attr.aria-expanded]="expanded"
+  (click)="toggleExpanded()"
+  (keydown.enter)="toggleExpanded()"
+  (keydown.space)="toggleExpanded()"
+>
+  <div class="container-fluid dnp-footer__inner">
+    <div class="dnp-footer__compact" aria-label="Información institucional">
+      <!-- Fila 1 -->
+      <div class="dnp-footer__line dnp-footer__line--primary">
+        <span class="dnp-footer__brand">SISPACTOS</span>
+        <span class="dnp-footer__sep">—</span>
+        <span>Sistema de Informacion para el seguimiento de Pactos Territoriales.</span>
+        <span class="dnp-footer__sep">—</span>
+        <span>Departamento de Planeación Nacional</span>
       </div>
 
-      <!-- Enlaces internos principales -->
-      <div class="col-6 col-md-2">
-        <h4 class="h6 mb-2">Enlaces</h4>
-        <nav class="nav flex-column gap-1" aria-label="Enlaces del sitio">
-          <a class="nav-link p-0" routerLink="/dashboard">Inicio</a>
-          <a class="nav-link p-0" routerLink="/dashboard/pactos">Pactos</a>
-          <a class="nav-link p-0" routerLink="/dashboard/proyectos">Proyectos</a>
-          <a class="nav-link p-0" routerLink="/dashboard/contratos">Contratos</a>
-        </nav>
-      </div>
-
-      <!-- Datos de contacto -->
-      <div class="col-6 col-md-4">
-        <h4 class="h6 mb-2">Contacto</h4>
-        <p class="small mb-1"><strong>Email:</strong> info&#64;sispactos.gov.co</p>
-        <p class="small mb-1"><strong>Tel:</strong> +57 (601) 000 0000</p>
-        <p class="small mb-0"><strong>Direccion:</strong> Bogota D.C., Colombia</p>
-      </div>
-
-      <!-- Accesos a redes sociales -->
-      <div class="col-12 col-md-2">
-        <h4 class="h6 mb-2">Redes</h4>
-        <div class="d-flex gap-2" aria-label="Redes sociales">
-          <a class="btn btn-outline-secondary btn-sm" href="#" aria-label="Facebook">FB</a>
-          <a class="btn btn-outline-secondary btn-sm" href="#" aria-label="X">X</a>
-          <a class="btn btn-outline-secondary btn-sm" href="#" aria-label="LinkedIn">IN</a>
+      <div class="dnp-footer__collapsible" [class.is-open]="expanded">
+        <!-- Fila 2 -->
+        <div class="dnp-footer__line">
+          <span>Mesa de ayuda: info&#64;sispactos.gov.co</span>
+          <span class="dnp-footer__sep">—</span>
+          <span>Políticas de seguridad de la información DNP (uso adecuado de sistemas DPII).</span>
         </div>
-      </div>
-    </div>
 
-    <!-- Franja legal inferior -->
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-1 border-top pt-2 mt-2 small text-secondary">
-      <span>© {{ currentYear }} SISPACTOS - Todos los derechos reservados</span>
-      <div class="d-flex gap-3">
-        <a class="link-secondary text-decoration-none" href="#">Politica de privacidad</a>
-        <a class="link-secondary text-decoration-none" href="#">Terminos de uso</a>
+        <!-- Fila 3 -->
+        <div class="dnp-footer__line">
+          <span>Dirección: Bogota D.C., Colombia</span>
+          <span class="dnp-footer__sep">—</span>
+          <span>Conmutador: +57 (601) 000 0000</span>
+          <span class="dnp-footer__sep">—</span>
+          <span>Fax: +57 (601) 000 0001</span>
+          <span class="dnp-footer__sep">—</span>
+          <span>Horario: L-V 8:30-12:30 y 2:00-6:00</span>
+          <span class="dnp-footer__sep">—</span>
+          <span>Línea quejas y reclamos: 01 8000 1212 21</span>
+          <span class="dnp-footer__sep">—</span>
+          <span class="dnp-footer__legal">© {{ currentYear }} SISPACTOS</span>
+        </div>
       </div>
     </div>
   </div>

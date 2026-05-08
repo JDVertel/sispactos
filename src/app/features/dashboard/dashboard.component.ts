@@ -28,13 +28,7 @@ const RESTRICTED_MENU_SUBMENUS = new Set(['administracion', 'configuracion']);
 const MENU_ITEMS: MenuItem[] = [
   // Menú principal que alimenta la navegación del panel.
   { type: 'item', label: 'Home', route: 'home', icon: 'home' },
-  { type: 'item', label: 'Iniciar sesion', route: 'home', icon: 'user', action: 'open-login-modal' },
-  {
-    type: 'submenu',
-    label: 'pactos-territoriales',
-    icon: 'pin',
-    children: [{ label: 'Pactos Territoriales', route: 'pactos-territoriales' }]
-  },
+  { type: 'item', label: 'Pactos Territoriales', route: 'pactos-territoriales', icon: 'pin' },
   {
     type: 'submenu',
     label: 'proyectos',
@@ -95,6 +89,8 @@ const MENU_ITEMS: MenuItem[] = [
     ]
   },
   { type: 'separator', label: 'Sesion' },
+  // Agrupado bajo “Sesión” para modo invitado.
+  { type: 'item', label: 'Iniciar sesion', route: 'home', icon: 'user', action: 'open-login-modal' },
   { type: 'item', label: 'Cerrar sesion', route: 'home', icon: 'logout', action: 'logout' },
   { type: 'item', label: 'Salir', route: 'home', icon: 'logout', action: 'logout' }
 ];
@@ -257,7 +253,8 @@ export class DashboardComponent {
 
   private applySessionVisibilityRules(item: MenuItem, canAccessProtectedModules: boolean): boolean {
     if (item.type === 'separator' && this.formatMenuLabel(item.label) === 'Sesion') {
-      return canAccessProtectedModules;
+      // El separador “Sesión” se muestra siempre para agrupar acciones (login/logout).
+      return true;
     }
 
     if (canAccessProtectedModules && this.isGuestOnlyItem(item)) {

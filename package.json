@@ -18,7 +18,7 @@
     "@angular/platform-browser": "^19.2.0",
     "@angular/platform-browser-dynamic": "^19.2.0",
     "@angular/router": "^19.2.0",
-    "@ng-bootstrap/ng-bootstrap": "^20.0.0",
+    "@ng-bootstrap/ng-bootstrap": "^18.0.0",
     "@popperjs/core": "^2.11.8",
     "@svg-maps/colombia": "^2.0.0",
     "d3-geo": "^3.1.1",

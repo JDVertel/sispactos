@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, ElementRef, HostBinding, HostListener, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostBinding, HostListener, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { geoMercator, geoPath } from 'd3-geo';
@@ -25,6 +25,9 @@ interface RenderPath {
   d: string;
   selected: boolean;
   dimmed: boolean;
+  fill?: string;
+  stroke?: string;
+  tooltip?: string;
 }
 
 interface RenderLabel {
@@ -106,6 +109,15 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
   /** Si es true, el mapa crece en altura para igualar la columna vecina (flex). */
   @Input() stretchVertical = false;
 
+  /**
+   * Tooltip extra por departamento (por nombre).
+   * Clave: nombre del departamento (cualquier casing/acentos). Se normaliza internamente.
+   */
+  @Input() departmentTooltipMap: Record<string, { pactoNombre: string; valorIndicativo: number }> = {};
+
+  /** Click en un departamento del mapa (por nombre visible). */
+  @Output() departmentClick = new EventEmitter<string>();
+
   @HostBinding('class.map-host-stretch')
   get hostStretchClass(): boolean {
     return this.stretchVertical;
@@ -118,6 +130,8 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
   departmentLabels: RenderLabel[] = [];
   municipalityPaths: RenderPath[] = [];
   municipalityLabels: RenderLabel[] = [];
+  municipalityNumberLabels: RenderLabel[] = [];
+  departmentLabelsHidden = false;
   zoomLevel = 0.32;
   readonly minZoom = 0.08;
   readonly maxZoom = 2.5;
@@ -125,6 +139,8 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
   baseMapTransform = '';
   zoomCenterX = MAP_WIDTH / 2;
   zoomCenterY = MAP_HEIGHT / 2;
+  private selectionCenterX = MAP_WIDTH / 2;
+  private selectionCenterY = MAP_HEIGHT / 2;
   panX = 0;
   panY = 0;
   private isDragging = false;
@@ -139,6 +155,7 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
 
   private departmentsData: GeoJsonFeatureCollection | null = null;
   private municipalitiesData: GeoJsonFeatureCollection | null = null;
+  private municipalityColorMap = new Map<string, string>();
 
   constructor(private readonly http: HttpClient) {}
 
@@ -193,6 +210,10 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
     return this.hasSelectedDepartment || this.selectedMunicipalityCodes().size > 0;
   }
 
+  get emptyTerritoryLegendText(): string {
+    return 'No hay municipios o departamentos para mostrar.';
+  }
+
   get mapViewBox(): string {
     return `0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`;
   }
@@ -218,12 +239,56 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
     return Math.round(this.zoomLevel * 100);
   }
 
+  get municipalityLegend(): { id: string; name: string; selected: boolean; color: string; number: number }[] {
+    if (!this.showMunicipalities || !this.municipalityPaths.length) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+    const items = this.municipalityPaths
+      .map((m) => ({
+        id: m.id,
+        name: (m.name || '').trim(),
+        selected: m.selected,
+        color: m.stroke || this.getMunicipalityColor(m.id)
+      }))
+      .filter((m) => !!m.name)
+      .filter((m) => {
+        const key = `${m.id}|${m.name}`.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+    items.sort((a, b) => {
+      if (a.selected !== b.selected) return a.selected ? -1 : 1;
+      return a.name.localeCompare(b.name, 'es-CO', { sensitivity: 'base' });
+    });
+
+    return items.map((item, index) => ({
+      ...item,
+      number: index + 1
+    }));
+  }
+
+  private municipalityNumberMap(): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const item of this.municipalityLegend) {
+      map.set(item.id, item.number);
+    }
+    return map;
+  }
+
   zoomIn(): void {
+    this.recenterZoomOnSelection();
     this.zoomLevel = Math.min(this.maxZoom, +(this.zoomLevel + this.zoomStep).toFixed(2));
+    this.ensurePanInBounds();
   }
 
   zoomOut(): void {
+    this.recenterZoomOnSelection();
     this.zoomLevel = Math.max(this.minZoom, +(this.zoomLevel - this.zoomStep).toFixed(2));
+    this.ensurePanInBounds();
   }
 
   resetZoom(): void {
@@ -260,6 +325,7 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
     this.panX = pointerX - zoomRatio * (pointerX - this.panX);
     this.panY = pointerY - zoomRatio * (pointerY - this.panY);
     this.zoomLevel = nextZoom;
+    this.ensurePanInBounds();
   }
 
   onMapPointerDown(event: PointerEvent): void {
@@ -283,6 +349,7 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
 
     this.panX = this.dragStartPanX + (event.clientX - this.dragStartX);
     this.panY = this.dragStartPanY + (event.clientY - this.dragStartY);
+    this.ensurePanInBounds();
   }
 
   @HostListener('window:pointerup')
@@ -299,6 +366,49 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
       .replace(/\uFFFD/g, '')
       .toLowerCase()
       .trim();
+  }
+
+  private buildDepartmentTooltip(departmentName: string): string {
+    const safeName = (departmentName || '').trim() || 'Sin nombre';
+    const normalized = this.normalizeText(safeName);
+
+    const entries = Object.entries(this.departmentTooltipMap || {});
+    const match = entries.find(([key]) => this.normalizeText(key) === normalized);
+    if (!match) {
+      return safeName;
+    }
+
+    const meta = match[1];
+    const pactoNombre = (meta?.pactoNombre || '').trim();
+    const valor = Number(meta?.valorIndicativo ?? 0);
+    const valorSeguro = Number.isFinite(valor) ? valor : 0;
+
+    const valorTexto = new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0
+    }).format(valorSeguro);
+
+    return pactoNombre
+      ? `${safeName}\nPacto: ${pactoNombre}\nValor indicativo: ${valorTexto}`
+      : safeName;
+  }
+
+  onDepartmentClicked(departmentName: string): void {
+    const safe = (departmentName || '').trim();
+    if (!safe) {
+      return;
+    }
+    this.departmentClick.emit(safe);
+  }
+
+  hideDepartmentLabels(event: MouseEvent): void {
+    event.stopPropagation();
+    this.departmentLabelsHidden = true;
+  }
+
+  showDepartmentLabels(): void {
+    this.departmentLabelsHidden = false;
   }
 
   private selectedDepartmentCodes(): Set<string> {
@@ -414,12 +524,14 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
             const d = pathGenerator(feature as any) || '';
             const selected = selectedDepartmentCodes.has(code);
             const dimmed = selectedDepartmentCodes.size > 0 && !selected;
+            const tooltip = this.buildDepartmentTooltip(name);
             return {
               id: code || name,
               name,
               d,
               selected,
-              dimmed
+              dimmed,
+              tooltip
             };
           })
           .filter((item) => !!item.d)
@@ -451,61 +563,84 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
           .filter((item): item is RenderLabel => !!item)
       : [];
 
-    this.municipalityPaths = this.showMunicipalities
-      ? this.municipalitiesData.features
-          .filter((feature) => {
-            const code = this.getMunicipalityCode(feature);
-            const departmentCode = this.getMunicipalityDepartmentCode(feature);
-            const matchesMunicipality = selectedMunicipalityCodes.size === 0 || selectedMunicipalityCodes.has(code);
-            const matchesDepartment = selectedDepartmentCodes.size === 0 || selectedDepartmentCodes.has(departmentCode);
-            return matchesMunicipality && matchesDepartment;
-          })
-          .map((feature) => {
-            const d = pathGenerator(feature as any) || '';
-            const code = this.getMunicipalityCode(feature);
-            const selected = selectedMunicipalityCodes.has(code);
-            const dimmed = selectedMunicipalityCodes.size > 0 && !selected;
-            return {
-              id: code,
-              name: this.getMunicipalityName(feature),
-              d,
-              selected,
-              dimmed
-            };
-          })
-          .filter((item) => !!item.d)
-      : [];
+    if (this.showMunicipalities) {
+      const visibleMunicipalityFeatures = this.municipalitiesData.features.filter((feature) => {
+        const code = this.getMunicipalityCode(feature);
+        const departmentCode = this.getMunicipalityDepartmentCode(feature);
+        const matchesMunicipality = selectedMunicipalityCodes.size === 0 || selectedMunicipalityCodes.has(code);
+        const matchesDepartment = selectedDepartmentCodes.size === 0 || selectedDepartmentCodes.has(departmentCode);
+        return matchesMunicipality && matchesDepartment;
+      });
 
-    this.municipalityLabels = this.showMunicipalities
-      ? this.municipalitiesData.features
-          .filter((feature) => {
-            const code = this.getMunicipalityCode(feature);
-            const departmentCode = this.getMunicipalityDepartmentCode(feature);
-            const matchesMunicipality = selectedMunicipalityCodes.size === 0 || selectedMunicipalityCodes.has(code);
-            const matchesDepartment = selectedDepartmentCodes.size === 0 || selectedDepartmentCodes.has(departmentCode);
-            return matchesMunicipality && matchesDepartment;
-          })
-          .map((feature) => {
-            const [x, y] = (centroidGenerator.centroid(feature as any) as [number, number]) || [0, 0];
-            const name = this.getMunicipalityName(feature);
-            const offset = this.getMunicipalityLabelOffset(name);
-            return {
-              id: this.getMunicipalityCode(feature),
-              name,
-              x,
-              y,
-              scale: this.getMunicipalityLabelScale(name),
-              dx: offset.dx,
-              dy: offset.dy
-            };
-          })
-          .filter((item) => !!item.id)
-      : [];
+      const visibleCodes = visibleMunicipalityFeatures
+        .map((feature) => this.getMunicipalityCode(feature))
+        .filter(Boolean);
+      this.ensureMunicipalityColors(visibleCodes);
+
+      this.municipalityPaths = visibleMunicipalityFeatures
+        .map((feature) => {
+          const d = pathGenerator(feature as any) || '';
+          const code = this.getMunicipalityCode(feature);
+          const selected = selectedMunicipalityCodes.has(code);
+          const dimmed = selectedMunicipalityCodes.size > 0 && !selected;
+          const color = this.getMunicipalityColor(code);
+          const hue = this.hueFromHsl(color);
+          const fillHex = this.hslToHex(hue, 82, 58);
+          const strokeHex = this.hslToHex(hue, 82, 34);
+          return {
+            id: code,
+            name: this.getMunicipalityName(feature),
+            d,
+            selected,
+            dimmed,
+            // Relleno sólido para que se identifique claramente cada municipio.
+            fill: fillHex,
+            // Borde un poco más oscuro para definir el contorno.
+            stroke: strokeHex
+          };
+        })
+        .filter((item) => !!item.d);
+    } else {
+      this.municipalityPaths = [];
+    }
+
+    // No mostramos texto de municipios en el mapa (se listan en la leyenda),
+    // pero sí mostramos un número que coincide con la leyenda para identificar.
+    this.municipalityLabels = [];
+    this.municipalityNumberLabels = [];
+
+    if (this.showMunicipalities) {
+      const numberMap = this.municipalityNumberMap();
+      const visibleCodes = new Set(this.municipalityPaths.map((m) => m.id));
+
+      this.municipalityNumberLabels = this.municipalitiesData.features
+        .filter((feature) => visibleCodes.has(this.getMunicipalityCode(feature)))
+        .map((feature) => {
+          const id = this.getMunicipalityCode(feature);
+          const number = numberMap.get(id) ?? 0;
+          if (!number) return null;
+
+          const [x, y] = (centroidGenerator.centroid(feature as any) as [number, number]) || [0, 0];
+          return {
+            id,
+            name: String(number),
+            x,
+            y,
+            // El número debe ir centrado: sin offsets y con escala fija.
+            scale: 1,
+            dx: 0,
+            dy: 0
+          };
+        })
+        .filter((item): item is RenderLabel => !!item);
+    }
 
     const fit = this.computeFitTransform(pathGenerator as any, selectedDepartmentCodes, selectedMunicipalityCodes);
     this.baseMapTransform = fit.transform;
     this.zoomCenterX = fit.centerX;
     this.zoomCenterY = fit.centerY;
+    this.selectionCenterX = fit.centerX;
+    this.selectionCenterY = fit.centerY;
 
     if (selectedDepartmentCodes.size === 1 && selectedDepartmentFeature) {
       this.mapLabel = `Mapa de ${this.getDepartmentName(selectedDepartmentFeature)}`;
@@ -652,7 +787,15 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
   }
 
   private readString(value: unknown): string {
-    return typeof value === 'string' ? value.trim() : '';
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value).trim();
+    }
+
+    return '';
   }
 
   private getLabelScale(name: string): number {
@@ -819,5 +962,99 @@ export class DepartamentoMapComponent implements OnInit, OnChanges {
     }
 
     return 0.32;
+  }
+
+  /**
+   * Mantiene el mapa visible dentro del viewBox.
+   * La cartografía ya fue ajustada con `baseMapTransform` para caber en el frame;
+   * el pan solo debe permitir "mover un poco" sin perder el mapa completo.
+   */
+  private ensurePanInBounds(): void {
+    const scale = Math.max(this.zoomLevel, 0.0001);
+    const maxPanX = (MAP_WIDTH * (scale - 1)) / scale;
+    const maxPanY = (MAP_HEIGHT * (scale - 1)) / scale;
+
+    if (scale <= 1) {
+      // Si estamos en zoom out, no permitimos desplazar y perder el mapa.
+      this.panX = 0;
+      this.panY = 0;
+      return;
+    }
+
+    this.panX = Math.max(-maxPanX, Math.min(maxPanX, this.panX));
+    this.panY = Math.max(-maxPanY, Math.min(maxPanY, this.panY));
+  }
+
+  private recenterZoomOnSelection(): void {
+    // Al hacer zoom por botones, el pivote debe ser el territorio seleccionado.
+    this.zoomCenterX = this.selectionCenterX;
+    this.zoomCenterY = this.selectionCenterY;
+    // Evita que la selección se "pierda" si hubo pan previo.
+    this.panX = 0;
+    this.panY = 0;
+  }
+
+  private ensureMunicipalityColors(ids: string[]): void {
+    const unique = [...new Set(ids.map((id) => (id || '').trim()).filter(Boolean))];
+    unique.sort((a, b) => a.localeCompare(b, 'es-CO', { sensitivity: 'base' }));
+
+    // Recalcula colores para el conjunto visible para evitar repeticiones.
+    // (Garantiza colores únicos aunque haya colisiones por hash / reordenamientos.)
+    this.municipalityColorMap.clear();
+    for (let i = 0; i < unique.length; i += 1) {
+      const id = unique[i];
+      const hue = (i * 137.508) % 360; // golden angle: separación visual fuerte
+      this.municipalityColorMap.set(id, `hsl(${hue.toFixed(1)}, 82%, 45%)`);
+    }
+  }
+
+  private getMunicipalityColor(id: string): string {
+    const safe = (id || '').trim();
+    if (!safe) {
+      return 'hsl(330, 80%, 45%)';
+    }
+    return this.municipalityColorMap.get(safe) || 'hsl(330, 80%, 45%)';
+  }
+
+  private hueFromHsl(hsl: string): number {
+    const match = hsl.match(/hsl\(([-\\d.]+)/i);
+    if (!match) {
+      return 330;
+    }
+    const hue = Number(match[1]);
+    return Number.isFinite(hue) ? hue : 330;
+  }
+
+  // Nota: ya no usamos hash → evitamos colisiones/repetición.
+
+  private hslToHex(h: number, s: number, l: number): string {
+    const hue = ((h % 360) + 360) % 360;
+    const sat = Math.max(0, Math.min(100, s)) / 100;
+    const lig = Math.max(0, Math.min(100, l)) / 100;
+
+    const c = (1 - Math.abs(2 * lig - 1)) * sat;
+    const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+    const m = lig - c / 2;
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    if (hue < 60) {
+      r = c; g = x; b = 0;
+    } else if (hue < 120) {
+      r = x; g = c; b = 0;
+    } else if (hue < 180) {
+      r = 0; g = c; b = x;
+    } else if (hue < 240) {
+      r = 0; g = x; b = c;
+    } else if (hue < 300) {
+      r = x; g = 0; b = c;
+    } else {
+      r = c; g = 0; b = x;
+    }
+
+    const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   }
 }

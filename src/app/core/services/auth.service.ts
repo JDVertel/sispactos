@@ -1,7 +1,7 @@
-﻿import { Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, shareReplay, finalize } from 'rxjs/operators';
 import { AuthSessionStore } from '../store/auth-session.store';
 
 export interface LoginResult {
@@ -16,6 +16,8 @@ const AUTH_REFRESH_TOKEN_URL = '/api/Auth/RefreshToken';
   providedIn: 'root'
 })
 export class AuthService {
+  private refreshInFlight$: Observable<boolean> | null = null;
+
   constructor(
     private readonly http: HttpClient,
     private readonly authSessionStore: AuthSessionStore
@@ -65,12 +67,16 @@ export class AuthService {
   }
 
   refreshToken(): Observable<boolean> {
+    if (this.refreshInFlight$) {
+      return this.refreshInFlight$;
+    }
+
     const token = this.authSessionStore.getToken().trim();
     if (!token) {
       return of(false);
     }
 
-    return this.http.post<unknown>(AUTH_REFRESH_TOKEN_URL, token).pipe(
+    this.refreshInFlight$ = this.http.post<unknown>(AUTH_REFRESH_TOKEN_URL, token).pipe(
       tap((response) => {
         console.groupCollapsed('[API OK] POST /api/Auth/RefreshToken');
         console.log('response:', response);
@@ -94,8 +100,14 @@ export class AuthService {
         console.error('[API ERROR] POST /api/Auth/RefreshToken', error);
         this.logout();
         return of(false);
-      })
+      }),
+      finalize(() => {
+        this.refreshInFlight$ = null;
+      }),
+      shareReplay(1)
     );
+
+    return this.refreshInFlight$;
   }
 
   // Cierra la sesión actual y limpia los datos guardados.

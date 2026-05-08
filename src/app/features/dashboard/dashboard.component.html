@@ -73,15 +73,6 @@
   aria-modal="true"
   aria-label="Iniciar sesion en SISPACTOS"
 >
-  <header class="login-modal-head">
-    <h2 class="login-modal-title mb-0">Iniciar sesion en SISPACTOS</h2>
-    <button
-      type="button"
-      class="btn-close"
-      aria-label="Cerrar modal"
-      (click)="closeLoginModal()"
-    ></button>
-  </header>
   <div class="login-modal-body">
     <app-login [compactMode]="true" (loginSuccess)="onLoginSuccess()"></app-login>
   </div>

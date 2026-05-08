@@ -376,6 +376,39 @@ export class PactosManagementComponent implements OnInit {
     }).format(amount);
   }
 
+  getEtapaTexto(value?: string): string {
+    const raw = (value || '').trim();
+    if (!raw) return 'Sin etapa';
+
+    const normalized = this.normalizeText(raw);
+    const byId = this.etapasPacto.find((e) => String(e.id) === raw);
+    if (byId?.texto) return byId.texto;
+
+    const byText = this.etapasPacto.find((e) => this.normalizeText(e.texto) === normalized || this.normalizeText(e.codigo) === normalized);
+    return byText?.texto || raw;
+  }
+
+  getEtapaKey(value?: string): 'implementacion' | 'cierre' | 'otro' {
+    const normalized = this.normalizeText(this.getEtapaTexto(value));
+    if (normalized.includes('cierre')) return 'cierre';
+    if (normalized.includes('implementacion')) return 'implementacion';
+    return 'otro';
+  }
+
+  getEtapaBadgeClass(value?: string): string {
+    const key = this.getEtapaKey(value);
+    if (key === 'implementacion') return 'badge-etapa-implementacion';
+    if (key === 'cierre') return 'badge-etapa-cierre';
+    return 'badge-etapa-otro';
+  }
+
+  getPactoCardClass(value?: string): string {
+    const key = this.getEtapaKey(value);
+    if (key === 'implementacion') return 'pacto-item-card--implementacion';
+    if (key === 'cierre') return 'pacto-item-card--cierre';
+    return 'pacto-item-card--otro';
+  }
+
   getTotalValorEstimado(): number {
     return this.pactosService.getTotalValorEstimado();
   }

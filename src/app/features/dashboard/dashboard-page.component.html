@@ -50,14 +50,20 @@
                    }"
 >{{ card.value }}</p>
               </div>
-              <h3 class="h6 mb-0 summary-card-label">{{ card.label }}</h3>
+              <h3 class="h6 mb-0 summary-card-label">
+                <span class="summary-card-label__marquee">
+                  <span class="summary-card-label__text">{{ card.label }}</span>
+                  <span class="summary-card-label__gap" aria-hidden="true">&nbsp;&nbsp;&nbsp;</span>
+                  <span class="summary-card-label__text" aria-hidden="true">{{ card.label }}</span>
+                </span>
+              </h3>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Carrusel de imágenes simple -->
-      <div class="home-carousel my-3" *ngIf="carouselImages.length">
+      <div class="home-carousel my-3" *ngIf="carouselSlides.length">
         <div
           class="home-carousel__viewport"
           role="region"
@@ -66,16 +72,27 @@
         >
           <div class="home-carousel__slides">
             <div
-              *ngFor="let img of carouselImages; let i = index"
+              *ngFor="let slide of carouselSlides; let i = index"
               class="home-carousel__slide"
               [class.home-carousel__slide--active]="i === currentCarousel"
               [attr.aria-hidden]="i === currentCarousel ? null : true"
             >
-              <div class="home-carousel__frame">
-                <img [src]="img.src" [alt]="img.alt" class="home-carousel__img" loading="lazy" />
-                <div class="home-carousel__caption">
-                  <p class="home-carousel__caption-text">{{ img.caption }}</p>
-                </div>
+              <div class="home-carousel__frame home-carousel__frame--grid">
+                <button
+                  type="button"
+                  class="home-carousel__cell home-carousel__cell-btn"
+                  *ngFor="let img of slide"
+                  (click)="openCarouselPreview(img)"
+                  [attr.aria-label]="'Abrir imagen ' + (img.alt || '')"
+                >
+                  <img
+                    [src]="img.src"
+                    [alt]="img.alt"
+                    class="home-carousel__img"
+                    [attr.loading]="i === 0 ? 'eager' : 'lazy'"
+                    [attr.fetchpriority]="i === 0 ? 'high' : 'auto'"
+                  />
+                </button>
               </div>
             </div>
           </div>
@@ -100,6 +117,28 @@
         </div>
       </div>
 
+      <!-- Modal sin cabecera: preview carrusel -->
+      <div
+        class="home-img-modal-backdrop"
+        *ngIf="previewImage"
+        (click)="closeCarouselPreview()"
+      >
+        <section
+          class="home-img-modal"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="previewImage?.alt || 'Imagen'"
+          (click)="$event.stopPropagation()"
+        >
+          <img
+            class="home-img-modal__img"
+            [src]="previewImage.src"
+            [alt]="previewImage.alt"
+            (click)="$event.stopPropagation()"
+          />
+        </section>
+      </div>
+
       <!-- Filtro en posición superior para móvil/tablet -->
       <app-filter-drawer
         *ngIf="isResponsiveView"
@@ -115,17 +154,23 @@
       <section class="home-detail-panel mt-2">
         <div class="row g-3 align-items-stretch">
           <!-- Mapa que cambia según departamento -->
-          <div class="col-12 col-xl-5 d-flex flex-column">
+          <div class="col-12 col-xl-5 d-flex flex-column home-territory-fixed home-territory-map-col">
             <app-departamento-map
               class="flex-grow-1"
               [departamentos]="departamentosMapaHome"
+              [departmentTooltipMap]="tooltipDepartamentosMapaHome"
               [homeSurface]="true"
+              [showMunicipalities]="false"
+              [showDepartments]="true"
+              [selectedDepartmentFill]="'#00c3c1'"
+              [selectedDepartmentStroke]="'#008f8d'"
               [stretchVertical]="true"
+              (departmentClick)="onDepartamentoMapaClick($event)"
             ></app-departamento-map>
           </div>
 
           <!-- Tabla con los pactos que cumplen los filtros -->
-          <div class="col-12 col-xl-7">
+          <div class="col-12 col-xl-7 home-territory-fixed home-territory-table-col">
             <article class="card pactos-table-card h-100 border-0">
               <header class="pactos-table-head d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-table me-1"></i> Pactos filtrados</span>
@@ -206,7 +251,183 @@
     </div>
   </div>
 
-  <div *ngIf="currentPage !== 'home'" class="alert alert-light border">
+  <!-- Compromisos - Pactos -->
+  <section *ngIf="currentPage === 'compromisos-pactos'">
+    <div class="card cp-panel mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h5 class="mb-1">Compromisos - Pactos</h5>
+            <div class="text-muted">Seguimiento a compromisos de pactos territoriales.</div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-secondary" (click)="limpiarFiltrosCompromisosPactos()">
+              Limpiar filtros
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="openNuevoCompromisoPactosModal()"
+              [disabled]="!hasAuthenticatedSession"
+              [attr.aria-disabled]="!hasAuthenticatedSession"
+              [title]="!hasAuthenticatedSession ? 'Debe iniciar sesión para crear un nuevo compromiso' : null"
+            >
+              Nuevo compromiso
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-2">
+        <div class="col-12 col-md-3">
+          <label class="form-label small fw-bold">Pacto</label>
+          <select class="form-select" [(ngModel)]="filtrosCompromisosPactos.pacto">
+            <option value="">Todos</option>
+            <option *ngFor="let opcion of opcionesCompromisosPactosPacto" [value]="opcion">{{ opcion }}</option>
+          </select>
+        </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label small fw-bold">Instancia</label>
+            <select class="form-select" [(ngModel)]="filtrosCompromisosPactos.instancia">
+              <option value="">Todas</option>
+              <option *ngFor="let opcion of opcionesCompromisosPactosInstancia" [value]="opcion">{{ opcion }}</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label small fw-bold">Responsable</label>
+            <select class="form-select" [(ngModel)]="filtrosCompromisosPactos.responsable">
+              <option value="">Todos</option>
+              <option *ngFor="let opcion of opcionesCompromisosPactosResponsable" [value]="opcion">{{ opcion }}</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label small fw-bold">Estado</label>
+            <select class="form-select" [(ngModel)]="filtrosCompromisosPactos.estado">
+              <option value="">Todos</option>
+              <option value="No iniciado">No iniciado</option>
+              <option value="En trámite">En trámite</option>
+              <option value="Cumplido">Cumplido</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label small fw-bold">Fecha cumplimiento (desde)</label>
+            <input type="date" class="form-control" [(ngModel)]="filtrosCompromisosPactos.fechaCumplimientoDesde" />
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label small fw-bold">Fecha cumplimiento (hasta)</label>
+            <input type="date" class="form-control" [(ngModel)]="filtrosCompromisosPactos.fechaCumplimientoHasta" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3" *ngFor="let card of resumenCompromisosPactosCards">
+          <div class="card card-dato h-100">
+            <div class="card-body py-2 px-3">
+              <div class="fw-bold small text-secondary">{{ card.label }}</div>
+              <div class="fs-5" [style.color]="card.color">{{ card.value }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Pacto</th>
+              <th>Autor</th>
+              <th>No de la sesión</th>
+              <th>Fecha de la sesión</th>
+              <th>Compromisos</th>
+              <th>Fecha de cumplimiento</th>
+              <th>Responsable</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let fila of compromisosPactosFiltrados">
+              <td>{{ fila.pacto }}</td>
+              <td>{{ fila.autor }}</td>
+              <td>{{ fila.noSesion }}</td>
+              <td>{{ fila.fechaSesion }}</td>
+              <td>{{ fila.compromiso }}</td>
+              <td>{{ fila.fechaCumplimiento }}</td>
+              <td>{{ fila.responsable }}</td>
+              <td>{{ fila.estado }}</td>
+            </tr>
+            <tr *ngIf="compromisosPactosFiltrados.length === 0">
+              <td colspan="8" class="text-center text-muted py-4">No hay compromisos para los filtros seleccionados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    <!-- Modal: nuevo compromiso -->
+    <div class="login-modal-backdrop" *ngIf="showNuevoCompromisoPactosModal"></div>
+    <section class="login-modal" *ngIf="showNuevoCompromisoPactosModal" role="dialog" aria-modal="true" aria-label="Nuevo compromiso">
+      <header class="login-modal-head">
+        <h2 class="login-modal-title mb-0">Nuevo compromiso</h2>
+        <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeNuevoCompromisoPactosModal()"></button>
+      </header>
+      <div class="login-modal-body">
+        <div class="p-2">
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="form-label small fw-bold">Pacto</label>
+              <select class="form-select" [(ngModel)]="nuevoCompromisoPactosForm.pacto">
+                <option value="">Selecciona...</option>
+                <option *ngFor="let opcion of opcionesCompromisosPactosPacto" [value]="opcion">{{ opcion }}</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold">Autor (creación)</label>
+              <input class="form-control" [value]="autorSesion" disabled />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-bold">Instancia</label>
+              <input class="form-control" [(ngModel)]="nuevoCompromisoPactosForm.instancia" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-bold">No de la sesión</label>
+              <input class="form-control" [(ngModel)]="nuevoCompromisoPactosForm.noSesion" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-bold">Fecha de la sesión</label>
+              <input type="date" class="form-control" [(ngModel)]="nuevoCompromisoPactosForm.fechaSesion" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-bold">Fecha de cumplimiento</label>
+              <input type="date" class="form-control" [(ngModel)]="nuevoCompromisoPactosForm.fechaCumplimiento" />
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-bold">Compromisos</label>
+              <textarea rows="3" class="form-control" [(ngModel)]="nuevoCompromisoPactosForm.compromiso"></textarea>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-bold">Responsable</label>
+              <input class="form-control" [(ngModel)]="nuevoCompromisoPactosForm.responsable" />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label small fw-bold">Estado</label>
+              <select class="form-select" [(ngModel)]="nuevoCompromisoPactosForm.estado">
+                <option value="No iniciado">No iniciado</option>
+                <option value="En trámite">En trámite</option>
+                <option value="Cumplido">Cumplido</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-3">
+            <button type="button" class="btn btn-outline-secondary" (click)="closeNuevoCompromisoPactosModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" (click)="guardarNuevoCompromisoPactos()">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <div *ngIf="currentPage !== 'home' && currentPage !== 'compromisos-pactos'" class="alert alert-light border">
     Contenido en construccion.
   </div>
 </section>

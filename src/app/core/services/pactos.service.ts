@@ -39,6 +39,11 @@ export interface PactoTablaFilterOptions {
 
 type ApiPacto = Record<string, unknown>;
 
+export interface PactoApiOption {
+  id: number;
+  nombre: string;
+}
+
 export interface CreatePactoResult {
   success: boolean;
   message?: string;
@@ -148,6 +153,19 @@ export class PactosService {
     );
   }
 
+  /** Opciones mínimas (id + nombre) desde GET /api/PactoTerritorial. */
+  getPactosOptionsFromApi(): Observable<PactoApiOption[]> {
+    return this.http.get<unknown>(this.pactosApiUrl).pipe(
+      map((response) => this.normalizeApiPactos(response)),
+      map((rows) => rows.map((item) => ({
+        id: this.readNumber(item['id']),
+        nombre: (this.readString(item['nombre']) || '').trim()
+      })).filter((p) => p.id > 0 && !!p.nombre)),
+      map((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' }))),
+      catchError(() => of([] as PactoApiOption[]))
+    );
+  }
+
   // Consulta el listado de pactos y aplica filtros funcionales para la vista Home.
   getPactosTablaFiltradosFromApi(filters: PactoTablaFilters): Observable<PactoTablaDto[]> {
     return this.getPactosTablaFromApi().pipe(
@@ -169,7 +187,8 @@ export class PactosService {
         map((response) => this.normalizeCatalogoItems(response)),
         catchError(() => of([] as CatalogoOption[]))
       ),
-      etapas: this.http.get<unknown>('/api/Catalogo/1').pipe(
+      // Etapas de pacto: están definidas en Catalogo/3 (según API).
+      etapas: this.http.get<unknown>('/api/Catalogo/3').pipe(
         map((response) => this.normalizeCatalogoItems(response)),
         catchError(() => of([] as CatalogoOption[]))
       )

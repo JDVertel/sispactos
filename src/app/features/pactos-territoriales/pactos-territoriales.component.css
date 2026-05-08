@@ -1,8 +1,9 @@
 .pactos-filter-bar {
+  --pt-border: 0.5px;
   padding: 0.9rem 1rem;
-  border: 1px solid #d9f3f3;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.22);
   border-radius: 12px;
-  background: linear-gradient(135deg, #f4fbfb 0%, #ffffff 100%);
+  background: transparent;
   overflow-x: auto;
 }
 
@@ -275,8 +276,8 @@
 .selected-pacto-header {
   padding: 0.85rem 1rem;
   border-radius: 12px;
-  background: linear-gradient(135deg, #f4fbfb 0%, #ffffff 100%);
-  border: 1px solid #d9f3f3;
+  background: transparent;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.22);
 }
 
 .selected-pacto-kicker {
@@ -299,7 +300,7 @@
 .estado-btn {
   background: #f7fafd;
   color: #00a2a0;
-  border: 2px solid #00c3c1;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.32);
   border-radius: 999px;
   font-weight: 700;
   padding: 0.45rem 1.5rem;
@@ -316,16 +317,31 @@
 .estado-btn-activo {
   background: linear-gradient(90deg, #00c3c1, #00a2a0);
   color: #fff;
-  border-color: #00c3c1;
+  border-color: rgba(0, 162, 160, 0.4);
   box-shadow: 0 4px 18px rgba(0,195,193,0.18);
 }
-.nav-tabs .nav-link.active {
-  background-color: #00c3c1;
-  color: #fff;
-  border-color: #00c3c1 #00c3c1 #fff;
+.nav-tabs {
+  border-bottom: var(--pt-border) solid rgba(0, 162, 160, 0.22);
 }
+
 .nav-tabs .nav-link {
-  color: #00c3c1;
+  color: #00a2a0;
+  background: transparent !important;
+  border: 0.75px solid transparent;
+  border-bottom-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: rgba(0, 162, 160, 0.22);
+  background: transparent !important;
+}
+
+.nav-tabs .nav-link.active {
+  background: transparent !important;
+  color: #ffbf39;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.32);
+  border-bottom-color: transparent;
+  font-weight: 800;
 }
 
 .gallery-img-wrap {
@@ -349,10 +365,10 @@
 }
 
 .card-dato {
-  border: 0.8px solid #e2f7f7;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.22);
   border-radius: 12px !important;
-  background: linear-gradient(135deg, #e6f4fb 0%, #f5fbff 100%) !important;
-  box-shadow: 0 2px 10px rgba(0, 195, 193, 0.07);
+  background: transparent !important;
+  box-shadow: none;
   min-height: 70px;
   transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
   overflow: hidden;
@@ -369,7 +385,7 @@
 
 .card-dato:hover {
   border-color: #2b8dbf;
-  box-shadow: 0 4px 18px rgba(43, 141, 191, 0.2);
+  box-shadow: none;
   transform: translateY(-2px);
 }
 
@@ -406,15 +422,22 @@
 }
 
 .card-ejecucion {
-  border: none;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.22);
   border-radius: 0.35rem;
-  background: #fff7e0;
-  box-shadow: 0 2px 8px rgba(255, 191, 57, 0.08);
+  background: transparent;
+  box-shadow: none;
   min-height: 70px;
   transition: box-shadow 0.18s;
 }
+
+/* Fuerza cards de Bootstrap a transparente dentro del módulo */
+:host ::ng-deep .card {
+  background: transparent !important;
+  border: var(--pt-border, 0.5px) solid rgba(0, 162, 160, 0.22) !important;
+  box-shadow: none !important;
+}
 .card-ejecucion:hover {
-  box-shadow: 0 4px 18px rgba(255, 191, 57, 0.18);
+  box-shadow: none;
 }
 .card-ejecucion .fs-5 {
   font-weight: 700;
@@ -425,7 +448,7 @@
 }
 
 .card-compromiso {
-  border-left: 4px solid #00c3c1;
+  border-left: var(--pt-border) solid #00c3c1;
 }
 
 .compromiso-metricas {
@@ -451,9 +474,9 @@
   min-width: 3.2rem;
   padding: 0.2rem 0.5rem;
   border-radius: 999px;
-  background: #e8fafa;
+  background: transparent;
   color: #00a2a0;
-  border: 1px solid #00c3c1;
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.32);
   font-size: 0.72rem;
   font-weight: 800;
   line-height: 1;
@@ -464,6 +487,94 @@
   color: #00a2a0;
   font-weight: 700;
   margin-bottom: 0.75rem;
+}
+
+/* ── Inf. proyectos ───────────────────────────────────────────── */
+.proyectos-panel {
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.22);
+  border-radius: 12px;
+  box-shadow: none;
+  background: transparent;
+}
+
+.proyectos-status-bars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.proyectos-status-bar {
+  border: var(--pt-border) solid rgba(0, 162, 160, 0.18);
+  border-radius: 12px;
+  padding: 0.7rem 0.6rem;
+  text-align: center;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.proyectos-status-bar__value {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #1a2e35;
+  line-height: 1;
+}
+
+.proyectos-status-bar__label {
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4b6470;
+}
+
+.proyectos-status-bar__pill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 5px;
+}
+
+.proyectos-sector-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.1rem;
+  border-bottom: 0.75px dashed rgba(0, 162, 160, 0.14);
+}
+
+.proyectos-sector-row:last-child {
+  border-bottom: 0;
+}
+
+.proyectos-sector-row__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(26, 46, 53, 0.08);
+}
+
+.proyectos-sector-row__name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1a2e35;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proyectos-sector-row__count {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #00a2a0;
+}
+
+@media (max-width: 991.98px) {
+  .proyectos-status-bars {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-select:focus {

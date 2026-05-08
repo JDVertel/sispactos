@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ProyectosService } from '../../core/services/proyectos.service';
+import { CreateProyectoCommand, ProyectosService } from '../../core/services/proyectos.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { Pacto, Proyecto } from '../../shared/models';
 import { Observable } from 'rxjs';
 import { PactosService } from '../../core/services/pactos.service';
+import { type ProyectoApiRow } from '../../core/services/proyectos.service';
 
 interface ProyectoFormData {
   pactoAsociado: string;
@@ -48,14 +49,17 @@ interface ProyectoFormData {
 export class ProyectosManagementComponent implements OnInit {
   // Lista observable de proyectos para la vista.
   proyectos$: Observable<Proyecto[]>;
+  proyectosApi$: Observable<ProyectoApiRow[]>;
 
   // Catálogos que alimentan los selectores del formulario.
   estadosProyecto: string[] = [];
   pactosDisponibles: string[] = [];
+  private pactosCatalogo: Pacto[] = [];
+  private pactosOptionsFallback: Array<{ id: number; nombre: string }> = [];
   areasInfluencia: string[] = ['Urbana', 'Rural', 'Mixta', 'Regional'];
   condicionesProyecto: string[] = ['Nuevo', 'En curso', 'Viabilizado', 'Ajustado'];
   sectores: string[] = ['Transporte', 'Educación', 'Salud', 'Ambiente', 'Vivienda', 'Agro'];
-  lineasTematicas: string[] = ['Infraestructura', 'Social', 'Productiva', 'Ambiental'];
+  // Línea temática depende del pacto seleccionado (lineasTematicas del pacto).
   aportesNacion: string[] = ['Total', 'Parcial', 'Sin aporte'];
   mecanismosInclusion: string[] = ['Consulta previa', 'Enfoque diferencial', 'Participación comunitaria'];
   sectoresAdminNacional: string[] = ['DNP', 'MinTransporte', 'MinEducación', 'MinSalud', 'MinAmbiente'];
@@ -68,6 +72,8 @@ export class ProyectosManagementComponent implements OnInit {
   };
   // Datos del formulario para crear un nuevo proyecto.
   newProyecto: ProyectoFormData = this.getInitialFormData();
+  isSavingProyecto = false;
+  saveProyectoError = '';
 
   constructor(
     private proyectosService: ProyectosService,
@@ -75,6 +81,7 @@ export class ProyectosManagementComponent implements OnInit {
     private pactosService: PactosService
   ) {
     this.proyectos$ = this.proyectosService.getProyectos();
+    this.proyectosApi$ = this.proyectosService.getProyectosCreadosDesdePactosApi();
   }
 
   ngOnInit(): void {
@@ -83,12 +90,45 @@ export class ProyectosManagementComponent implements OnInit {
     this.estadosProyecto = estados.includes('No iniciado') ? estados : ['No iniciado', ...estados];
     this.newProyecto.estadoProyecto = 'No iniciado';
     this.pactosService.getPactos().subscribe((pactos: Pacto[]) => {
+      this.pactosCatalogo = pactos;
       this.pactosDisponibles = pactos.map((pacto) => pacto.nombre).filter(Boolean);
+
+      // Fallback: si el cache está vacío, consultamos solo opciones mínimas desde API.
+      if (!this.pactosDisponibles.length) {
+        this.pactosService.getPactosOptionsFromApi().subscribe((rows) => {
+          this.pactosOptionsFallback = rows;
+          this.pactosDisponibles = rows.map((p) => p.nombre).filter(Boolean);
+        });
+      }
     });
+  }
+
+  get lineasTematicasDisponibles(): string[] {
+    const pactoNombre = (this.newProyecto.pactoAsociado || '').trim();
+    if (!pactoNombre) return [];
+
+    const hit = this.pactosCatalogo.find((p) => (p.nombre || '').trim() === pactoNombre);
+    const lineas = hit?.lineasTematicas ?? [];
+    return Array.isArray(lineas) ? lineas.filter((x) => !!(x || '').trim()) : [];
+  }
+
+  onPactoAsociadoChange(): void {
+    // Al cambiar pacto, reseteamos la línea temática si no aplica.
+    const opciones = this.lineasTematicasDisponibles;
+    if (!opciones.length) {
+      this.newProyecto.lineaTematica = '';
+      return;
+    }
+    if (this.newProyecto.lineaTematica && !opciones.includes(this.newProyecto.lineaTematica)) {
+      this.newProyecto.lineaTematica = '';
+    }
   }
 
   // Crea un proyecto nuevo cuando pasa las validaciones principales.
   addProyecto(): void {
+    if (this.isSavingProyecto) return;
+    this.saveProyectoError = '';
+
     const {
       nombre,
       pactoAsociado,
@@ -148,6 +188,48 @@ export class ProyectosManagementComponent implements OnInit {
     const actaCd = `${actaCdNumero.trim()} - ${actaCdFecha}`;
     const responsableProyecto = `${municipioEntidad.trim()} - ${entidadResponsablePi.trim()}`;
 
+    const idPactoTerritorial = this.findPactoIdByNombre(pactoAsociado.trim());
+    if (!idPactoTerritorial) {
+      this.saveProyectoError = 'No fue posible identificar el pacto seleccionado.';
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const command: CreateProyectoCommand = {
+      idPactoTerritorial,
+      idEntidadProyecto: entidadResponsablePi.trim(),
+      bpin: bpin.trim(),
+      nombreBpin: nombreBpin.trim(),
+      codigo: codigo.trim(),
+      nombre: nombre.trim(),
+      actaCd,
+      idAreaInfluencia: 0,
+      idEstadoProyecto: 0,
+      idCondicionProyecto: 0,
+      idSector: 0,
+      idLineaTematica: 0,
+      fechaInicio: nowIso,
+      fechaFin: nowIso,
+      plazoEstimadoEjecucion: 0,
+      idFaseInversion: 0,
+      idAportanteNacion: 0,
+      entidadProyecto: municipioEntidad.trim(),
+      esInversionClimatica: !!this.newProyecto.inversionClimatica,
+      idTipoOferta: 0,
+      esFondo: !!frpt,
+      alcance: (alcance || nombreBpin).trim(),
+      metaPa: (this.newProyecto.metaPa || '').trim(),
+      idMecanismoInclusion: 0,
+      idSectorAdministracionNacional: 0,
+      fechaReporte: nowIso,
+      numeroEmpleosDirectos: Number(numeroEmpleosDirectos) || 0,
+      numeroEmpleosIndirectos: Number(numeroEmpleosIndirectos) || 0,
+      consecutivoConpes: consecutivoConpes.trim(),
+      tieneViabilidad: !!tieneViabilidad,
+      fechaViabilidad: fechaViabilidad ? new Date(fechaViabilidad).toISOString() : nowIso,
+      numeroContratoEspecifico: frpt ? String(numeroContratoEspecifico ?? '').trim() : ''
+    };
+
     const proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion'> = {
       nombre: nombre.trim(),
       descripcion: (alcance || nombreBpin).trim(),
@@ -172,9 +254,22 @@ export class ProyectosManagementComponent implements OnInit {
       avance: 0
     };
 
-    console.log('[SISPACTOS] Nuevo proyecto (local):', proyectoBase);
-    this.proyectosService.addProyecto(proyectoBase);
-    this.resetForm();
+    this.isSavingProyecto = true;
+    this.proyectosService.createProyecto(command).subscribe((result) => {
+      this.isSavingProyecto = false;
+      if (!result.success) {
+        this.saveProyectoError = result.message || 'No fue posible crear el proyecto.';
+        return;
+      }
+
+      // Mientras el listado venga de almacenamiento local, agregamos el registro también al estado local.
+      if (result.nombre) {
+        proyectoBase.nombre = result.nombre;
+      }
+      this.proyectosService.addProyecto(proyectoBase);
+      this.resetForm();
+      this.tryCloseNuevoProyectoModal();
+    });
   }
 
   // Elimina un proyecto del listado.
@@ -285,5 +380,28 @@ export class ProyectosManagementComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     const value = input.value.replace(/\D/g, '').slice(0, 5);
     this.newProyecto.consecutivoConpes = value;
+  }
+
+  private findPactoIdByNombre(nombre: string): number | null {
+    const hit = this.pactosCatalogo.find((p) => (p.nombre || '').trim() === nombre.trim());
+    if (hit?.id) return hit.id;
+
+    const fallback = this.pactosOptionsFallback.find((p) => (p.nombre || '').trim() === nombre.trim());
+    return fallback?.id ?? null;
+  }
+
+  private tryCloseNuevoProyectoModal(): void {
+    const el = document.getElementById('nuevoProyectoModal');
+    if (!el) return;
+
+    // Bootstrap puede estar disponible como global (bundle).
+    const anyWindow = window as any;
+    const bootstrap = anyWindow?.bootstrap;
+    try {
+      const instance = bootstrap?.Modal?.getOrCreateInstance?.(el);
+      instance?.hide?.();
+    } catch {
+      // noop
+    }
   }
 }

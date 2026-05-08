@@ -521,10 +521,240 @@
           </div>
         </div>
         <div class="tab-pane fade show active" *ngIf="tabActivo === 'proyectos'">
-          <div class="alert alert-info">Contenido de Inf. proyectos</div>
+          <div class="row g-3">
+            <!-- 50% izquierda: filtros + gráficas -->
+            <div class="col-12 col-xl-6">
+              <div class="card proyectos-panel mb-3">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h6 class="indicator-title mb-0">Filtro de proyectos</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltrosProyectos()">
+                      Limpiar filtros
+                    </button>
+                  </div>
+
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small fw-bold">Estado de proyecto</label>
+                      <select class="form-select" [(ngModel)]="filtrosProyectos.estadoProyecto">
+                        <option value="">Todos</option>
+                        <option *ngFor="let opcion of opcionesProyectosEstado" [value]="opcion">{{ opcion }}</option>
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small fw-bold">Nivel estado proyecto</label>
+                      <select class="form-select" [(ngModel)]="filtrosProyectos.nivelEstadoProyecto">
+                        <option value="">Todos</option>
+                        <option *ngFor="let opcion of opcionesProyectosNivelEstado" [value]="opcion">{{ opcion }}</option>
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small fw-bold">FRPT</label>
+                      <select class="form-select" [(ngModel)]="filtrosProyectos.frpt">
+                        <option value="">Todos</option>
+                        <option value="si">Sí (FRPT)</option>
+                        <option value="no">No (Nación y Territorio)</option>
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label small fw-bold">Sector de inversión</label>
+                      <select class="form-select" [(ngModel)]="filtrosProyectos.sector">
+                        <option value="">Todos</option>
+                        <option *ngFor="let opcion of opcionesProyectosSector" [value]="opcion">{{ opcion }}</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small fw-bold">Entidad Responsable PEI</label>
+                      <select class="form-select" [(ngModel)]="filtrosProyectos.entidadResponsablePei">
+                        <option value="">Todas</option>
+                        <option *ngFor="let opcion of opcionesProyectosEntidadResponsablePei" [value]="opcion">{{ opcion }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-12 col-lg-6">
+                  <div class="card proyectos-panel h-100">
+                    <div class="card-body">
+                      <h6 class="indicator-title">Estado de proyectos</h6>
+                      <div class="proyectos-status-bars" *ngIf="proyectosFiltradosTodos.length; else proyectosSinDatos">
+                        <div class="proyectos-status-bar" *ngFor="let item of proyectosResumenEstados">
+                          <div class="proyectos-status-bar__value">{{ item.value }}</div>
+                          <div class="proyectos-status-bar__label">{{ item.label }}</div>
+                          <div class="proyectos-status-bar__pill" [style.background]="item.color"></div>
+                        </div>
+                      </div>
+                      <ng-template #proyectosSinDatos>
+                        <div class="text-center text-muted py-4">Sin proyectos para los filtros seleccionados.</div>
+                      </ng-template>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-12 col-lg-6">
+                  <div class="card proyectos-panel h-100">
+                    <div class="card-body">
+                      <h6 class="indicator-title">Proyectos por sector</h6>
+                      <div *ngIf="proyectosSectoresResumen.length; else proyectosSinSectores">
+                        <div class="proyectos-sector-row" *ngFor="let item of proyectosSectoresResumen">
+                          <span class="proyectos-sector-row__dot" [style.background]="item.color" aria-hidden="true"></span>
+                          <span class="proyectos-sector-row__name">{{ item.sector }}</span>
+                          <span class="proyectos-sector-row__count">{{ item.cantidad }}</span>
+                        </div>
+                      </div>
+                      <ng-template #proyectosSinSectores>
+                        <div class="text-center text-muted py-4">Sin datos por sector.</div>
+                      </ng-template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 50% derecha: navtabs + tablas -->
+            <div class="col-12 col-xl-6">
+              <div class="card proyectos-panel h-100">
+                <div class="card-body">
+                  <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link" [class.active]="proyectosTabActivo === 'FRPT'" (click)="proyectosTabActivo = 'FRPT'" type="button" role="tab">
+                        Proyectos Fondo Regional (FRPT)
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button class="nav-link" [class.active]="proyectosTabActivo === 'NT'" (click)="proyectosTabActivo = 'NT'" type="button" role="tab">
+                        Proyectos Nación y Territorio
+                      </button>
+                    </li>
+                  </ul>
+
+                  <div class="table-responsive mt-3">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Sector</th>
+                          <th>Proyecto</th>
+                          <th>Estado proyecto</th>
+                          <th>Valor indicativo</th>
+                          <th>Aporte indicativo consolidado Nación</th>
+                          <th>Aporte indicativo entidades territoriales</th>
+                          <th>Aporte indicativos otros</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let fila of proyectosTablaFiltrada">
+                          <td>{{ fila.sector }}</td>
+                          <td>{{ fila.proyecto }}</td>
+                          <td>{{ fila.estadoProyecto }}</td>
+                          <td>{{ '$' + fila.valorIndicativo.toLocaleString() }}</td>
+                          <td>{{ '$' + fila.aporteConsolidadoNacion.toLocaleString() }}</td>
+                          <td>{{ '$' + fila.aporteIndicativoEntidadesTerritoriales.toLocaleString() }}</td>
+                          <td>{{ '$' + fila.aporteIndicativoOtros.toLocaleString() }}</td>
+                        </tr>
+                        <tr *ngIf="proyectosTablaFiltrada.length === 0">
+                          <td colspan="7" class="text-center text-muted py-4">No hay proyectos para los filtros seleccionados.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="tab-pane fade show active" *ngIf="tabActivo === 'compromisos'">
-          <div class="alert alert-info">Contenido de Compromisos</div>
+          <div class="card proyectos-panel mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h6 class="indicator-title mb-0">Filtro de compromisos</h6>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="limpiarFiltrosCompromisos()">
+                    Limpiar filtros
+                  </button>
+                </div>
+              </div>
+
+              <div class="row g-2">
+                <div class="col-12 col-md-3">
+                  <label class="form-label small fw-bold">Instancia</label>
+                  <select class="form-select" [(ngModel)]="filtrosCompromisos.instancia">
+                    <option value="">Todas</option>
+                    <option *ngFor="let opcion of opcionesCompromisosInstancia" [value]="opcion">{{ opcion }}</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="form-label small fw-bold">Responsable</label>
+                  <select class="form-select" [(ngModel)]="filtrosCompromisos.responsable">
+                    <option value="">Todos</option>
+                    <option *ngFor="let opcion of opcionesCompromisosResponsable" [value]="opcion">{{ opcion }}</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="form-label small fw-bold">Estado</label>
+                  <select class="form-select" [(ngModel)]="filtrosCompromisos.estado">
+                    <option value="">Todos</option>
+                    <option value="No iniciado">No iniciado</option>
+                    <option value="En trámite">En trámite</option>
+                    <option value="Cumplido">Cumplido</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="form-label small fw-bold">Fecha cumplimiento (desde)</label>
+                  <input type="date" class="form-control" [(ngModel)]="filtrosCompromisos.fechaCumplimientoDesde" />
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="form-label small fw-bold">Fecha cumplimiento (hasta)</label>
+                  <input type="date" class="form-control" [(ngModel)]="filtrosCompromisos.fechaCumplimientoHasta" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-3" *ngFor="let card of resumenCompromisosCards">
+              <div class="card card-dato h-100">
+                <div class="card-body py-2 px-3">
+                  <div class="fw-bold small text-secondary">{{ card.label }}</div>
+                  <div class="fs-5" [style.color]="card.color">{{ card.value }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card proyectos-panel">
+            <div class="card-body">
+              <h6 class="indicator-title">Registros</h6>
+              <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>No de la sesión</th>
+                      <th>Fecha de la sesión</th>
+                      <th>Compromisos</th>
+                      <th>Fecha de cumplimiento</th>
+                      <th>Responsable</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let fila of compromisosFiltrados">
+                      <td>{{ fila.noSesion }}</td>
+                      <td>{{ fila.fechaSesion }}</td>
+                      <td>{{ fila.compromiso }}</td>
+                      <td>{{ fila.fechaCumplimiento }}</td>
+                      <td>{{ fila.responsable }}</td>
+                      <td>{{ fila.estado }}</td>
+                    </tr>
+                    <tr *ngIf="compromisosFiltrados.length === 0">
+                      <td colspan="6" class="text-center text-muted py-4">No hay compromisos para los filtros seleccionados.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

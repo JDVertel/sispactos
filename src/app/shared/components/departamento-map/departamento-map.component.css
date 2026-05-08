@@ -50,6 +50,16 @@
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease;
+  overflow: hidden;
+}
+
+.map-card.home-surface-card .map-frame-wrap {
+  border-radius: 0 0 12px 12px !important;
+  overflow: hidden !important;
+}
+
+.map-card.home-surface-card .map-card-head {
+  border-radius: 12px 12px 0 0 !important;
 }
 
 .map-card.home-surface-card:hover {
@@ -118,6 +128,86 @@
   touch-action: none;
 }
 
+.territory-layout {
+  display: flex;
+  gap: 0.6rem;
+  height: 100%;
+  min-height: 100%;
+}
+
+.territory-layout--with-legend .territory-canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.territory-legend {
+  flex: 0 0 220px;
+  max-width: 260px;
+  border-left: 1px solid rgba(0, 195, 193, 0.25);
+  padding: 0.55rem 0.25rem 0.55rem 0.7rem;
+  overflow: auto;
+}
+
+.territory-legend__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1a2e35;
+  margin-bottom: 0.35rem;
+}
+
+.territory-legend__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.territory-legend__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  color: #4b6470;
+}
+
+.territory-legend__item--selected {
+  color: #8d1f52;
+  font-weight: 700;
+}
+
+.territory-legend__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  margin-top: 0.18rem;
+  background: #ff6fa5;
+  box-shadow: 0 0 0 2px rgba(26, 46, 53, 0.08);
+  flex: 0 0 auto;
+}
+
+.territory-legend__num {
+  width: 0.69rem; /* 60% menos (≈ 0.6x) */
+  height: 0.69rem; /* 60% menos (≈ 0.6x) */
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.42rem; /* 0.6x */
+  font-weight: 800;
+  color: #1a2e35;
+  background: rgba(0, 162, 160, 0.12);
+  border: 1px solid rgba(0, 162, 160, 0.25);
+  flex: 0 0 auto;
+  margin-top: 0.03rem;
+}
+
+.territory-legend__item--selected .territory-legend__dot {
+  box-shadow: 0 0 0 2px rgba(26, 46, 53, 0.14);
+}
+
 .territory-map-svg:active {
   cursor: grabbing;
 }
@@ -150,10 +240,10 @@
 .territory-department-label {
   fill: #085c66;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   paint-order: stroke;
   stroke: rgba(255, 255, 255, 0.85);
-  stroke-width: 3px;
+  stroke-width: 2.4px;
   stroke-linejoin: round;
   pointer-events: none;
 }
@@ -161,17 +251,25 @@
 .territory-municipality-label {
   fill: #a33d6a;
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 600;
   paint-order: stroke;
   stroke: rgba(255, 255, 255, 0.9);
-  stroke-width: 3px;
+  stroke-width: 1.6px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.territory-municipality-number {
+  fill: #ffffff;
+  font-size: 4px;
+  font-weight: 900;
+  stroke: none;
+  stroke-width: 0;
   stroke-linejoin: round;
   pointer-events: none;
 }
 
 .territory-municipio-path {
-  fill: rgba(255, 111, 165, 0.72);
-  stroke: #ff6fa5;
   stroke-width: 1.15;
   stroke-linejoin: round;
   stroke-linecap: round;
@@ -208,6 +306,34 @@
 .territory-empty-state__text {
   font-size: 0.78rem;
   line-height: 1.25;
+}
+
+.territory-empty-overlay {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 162, 160, 0.18);
+  box-shadow: 0 6px 16px rgba(0, 162, 160, 0.12);
+  color: #4b6470;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.territory-empty-overlay__icon {
+  color: #00a2a0;
+  font-size: 0.95rem;
+}
+
+.territory-empty-overlay__text {
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.1;
 }
 
 .territory-zoom-controls {
@@ -252,6 +378,19 @@
 }
 
 @media (max-width: 980px) {
+  .territory-layout {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .territory-legend {
+    flex: 0 0 auto;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid rgba(0, 195, 193, 0.25);
+    padding: 0.55rem 0.6rem 0.35rem;
+  }
+
   .map-card:not(.map-card--stretch) .map-frame-wrap {
     min-height: 145px;
   }

@@ -1,11 +1,48 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { FilterDrawerComponent, type FilterDrawerValues } from '../../shared/components/filter-drawer/filter-drawer.component';
 import { DepartamentoMapComponent } from '../../shared/components/departamento-map/departamento-map.component';
+import { AuthService } from '../../core/services/auth.service';
 import { PactosService, type PactoTablaDto, type PactoTablaFilterOptions } from '../../core/services/pactos.service';
+
+type CarouselImage = {
+  src: string;
+  alt: string;
+  caption?: string;
+};
+
+type CompromisoEstado = 'No iniciado' | 'En trámite' | 'Cumplido';
+
+type CompromisoTabla = {
+  id: string;
+  pacto: string;
+  autor: string;
+  instancia: string;
+  noSesion: string;
+  fechaSesion: string; // YYYY-MM-DD
+  compromiso: string;
+  fechaCumplimiento: string; // YYYY-MM-DD
+  responsable: string;
+  estado: CompromisoEstado;
+};
+
+const FALLBACK_CAROUSEL_FILES: string[] = [
+  'slide-01.jpg',
+  'slide-02.jpg',
+  'slide-03.jpeg',
+  'slide-04.jpg',
+  'slide-05.jpeg',
+  'slide-06.jpeg',
+  'slide-07.jpeg',
+  'slide-08.jpg',
+  'slide-09.jpeg',
+  'slide-010.jpeg'
+];
 
 const PAGE_DATA: Record<string, { title: string; description: string }> = {
   home: {
@@ -89,7 +126,7 @@ const PAGE_DATA: Record<string, { title: string; description: string }> = {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [CommonModule, FilterDrawerComponent, DepartamentoMapComponent],
+  imports: [CommonModule, FormsModule, FilterDrawerComponent, DepartamentoMapComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.css'
 })
@@ -108,9 +145,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   pactosError = '';
   private readonly destroy$ = new Subject<void>();
   pactoSeleccionado: PactoTablaDto | null = null;
+  private userSelectedPacto = false;
 
   pactosFiltrados: PactoTablaDto[] = [];
   private pactosBase: PactoTablaDto[] = [];
+  private readonly departmentTooltipMapCache: Record<string, { pactoNombre: string; valorIndicativo: number }> = {};
 
   /** Opciones de filtros derivadas de los mismos registros que alimentan la tabla. */
   filterEtapas: string[] = [];
@@ -124,15 +163,83 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   }
 
   get departamentosMapaHome(): string[] {
-    if (this.pactoSeleccionado?.alcance) {
+    // Si el usuario seleccionó un pacto, el mapa refleja ese pacto.
+    if (this.userSelectedPacto && this.pactoSeleccionado?.alcance) {
       const departamentos = this.extractDepartamentosFromAlcance(this.pactoSeleccionado.alcance);
       if (departamentos.length) {
         return departamentos;
       }
     }
 
+    // Estado inicial: resaltar todos los departamentos presentes en los pactos cargados.
+    const departamentos = new Set<string>();
+    for (const pacto of this.pactosBase) {
+      const direct = (pacto.departamento || '').trim();
+      if (direct && direct !== 'N/A') {
+        departamentos.add(direct);
+      }
+      for (const dep of this.extractDepartamentosFromAlcance(pacto.alcance)) {
+        if (dep && dep !== 'N/A') {
+          departamentos.add(dep);
+        }
+      }
+    }
+
+    // Si hay un filtro explícito, lo respetamos.
     const filtroDepartamento = (this.activeFilters.departamento || '').trim();
-    return filtroDepartamento ? [filtroDepartamento] : [];
+    if (filtroDepartamento) {
+      return [filtroDepartamento];
+    }
+
+    return [...departamentos];
+  }
+
+  get tooltipDepartamentosMapaHome(): Record<string, { pactoNombre: string; valorIndicativo: number }> {
+    // Recalcula a partir de los pactos visibles (base cargada). Es suficiente para tooltip.
+    // (No hace requests; sólo arma un mapa "dpto -> mejor pacto".)
+    const map: Record<string, { pactoNombre: string; valorIndicativo: number }> = {};
+
+    const chooseBetter = (a: PactoTablaDto, b: PactoTablaDto): PactoTablaDto => {
+      // Preferimos mayor valor indicativo; si empatan, el de mayor presupuesto comprometido.
+      if ((b.valorIndicativo ?? 0) !== (a.valorIndicativo ?? 0)) {
+        return (b.valorIndicativo ?? 0) > (a.valorIndicativo ?? 0) ? b : a;
+      }
+      return (b.presupuestoComprometido ?? 0) > (a.presupuestoComprometido ?? 0) ? b : a;
+    };
+
+    const normalizeKey = (v: string) => (v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+    for (const pacto of this.pactosBase || []) {
+      const departamentos = new Set<string>();
+      const direct = (pacto.departamento || '').trim();
+      if (direct && direct !== 'N/A') {
+        departamentos.add(direct);
+      }
+      for (const dep of this.extractDepartamentosFromAlcance(pacto.alcance)) {
+        if (dep && dep !== 'N/A') {
+          departamentos.add(dep);
+        }
+      }
+
+      for (const dep of departamentos) {
+        const key = normalizeKey(dep);
+        if (!key) continue;
+
+        const currentKey = Object.keys(map).find((k) => normalizeKey(k) === key);
+        if (!currentKey) {
+          map[dep] = { pactoNombre: pacto.nombrePacto, valorIndicativo: pacto.valorIndicativo ?? 0 };
+          continue;
+        }
+
+        const currentPacto = (this.pactosBase || []).find((p) => p.nombrePacto === map[currentKey].pactoNombre) ?? pacto;
+        const best = chooseBetter(currentPacto, pacto);
+        map[currentKey] = { pactoNombre: best.nombrePacto, valorIndicativo: best.valorIndicativo ?? 0 };
+      }
+    }
+
+    // Cache por si lo reusa el template con mismo objeto.
+    Object.assign(this.departmentTooltipMapCache, map);
+    return map;
   }
 
   // Da formato de moneda para que los valores se lean de forma clara.
@@ -153,7 +260,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   // Relación entre nombre de ícono y su clase visual.
   iconClassMap: Partial<Record<string, string>> = {
-    handshake: 'bi-handshake-fill',
+    // Nota: en algunas versiones de Bootstrap Icons no existe `bi-handshake-fill`.
+    // Usamos `bi-handshake` para asegurar que el ícono se renderice.
+    handshake: 'bi-handshake',
+    // Mismo ícono que el menú lateral para Pactos Territoriales.
+    pin: 'bi-geo-alt',
     currency: 'bi-cash-stack',
     building: 'bi-buildings-fill',
     'map-marker': 'bi-geo-alt-fill',
@@ -168,7 +279,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   // Tarjetas de resumen que se ven en la parte superior del Home.
   dashboardCards = [
     {
-      icon: 'handshake',
+      icon: 'pin',
       label: 'Pactos Territoriales',
       value: '16',
       type: 'cantidad',
@@ -221,32 +332,187 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
    * Imagenes JPG/JPEG desde src/assets/carousel/ (servidas como /assets/carousel/...).
    * Ver src/assets/carousel/LEEME.txt.
    */
-  carouselImages = [
-    {
-      src: '/assets/carousel/slide-01.jpg',
-      alt: 'Proyecto de infraestructura',
-      caption: 'Proyecto de infraestructura comunitaria'
-    },
-    {
-      src: '/assets/carousel/slide-02.jpg',
-      alt: 'Comunidad participando',
-      caption: 'Participación de la comunidad en proyectos sociales'
-    },
-    {
-      src: '/assets/carousel/slide-03.jpeg',
-      alt: 'Educación y desarrollo',
-      caption: 'Iniciativas de educación y desarrollo local'
-    }
-  ];
+  carouselImages: CarouselImage[] = this.loadCarouselImagesFromAssets();
+  carouselSlides: CarouselImage[][] = [];
+  private carouselChunkSize = 2;
 
   currentCarousel = 0;
   carouselInterval: any;
+  previewImage: { src: string; alt: string } | null = null;
+
+  // Compromisos - Pactos (pagina: dashboard/compromisos-pactos)
+  compromisos: CompromisoTabla[] = [
+    {
+      id: 'cp-1',
+      pacto: 'Pacto Caribe',
+      autor: 'Usuario SISPACTOS',
+      instancia: 'Mesa técnica',
+      noSesion: '001',
+      fechaSesion: '2025-02-15',
+      compromiso: 'Entregar cronograma de obra.',
+      fechaCumplimiento: '2025-03-30',
+      responsable: 'INVIAS',
+      estado: 'En trámite'
+    },
+    {
+      id: 'cp-2',
+      pacto: 'Pacto Caribe',
+      autor: 'Usuario SISPACTOS',
+      instancia: 'Comité directivo',
+      noSesion: '002',
+      fechaSesion: '2025-04-10',
+      compromiso: 'Radicar soporte financiero.',
+      fechaCumplimiento: '2025-05-20',
+      responsable: 'Gobernación',
+      estado: 'No iniciado'
+    }
+  ];
+
+  filtrosCompromisosPactos = {
+    pacto: '',
+    instancia: '',
+    responsable: '',
+    estado: '' as '' | CompromisoEstado,
+    fechaCumplimientoDesde: '',
+    fechaCumplimientoHasta: ''
+  };
+
+  showNuevoCompromisoPactosModal = false;
+  nuevoCompromisoPactosForm: Omit<CompromisoTabla, 'id' | 'autor'> = {
+    pacto: '',
+    instancia: '',
+    noSesion: '',
+    fechaSesion: '',
+    compromiso: '',
+    fechaCumplimiento: '',
+    responsable: '',
+    estado: 'No iniciado'
+  };
+
+  get autorSesion(): string {
+    return this.authService.getCurrentUser()?.username || 'Usuario SISPACTOS';
+  }
+
+  get hasAuthenticatedSession(): boolean {
+    return this.authService.hasValidUserSession();
+  }
+
+  openNuevoCompromisoPactosModal(): void {
+    this.showNuevoCompromisoPactosModal = true;
+  }
+
+  closeNuevoCompromisoPactosModal(): void {
+    this.showNuevoCompromisoPactosModal = false;
+  }
+
+  limpiarFiltrosCompromisosPactos(): void {
+    this.filtrosCompromisosPactos = {
+      pacto: '',
+      instancia: '',
+      responsable: '',
+      estado: '',
+      fechaCumplimientoDesde: '',
+      fechaCumplimientoHasta: ''
+    };
+  }
+
+  get opcionesCompromisosPactosPacto(): string[] {
+    // Preferimos los pactos cargados desde API; si aún no están, caemos a los pactos de los registros.
+    const fromApi = this.uniqueSortedFieldValues((this.pactosBase ?? []).map((p) => p.nombrePacto));
+    if (fromApi.length) return fromApi;
+    return this.uniqueSortedFieldValues(this.compromisos.map((c) => c.pacto));
+  }
+
+  get opcionesCompromisosPactosInstancia(): string[] {
+    return this.uniqueSortedFieldValues(this.compromisos.map((c) => c.instancia));
+  }
+
+  get opcionesCompromisosPactosResponsable(): string[] {
+    return this.uniqueSortedFieldValues(this.compromisos.map((c) => c.responsable));
+  }
+
+  get compromisosPactosFiltrados(): CompromisoTabla[] {
+    const base = this.compromisos;
+    if (!base.length) return [];
+
+    const f = this.filtrosCompromisosPactos;
+    const desde = f.fechaCumplimientoDesde ? new Date(f.fechaCumplimientoDesde) : null;
+    const hasta = f.fechaCumplimientoHasta ? new Date(f.fechaCumplimientoHasta) : null;
+
+    return base.filter((c) => {
+      const byPacto = !f.pacto || c.pacto === f.pacto;
+      const byInstancia = !f.instancia || c.instancia === f.instancia;
+      const byResp = !f.responsable || c.responsable === f.responsable;
+      const byEstado = !f.estado || c.estado === f.estado;
+
+      const fecha = c.fechaCumplimiento ? new Date(c.fechaCumplimiento) : null;
+      const byDesde = !desde || (fecha && fecha >= desde);
+      const byHasta = !hasta || (fecha && fecha <= hasta);
+
+      return byPacto && byInstancia && byResp && byEstado && byDesde && byHasta;
+    });
+  }
+
+  get resumenCompromisosPactosCards(): Array<{ label: string; value: number; color: string }> {
+    const base = this.compromisosPactosFiltrados;
+    const total = base.length;
+    const noIniciados = base.filter((c) => c.estado === 'No iniciado').length;
+    const enTramite = base.filter((c) => c.estado === 'En trámite').length;
+    const cumplidos = base.filter((c) => c.estado === 'Cumplido').length;
+    return [
+      { label: 'Total compromisos', value: total, color: '#00a2a0' },
+      { label: 'No iniciados', value: noIniciados, color: '#ffbf39' },
+      { label: 'En trámite', value: enTramite, color: '#2ea3ff' },
+      { label: 'Cumplidos', value: cumplidos, color: '#66bb6a' }
+    ];
+  }
+
+  guardarNuevoCompromisoPactos(): void {
+    const form = this.nuevoCompromisoPactosForm;
+    const requiredOk =
+      !!form.pacto.trim()
+      !!form.instancia.trim()
+      && !!form.noSesion.trim()
+      && !!form.fechaSesion.trim()
+      && !!form.compromiso.trim()
+      && !!form.fechaCumplimiento.trim()
+      && !!form.responsable.trim()
+      && !!form.estado;
+
+    if (!requiredOk) return;
+
+    const next: CompromisoTabla = {
+      id: `cp-${Date.now()}`,
+      autor: this.autorSesion,
+      ...form,
+      instancia: form.instancia.trim(),
+      noSesion: form.noSesion.trim(),
+      compromiso: form.compromiso.trim(),
+      responsable: form.responsable.trim()
+    };
+
+    this.compromisos = [next, ...this.compromisos];
+
+    this.nuevoCompromisoPactosForm = {
+      pacto: '',
+      instancia: '',
+      noSesion: '',
+      fechaSesion: '',
+      compromiso: '',
+      fechaCumplimiento: '',
+      responsable: '',
+      estado: 'No iniciado'
+    };
+
+    this.closeNuevoCompromisoPactosModal();
+  }
 
   ngOnInit() {
     this.loadPactosTablaAndFilters();
 
     // Aleatorizar imágenes al cargar
     this.carouselImages = this.shuffleArray(this.carouselImages);
+    this.updateCarouselLayout();
     // Avance automático
     this.carouselInterval = setInterval(() => {
       this.nextCarousel();
@@ -270,16 +536,96 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   }
 
   nextCarousel() {
-    this.currentCarousel = (this.currentCarousel + 1) % this.carouselImages.length;
+    if (!this.carouselSlides.length) return;
+    this.currentCarousel = (this.currentCarousel + 1) % this.carouselSlides.length;
   }
 
   prevCarousel() {
-    this.currentCarousel = (this.currentCarousel - 1 + this.carouselImages.length) % this.carouselImages.length;
+    if (!this.carouselSlides.length) return;
+    this.currentCarousel = (this.currentCarousel - 1 + this.carouselSlides.length) % this.carouselSlides.length;
+  }
+
+  openCarouselPreview(img: { src: string; alt: string }): void {
+    if (!img?.src) return;
+    this.previewImage = { src: img.src, alt: img.alt || 'Imagen' };
+  }
+
+  closeCarouselPreview(): void {
+    this.previewImage = null;
+  }
+
+  @HostListener('window:resize')
+  onCarouselResize(): void {
+    this.updateCarouselLayout();
+  }
+
+  private updateCarouselLayout(): void {
+    // En móvil/tablet: 1 imagen por slide. En PC: 2 imágenes por slide.
+    const nextChunk = window.innerWidth <= 991 ? 1 : 2;
+    if (nextChunk === this.carouselChunkSize && this.carouselSlides.length) {
+      return;
+    }
+
+    this.carouselChunkSize = nextChunk;
+    this.carouselSlides = this.chunkCarouselImages(this.carouselImages, this.carouselChunkSize);
+    this.currentCarousel = 0;
+  }
+
+  private chunkCarouselImages(images: CarouselImage[], chunkSize: number): CarouselImage[][] {
+    const safeChunk = Math.max(1, Math.floor(chunkSize));
+    const result: CarouselImage[][] = [];
+    for (let i = 0; i < images.length; i += safeChunk) {
+      result.push(images.slice(i, i + safeChunk));
+    }
+    return result;
+  }
+
+  private loadCarouselImagesFromAssets(): CarouselImage[] {
+    const modules = import.meta.glob('/src/assets/carousel/slide-0*.{jpg,jpeg,png,webp}', {
+      eager: true,
+      query: '?url',
+      import: 'default'
+    }) as unknown as Record<string, string>;
+
+    const entries = Object.entries(modules);
+    entries.sort(([a], [b]) => this.compareSlidePaths(a, b));
+
+    const resolved = entries.map(([path, url]) => {
+      const filename = path.split('/').pop() ?? path;
+      const alt = filename.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim();
+      return {
+        src: url,
+        alt,
+        caption: ''
+      };
+    }).filter((img) => !!img.src);
+
+    if (resolved.length) {
+      return resolved;
+    }
+
+    // Fallback: cuando el glob no devuelve assets (algunos setups), usamos la convención del proyecto.
+    return FALLBACK_CAROUSEL_FILES.map((filename) => ({
+      src: `/assets/carousel/${filename}`,
+      alt: filename.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ').trim(),
+      caption: ''
+    }));
+  }
+
+  private compareSlidePaths(a: string, b: string): number {
+    const nameA = (a.split('/').pop() ?? a).toLowerCase();
+    const nameB = (b.split('/').pop() ?? b).toLowerCase();
+    const numA = Number((nameA.match(/\d+/)?.[0] ?? '0'));
+    const numB = Number((nameB.match(/\d+/)?.[0] ?? '0'));
+    if (numA !== numB) return numA - numB;
+    return nameA.localeCompare(nameB, 'es-CO', { sensitivity: 'base' });
   }
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly pactosService: PactosService
+    private readonly router: Router,
+    private readonly pactosService: PactosService,
+    private readonly authService: AuthService
   ) {
     // Al iniciar, revisa el tamaño de pantalla para organizar el layout.
     this.updateResponsiveView();
@@ -309,6 +655,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
       }
     });
 
+  }
+
+  onDepartamentoMapaClick(departamento: string): void {
+    const dep = (departamento || '').trim();
+    if (!dep) return;
+    this.router.navigate(['/dashboard/pactos-territoriales'], { queryParams: { departamento: dep } });
   }
 
   private loadPactosTablaAndFilters(): void {
@@ -389,6 +741,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     this.pactosBase = [];
     this.pactosFiltrados = [];
     this.pactoSeleccionado = null;
+    this.userSelectedPacto = false;
     this.filterEtapas = [];
     this.filterTiposPacto = [];
     this.filterDepartamentos = [];
@@ -419,9 +772,16 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   seleccionarPacto(item: PactoTablaDto): void {
     this.pactoSeleccionado = item;
+    this.userSelectedPacto = true;
   }
 
   private ensureSelectedPacto(): void {
+    // Inicialmente NO se selecciona pacto automáticamente.
+    if (!this.userSelectedPacto) {
+      this.pactoSeleccionado = null;
+      return;
+    }
+
     if (this.pactosFiltrados.length === 0) {
       this.pactoSeleccionado = null;
       return;

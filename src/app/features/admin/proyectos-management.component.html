@@ -134,6 +134,45 @@
     </div>
   </div>
 
+  <!-- Tabla de proyectos creados (API) -->
+  <div class="card border-0 shadow-sm mt-3">
+    <div class="card-header bg-body-tertiary py-3">
+      <h2 class="h5 mb-0">Proyectos creados (API)</h2>
+    </div>
+    <div class="card-body p-2 p-md-3">
+      <div *ngIf="(proyectosApi$ | async)?.length === 0" class="alert alert-light border text-center mb-0">
+        La respuesta de <strong>/api/PactoTerritorial</strong> no trae proyectos embebidos (o no hay proyectos).
+      </div>
+
+      <div class="table-responsive" *ngIf="(proyectosApi$ | async)?.length">
+        <table class="table table-striped table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Pacto</th>
+              <th>ID</th>
+              <th>Código</th>
+              <th>BPIN</th>
+              <th>Nombre</th>
+              <th>Sector</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of (proyectosApi$ | async)">
+              <td>{{ row.pactoNombre || 'N/A' }}</td>
+              <td>{{ row.id ?? 'N/A' }}</td>
+              <td>{{ row.codigo || 'N/A' }}</td>
+              <td>{{ row.bpin || 'N/A' }}</td>
+              <td>{{ row.nombre || 'N/A' }}</td>
+              <td>{{ row.sector || 'N/A' }}</td>
+              <td>{{ row.estado || 'N/A' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal para crear un proyecto nuevo -->
   <div class="modal fade" id="nuevoProyectoModal" tabindex="-1" aria-labelledby="nuevoProyectoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
@@ -145,10 +184,13 @@
 
         <form (ngSubmit)="addProyecto()">
           <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div *ngIf="saveProyectoError" class="alert alert-danger py-2 px-3">
+              {{ saveProyectoError }}
+            </div>
             <div class="form-grid">
               <label>
                 Pacto
-                <select class="form-select" name="proyectoPactoAsociado" [(ngModel)]="newProyecto.pactoAsociado" required>
+                <select class="form-select" name="proyectoPactoAsociado" [(ngModel)]="newProyecto.pactoAsociado" (ngModelChange)="onPactoAsociadoChange()" required>
                   <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let pacto of pactosDisponibles" [value]="pacto">{{ pacto }}</option>
                 </select>
@@ -245,7 +287,8 @@
                 Linea tematica
                 <select class="form-select" name="proyectoLineaTematica" [(ngModel)]="newProyecto.lineaTematica" required>
                   <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let linea of lineasTematicas" [value]="linea">{{ linea }}</option>
+                  <option *ngIf="lineasTematicasDisponibles.length === 0" value="" disabled>Sin lineas tematicas</option>
+                  <option *ngFor="let linea of lineasTematicasDisponibles" [value]="linea">{{ linea }}</option>
                 </select>
               </label>
 
@@ -343,7 +386,9 @@
 
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" (click)="resetForm()">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Agregar Proyecto</button>
+            <button type="submit" class="btn btn-primary" [disabled]="isSavingProyecto">
+              {{ isSavingProyecto ? 'Guardando...' : 'Agregar Proyecto' }}
+            </button>
           </div>
         </form>
       </div>

@@ -121,6 +121,276 @@
   --home-font-size: 0.82rem;
 }
 
+.pactos-list-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 162, 160, 0.22);
+  box-shadow: none;
+  border-radius: 0.6rem;
+  overflow: hidden;
+}
+
+.pactos-list-card__head {
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 162, 160, 0.18);
+  padding: 0.55rem 0.75rem;
+}
+
+.pactos-list-card__head .h5 {
+  font-size: 0.95rem;
+}
+
+.pactos-list-card__body {
+  padding: 0.55rem 0.65rem;
+}
+
+.pacto-item-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 162, 160, 0.18);
+  box-shadow: none;
+  border-radius: 0.55rem;
+  margin-bottom: 0.55rem;
+}
+
+.pacto-item-card--implementacion {
+  border-color: rgba(46, 163, 255, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(0, 195, 193, 0.22);
+  border-top: 3px solid #2ea3ff;
+}
+
+.pacto-item-card--cierre {
+  border-color: rgba(255, 191, 57, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(0, 195, 193, 0.22);
+  border-top: 3px solid #ffbf39;
+}
+
+.pacto-item-card--otro {
+  border-top: 3px solid rgba(0, 195, 193, 0.65);
+}
+
+.pacto-item-card__body {
+  padding: 0.55rem 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.pacto-item-card__body h3.h5 {
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem !important;
+}
+
+.pacto-item-card__body .badge {
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.pacto-item-card__body .small.text-uppercase {
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+}
+
+.pacto-item-card__body p {
+  font-size: 0.78rem;
+  margin-bottom: 0;
+}
+
+.pacto-item-card__body .mb-3 {
+  margin-bottom: 0.55rem !important;
+}
+
+.pacto-item-card__body .row.g-3 {
+  --bs-gutter-y: 0.4rem;
+  --bs-gutter-x: 0.6rem;
+}
+
+.pacto-item-card__body .border-bottom {
+  padding-bottom: 0.45rem !important;
+  margin-bottom: 0.55rem !important;
+}
+
+.pacto-item-card__body .border-top {
+  padding-top: 0.45rem !important;
+}
+
+.pacto-action-btn.btn {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.74rem;
+}
+
+.pacto-action-btn .bi {
+  font-size: 0.85rem;
+}
+
+/* Grid 3 columnas: súper compacto */
+.pactos-grid-scroll {
+  padding-right: 0.15rem;
+}
+
+.pactos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .pactos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .pactos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pacto-item-card__body {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.74rem;
+  line-height: 1.15;
+}
+
+.pacto-item-card {
+  background: #ffffff !important;
+}
+
+.pacto-item-card__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem 0.6rem;
+  align-items: start;
+}
+
+.pacto-item-card__col {
+  min-width: 0;
+}
+
+.pacto-item-card__col--main {
+  grid-column: span 1;
+}
+
+.pacto-item-card__empty {
+  color: #6c757d;
+  font-size: 0.72rem;
+}
+
+.pacto-item-card__text {
+  margin-top: 0.35rem;
+}
+
+.pacto-item-card__label {
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6c757d;
+  margin-bottom: 0.15rem;
+}
+
+.pacto-item-card__value {
+  color: #1a2e35;
+  font-size: 0.74rem;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.pacto-item-card__alcance {
+  color: #4b6470;
+}
+
+.etapa-badge {
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  padding-left: 0.65rem !important;
+  padding-right: 0.65rem !important;
+}
+
+.tipo-badge {
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  padding-left: 0.65rem !important;
+  padding-right: 0.65rem !important;
+}
+
+.badge-etapa-implementacion {
+  background: #2ea3ff;
+  color: #ffffff;
+  border: 0;
+}
+
+.badge-etapa-cierre {
+  background: #ffbf39;
+  color: #232323;
+  border: 0;
+}
+
+.badge-etapa-otro {
+  background: #00c3c1;
+  color: #ffffff;
+  border: 0;
+}
+
+.pacto-item-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pacto-item-card__title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.pacto-item-card__meta {
+  margin-top: 0.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.pacto-item-card__meta .badge {
+  font-size: 0.64rem;
+  font-weight: 600;
+}
+
+.pacto-item-card__dates {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: #4b6470;
+}
+
+.pacto-item-card__footer {
+  margin-top: 0.25rem;
+  padding-top: 0.2rem;
+  border-top: 1px dashed rgba(0, 162, 160, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: #6c757d;
+  font-size: 0.7rem;
+}
+
+.pacto-action-btn.btn {
+  padding: 0.12rem 0.35rem;
+  line-height: 1;
+}
+
+.pacto-action-btn .bi {
+  font-size: 0.9rem;
+}
+
 .pacto-modal-dialog {
   max-width: min(920px, calc(100vw - 1.5rem));
 }

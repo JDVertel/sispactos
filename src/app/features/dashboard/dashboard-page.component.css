@@ -2,6 +2,72 @@
   display: block;
 }
 
+.cp-panel {
+  background: transparent !important;
+  border: 0.5px solid rgba(0, 162, 160, 0.22) !important;
+  box-shadow: none !important;
+}
+
+.cp-panel .card-body {
+  background: transparent !important;
+}
+
+.login-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(77, 77, 77, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.login-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 1.25rem));
+  max-height: calc(100vh - 4rem);
+  overflow: auto;
+  background: #ebebeb;
+  border: 1px solid rgba(0, 195, 193, 0.35);
+  border-top: 3px solid #007978;
+  border-radius: 0.75rem;
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 195, 193, 0.2);
+  z-index: 1110;
+}
+
+.login-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 2px solid rgba(0, 121, 120, 0.75);
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(180deg, #59e0df 0%, #00c3c1 52%, #008080 100%);
+}
+
+.login-modal-title {
+  font-size: 0.9rem;
+  color: #ffffff;
+  text-shadow:
+    -1px 0 0 rgba(0, 0, 0, 0.5),
+    1px 0 0 rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.login-modal-body {
+  padding: 0.35rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(235, 235, 235, 0.95) 100%);
+}
+
+.login-modal-head .btn-close {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
+  opacity: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
 .dashboard-page-root {
   position: relative;
   max-width: 100%;
@@ -32,10 +98,45 @@
 
 .home-carousel__frame {
   position: relative;
-  max-height: 320px;
+  height: 340px;
   overflow: hidden;
   border-radius: 10px;
   background: #dfe8e8;
+}
+
+.home-carousel__frame--grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  padding: 0.6rem;
+}
+
+.home-carousel__cell {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.home-carousel__cell-btn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: inherit;
+}
+
+.home-carousel__cell-btn:focus-visible {
+  outline: 2px solid rgba(0, 162, 160, 0.65);
+  outline-offset: 2px;
+}
+
+.home-carousel__frame--grid .home-carousel__img {
+  height: 100%;
+  max-height: none;
 }
 
 .home-carousel__img {
@@ -43,6 +144,61 @@
   width: 100%;
   max-height: 320px;
   object-fit: cover;
+}
+
+.home-img-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.home-img-modal {
+  z-index: 1210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-img-modal__img {
+  max-width: min(1100px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  background: #ffffff;
+}
+
+/* En móvil/tablet se muestra 1 imagen por slide */
+@media (max-width: 991.98px) {
+  .home-carousel__frame {
+    height: 280px;
+  }
+
+  .home-carousel__frame--grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-carousel__frame--grid .home-carousel__img {
+    height: 100%;
+    max-height: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .home-carousel__frame {
+    height: 240px;
+  }
+
+  .home-carousel__frame--grid .home-carousel__img {
+    height: 100%;
+    max-height: none;
+  }
 }
 
 .home-carousel__nav {
@@ -154,6 +310,35 @@
   max-width: 100%;
 }
 
+.home-territory-fixed {
+  height: 414px;
+}
+
+/* En escritorio: mapa +15% ancho, tabla -15% */
+@media (min-width: 1200px) {
+  .home-territory-map-col {
+    flex: 0 0 47.9%;
+    max-width: 47.9%;
+  }
+
+  .home-territory-table-col {
+    flex: 0 0 49.6%;
+    max-width: 49.6%;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .home-territory-fixed {
+    height: 368px;
+  }
+}
+
+@media (max-width: 576px) {
+  .home-territory-fixed {
+    height: 334px;
+  }
+}
+
 .home-detail-panel .row {
   margin-left: 0;
   margin-right: 0;
@@ -187,6 +372,9 @@
   border: 1px solid rgba(0, 195, 193, 0.3);
   width: 100%;
   max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .pactos-table-head {
@@ -247,7 +435,9 @@
 }
 
 .pactos-table-wrap {
-  max-height: 320px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
@@ -712,4 +902,82 @@
 
 .home-layout .summary-card-selected {
   border-color: rgba(255, 255, 255, 0.72);
+}
+
+/* Home (6 cards): todo en una sola fila, sin crecer en alto */
+.home-layout .summary-card .card-body {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  text-align: center;
+  padding: 0.35rem 0.55rem; /* controla altura */
+  min-height: 0;
+}
+
+.home-layout .summary-card-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.home-layout .summary-card-value {
+  font-size: clamp(1.18rem, 2vw, 1.72rem);
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.home-layout .summary-card-icon {
+  width: clamp(1.55rem, 2.1vw, 2.15rem);
+  height: clamp(1.55rem, 2.1vw, 2.15rem);
+  font-size: clamp(0.82rem, 1.25vw, 1.08rem);
+  flex: 0 0 auto;
+}
+
+.home-layout .summary-card-label {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(0.62rem, 1vw, 0.72rem);
+  line-height: 1.1;
+  font-weight: 500;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Marquee automático cuando el texto no cabe (siempre corre, pero al ser corto no se nota) */
+.home-layout .summary-card-label__marquee {
+  display: inline-flex;
+  align-items: center;
+  min-width: 100%;
+  will-change: transform;
+  animation: summaryCardMarquee 9s linear infinite;
+}
+
+.home-layout .summary-card-label__text {
+  display: inline-block;
+}
+
+.home-layout .summary-card-label__gap {
+  display: inline-block;
+  width: 1.5rem;
+}
+
+@keyframes summaryCardMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-layout .summary-card-label__marquee {
+    animation: none;
+    transform: none;
+  }
 }
