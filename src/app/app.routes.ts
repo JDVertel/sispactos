@@ -7,54 +7,61 @@ import { ProyectosManagementComponent } from './features/admin/proyectos-managem
 import { ContratosManagementComponent } from './features/admin/contratos-management.component';
 import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
 import { PactosTerritorialesComponent } from './features/pactos-territoriales/pactos-territoriales.component';
+import { dashboardAccessGuard } from './core/guards/dashboard-access.guard';
 
 export const routes: Routes = [
-	{
-		path: '',
-		pathMatch: 'full',
-		redirectTo: 'dashboard/home'
-	},
-	{
-		path: 'dashboard',
-		component: DashboardComponent,
-		children: [
-			{
-				path: '',
-				pathMatch: 'full',
-				redirectTo: 'home'
-			},
-			{
-				path: 'administracion',
-				component: AdminRolesComponent
-			},
-			{
-				path: 'gestion-pactos',
-				component: PactosManagementComponent
-			},
-			{
-				path: 'gestion-proyectos',
-				component: ProyectosManagementComponent
-			},
-			{
-				path: 'gestion-contratos',
-				component: ContratosManagementComponent
-			},
-			{
-				path: 'configuracion-actores',
-				component: ConfiguracionActoresComponent
-			},
-			{
-				path: 'pactos-territoriales',
-				component: PactosTerritorialesComponent
-			},
-			{
-				path: ':page',
-				component: DashboardPageComponent
-			}
-		]
-	},
-	{
-		path: '**',
-		redirectTo: 'dashboard/home'
-	}
+  {
+    path: '',
+    pathMatch: 'full',
+    redirectTo: 'dashboard/home'
+  },
+  {
+    path: 'dashboard',
+    component: DashboardComponent,
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'home'
+      },
+      {
+        path: 'administracion',
+        component: AdminRolesComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'gestion-pactos',
+        component: PactosManagementComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'gestion-proyectos',
+        component: ProyectosManagementComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'gestion-contratos',
+        component: ContratosManagementComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'configuracion-actores',
+        component: ConfiguracionActoresComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'pactos-territoriales',
+        component: PactosTerritorialesComponent
+      },
+      {
+        path: ':page',
+        component: DashboardPageComponent,
+        canActivate: [dashboardAccessGuard]
+      }
+    ]
+  },
+  {
+    path: '**',
+    redirectTo: 'dashboard/home'
+  }
 ];

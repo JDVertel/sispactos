@@ -54,3 +54,87 @@ textarea {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.multimedia-field > .small {
+  line-height: 1.35;
+}
+
+.multimedia-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.multimedia-preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 160px;
+  padding: 0.4rem;
+  border: 1px solid #ebebeb;
+  border-radius: 0.15rem;
+  background: #fafafa;
+}
+
+.multimedia-preview-item img,
+.multimedia-preview-item video {
+  display: block;
+  width: 100%;
+  max-height: 100px;
+  object-fit: cover;
+  border-radius: 0.1rem;
+  background: #000;
+}
+
+.multimedia-preview-item video {
+  max-height: 120px;
+}
+
+.multimedia-nombre {
+  font-size: 0.7rem;
+  font-weight: 600;
+  word-break: break-word;
+  color: #4d4d4d;
+}
+
+.btn-remove-mm {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+}
+
+.proyecto-save-errors {
+  flex-shrink: 0;
+}
+
+.proyecto-table-compact {
+  font-size: 0.78rem;
+}
+
+.proyecto-table-compact th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  padding: 0.35rem 0.5rem;
+}
+
+.proyecto-table-compact td {
+  padding: 0.3rem 0.5rem;
+  vertical-align: middle;
+}
+
+.proyecto-nombre-cell,
+.proyecto-pacto-cell,
+.proyecto-responsable-cell {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proyecto-estado-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+}

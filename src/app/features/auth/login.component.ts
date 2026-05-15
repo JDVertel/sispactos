@@ -42,6 +42,7 @@ export class LoginComponent {
           return;
         }
 
+        this.authService.ensureSessionKeepalive();
         this.loginSuccess.emit();
 
         if (!this.compactMode) {

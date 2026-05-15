@@ -56,6 +56,37 @@ export interface CatalogoOption {
   texto: string;
 }
 
+/**
+ * Construye la URL **GET `/api/Catalogo/{IdTipoCatalogo}`** (segmento final = id entero).
+ */
+export function catalogoByTipoRoute(idTipoCatalogo: number): string {
+  return `/api/Catalogo/${idTipoCatalogo}`;
+}
+
+/** IdTipoCatalogo = 2 — tipos de pacto. */
+export const CATALOGO_TIPO_TIPO_PACTO = 2;
+/** IdTipoCatalogo = 3 — etapas de pacto. */
+export const CATALOGO_TIPO_ETAPA_PACTO = 3;
+/** IdTipoCatalogo = 4 — instancias de sesión (compromisos). */
+export const CATALOGO_TIPO_INSTANCIA_COMPROMISO_PACTO = 4;
+/** IdTipoCatalogo = 5 — estado de compromiso de pacto (no estado de proyecto). */
+export const CATALOGO_TIPO_ESTADO_COMPROMISO_PACTO = 5;
+
+/** IdTipoCatalogo = 6 — área de influencia (proyecto). */
+export const CATALOGO_TIPO_AREA_INFLUENCIA_PROYECTO = 6;
+/** IdTipoCatalogo = 7 — estado de proyecto. */
+export const CATALOGO_TIPO_ESTADO_PROYECTO = 7;
+/** IdTipoCatalogo = 8 — condición de proyecto. */
+export const CATALOGO_TIPO_CONDICION_PROYECTO = 8;
+/** IdTipoCatalogo = 9 — sector de proyecto. */
+export const CATALOGO_TIPO_SECTOR_PROYECTO = 9;
+/** IdTipoCatalogo = 10 — aporte nación. */
+export const CATALOGO_TIPO_APORTANTE_NACION_PROYECTO = 10;
+/** IdTipoCatalogo = 11 — mecanismo de inclusión (confirmar en API si aplica). */
+export const CATALOGO_TIPO_MECANISMO_INCLUSION_PROYECTO = 11;
+/** IdTipoCatalogo = 12 — sector administración nacional (confirmar en API si aplica). */
+export const CATALOGO_TIPO_SECTOR_ADMIN_NACIONAL_PROYECTO = 12;
+
 export interface EntidadTerritorialOption {
   idEntidadTerritorial: string;
   nombreEntidadTerritorial: string;
@@ -183,15 +214,8 @@ export class PactosService {
   // Carga catálogos desde la API (mismos endpoints que el listado de pactos).
   getPactoCatalogos(): Observable<PactoCatalogosResult> {
     return forkJoin({
-      tiposPacto: this.http.get<unknown>('/api/Catalogo/2').pipe(
-        map((response) => this.normalizeCatalogoItems(response)),
-        catchError(() => of([] as CatalogoOption[]))
-      ),
-      // Etapas de pacto: están definidas en Catalogo/3 (según API).
-      etapas: this.http.get<unknown>('/api/Catalogo/3').pipe(
-        map((response) => this.normalizeCatalogoItems(response)),
-        catchError(() => of([] as CatalogoOption[]))
-      )
+      tiposPacto: this.getCatalogoByTipo(CATALOGO_TIPO_TIPO_PACTO).pipe(catchError(() => of([] as CatalogoOption[]))),
+      etapas: this.getCatalogoByTipo(CATALOGO_TIPO_ETAPA_PACTO).pipe(catchError(() => of([] as CatalogoOption[])))
     });
   }
 
@@ -200,6 +224,20 @@ export class PactosService {
     return this.http.get<unknown>('/api/EntidadTerritorial').pipe(
       map((response) => this.normalizeEntidadTerritorialItems(response)),
       catchError(() => of([] as EntidadTerritorialOption[]))
+    );
+  }
+
+  /**
+   * **GET `/api/Catalogo/{IdTipoCatalogo}`** — lista ítems del catálogo (JSON en cuerpo, a menudo `Content-Type: text/plain`).
+   */
+  getCatalogoByTipo(idTipoCatalogo: number): Observable<CatalogoOption[]> {
+    const url = `/api/Catalogo/${idTipoCatalogo}`;
+    return this.http.get(url, { responseType: 'text' }).pipe(
+      map((raw) => this.normalizeCatalogoItems(this.parseCatalogoJsonPayload(raw))),
+      catchError((err) => {
+        console.error(`[API ERROR] GET ${url}`, err);
+        return of([] as CatalogoOption[]);
+      })
     );
   }
 
@@ -466,18 +504,17 @@ export class PactosService {
           throw error;
         })
       ),
-      tiposPacto: this.http.get<unknown>('/api/Catalogo/2').pipe(
-        tap((response) => {
-          console.groupCollapsed('[API OK] GET /api/Catalogo/2');
-          console.log('response:', response);
+      tiposPacto: this.getCatalogoByTipo(CATALOGO_TIPO_TIPO_PACTO).pipe(
+        tap((items) => {
+          const url = catalogoByTipoRoute(CATALOGO_TIPO_TIPO_PACTO);
+          console.groupCollapsed(`[API OK] GET ${url}`);
+          console.log('items:', items);
           console.groupEnd();
         }),
         catchError((error) => {
-          console.error('[API ERROR] GET /api/Catalogo/2', error);
+          console.error(`[API ERROR] GET ${catalogoByTipoRoute(CATALOGO_TIPO_TIPO_PACTO)}`, error);
           return of([] as CatalogoOption[]);
-        }),
-        map((response) => this.normalizeCatalogoItems(response)),
-        catchError(() => of([] as CatalogoOption[]))
+        })
       ),
       entidadesTerritoriales: this.http.get<unknown>('/api/EntidadTerritorial').pipe(
         map((response) => this.normalizeEntidadTerritorialItems(response)),
@@ -852,20 +889,72 @@ export class PactosService {
     return messages.join(' ');
   }
 
+  private parseCatalogoJsonPayload(raw: string | null): unknown {
+    if (raw == null) {
+      return [];
+    }
+    const trimmed = raw.replace(/^\uFEFF/, '').trim();
+    if (!trimmed) {
+      return [];
+    }
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      console.warn('[SISPACTOS] Catálogo: cuerpo no es JSON válido.', trimmed.slice(0, 200));
+      return [];
+    }
+  }
+
+  private unwrapCatalogoArray(payload: unknown): unknown[] | null {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+    if (payload && typeof payload === 'object') {
+      const o = payload as Record<string, unknown>;
+      for (const key of ['data', 'items', 'result', 'value', 'datos', 'DATOS']) {
+        const inner = o[key];
+        if (Array.isArray(inner)) {
+          return inner;
+        }
+      }
+    }
+    return null;
+  }
+
   private normalizeCatalogoItems(response: unknown): CatalogoOption[] {
-    if (!Array.isArray(response)) {
+    const list = typeof response === 'string' ? this.unwrapCatalogoArray(this.parseCatalogoJsonPayload(response)) : this.unwrapCatalogoArray(response);
+    if (!list) {
       return [];
     }
 
-    return response
-      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
-      .map((item) => ({
-        id: this.readNumber(item['id']),
-        idTipoCatalogo: this.readOptionalNumber(item['idTipoCatalogo']),
-        codigo: this.readString(item['codigo']),
-        texto: this.readString(item['texto'])
-      }))
-      .filter((item) => item.id > 0 && !!item.texto);
+    const out: CatalogoOption[] = [];
+    for (const raw of list) {
+      if (!raw || typeof raw !== 'object') {
+        continue;
+      }
+      const item = raw as Record<string, unknown>;
+      const id = this.readNumber(item['id'] ?? item['Id'] ?? item['ID'] ?? item['idCatalogo'] ?? item['IdCatalogo']);
+      const codigo = this.readString(item['codigo'] ?? item['Codigo'] ?? item['codigoCatalogo'] ?? item['CodigoCatalogo']);
+      const texto = this.readString(
+        item['texto']
+          ?? item['Texto']
+          ?? item['nombre']
+          ?? item['Nombre']
+          ?? item['descripcion']
+          ?? item['Descripcion']
+      );
+      const label = texto || codigo;
+      if (id <= 0 || !label) {
+        continue;
+      }
+      out.push({
+        id,
+        idTipoCatalogo: this.readOptionalNumber(item['idTipoCatalogo'] ?? item['IdTipoCatalogo']),
+        codigo: codigo || String(id),
+        texto: label
+      });
+    }
+    return out;
   }
 
   private normalizeEntidadTerritorialItems(response: unknown): EntidadTerritorialOption[] {

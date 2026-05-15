@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
+/** Exige sesion valida (usuario + token). Usar en rutas 100% privadas. */
 export const validUserSessionGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);

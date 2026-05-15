@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, Injector } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, tap, shareReplay, finalize } from 'rxjs/operators';
 import { AuthSessionStore } from '../store/auth-session.store';
+import { AuthSessionKeepaliveService } from './auth-session-keepalive.service';
 
 export interface LoginResult {
   isAuthenticated: boolean;
@@ -17,13 +18,14 @@ const AUTH_REFRESH_TOKEN_URL = '/api/Auth/RefreshToken';
 })
 export class AuthService {
   private refreshInFlight$: Observable<boolean> | null = null;
+  private keepaliveStarted = false;
 
   constructor(
     private readonly http: HttpClient,
-    private readonly authSessionStore: AuthSessionStore
+    private readonly authSessionStore: AuthSessionStore,
+    private readonly injector: Injector
   ) {}
 
-  // Valida el acceso contra endpoint transaccional y registra sesión local.
   login(username: string, password: string): Observable<LoginResult> {
     const safeUsername = username.trim();
     const safePassword = password.trim();
@@ -35,23 +37,32 @@ export class AuthService {
       });
     }
 
-    return this.http.post<unknown>(AUTH_LOGIN_URL, {
+    return this.http.post(AUTH_LOGIN_URL, {
       username: safeUsername,
       password: safePassword
-    }).pipe(
+    }, { responseType: 'text' }).pipe(
       tap((response) => {
         console.groupCollapsed('[API OK] POST /api/Auth/Login');
         console.log('response:', response);
         console.groupEnd();
       }),
-      map((response) => {
-        const token = this.extractToken(response);
+      map((raw) => {
+        const token = this.extractToken(this.parseJsonPayload(raw));
+
+        if (!token) {
+          return {
+            isAuthenticated: false,
+            message: 'El servidor no devolvio un token de sesion.'
+          } as LoginResult;
+        }
 
         this.authSessionStore.setSession({
           username: safeUsername,
           mode: 'local',
           token
         });
+
+        this.startSessionKeepalive();
 
         return { isAuthenticated: true };
       }),
@@ -66,6 +77,10 @@ export class AuthService {
     );
   }
 
+  /**
+   * Renueva el JWT (POST /api/Auth/RefreshToken).
+   * No cierra sesion por errores de red; solo si el servidor rechaza el token (401/403).
+   */
   refreshToken(): Observable<boolean> {
     if (this.refreshInFlight$) {
       return this.refreshInFlight$;
@@ -76,16 +91,18 @@ export class AuthService {
       return of(false);
     }
 
-    this.refreshInFlight$ = this.http.post<unknown>(AUTH_REFRESH_TOKEN_URL, token).pipe(
+    const body = this.buildRefreshTokenBody(token);
+
+    this.refreshInFlight$ = this.http.post(AUTH_REFRESH_TOKEN_URL, body, { responseType: 'text' }).pipe(
       tap((response) => {
         console.groupCollapsed('[API OK] POST /api/Auth/RefreshToken');
         console.log('response:', response);
         console.groupEnd();
       }),
-      map((response) => {
-        const refreshedToken = this.extractToken(response) || token;
+      map((raw) => {
+        const refreshedToken = this.extractToken(this.parseJsonPayload(raw)) || token;
         const current = this.authSessionStore.getSession();
-        if (!current) {
+        if (!current || !refreshedToken) {
           return false;
         }
 
@@ -96,9 +113,11 @@ export class AuthService {
 
         return true;
       }),
-      catchError((error) => {
+      catchError((error: HttpErrorResponse) => {
         console.error('[API ERROR] POST /api/Auth/RefreshToken', error);
-        this.logout();
+        if (error.status === 401 || error.status === 403) {
+          this.logout();
+        }
         return of(false);
       }),
       finalize(() => {
@@ -110,23 +129,32 @@ export class AuthService {
     return this.refreshInFlight$;
   }
 
-  // Cierra la sesión actual y limpia los datos guardados.
   logout(): void {
+    this.stopSessionKeepalive();
     this.authSessionStore.clearSession();
   }
 
-  // Devuelve si el usuario está autenticado.
+  /** Reanuda renovacion automatica si hay sesion guardada (p. ej. al recargar la app). */
+  ensureSessionKeepalive(): void {
+    if (this.hasValidUserSession()) {
+      this.startSessionKeepalive();
+    }
+  }
+
   isLoggedIn(): boolean {
     return !!this.authSessionStore.getSession();
   }
 
-  // Sesión válida para módulos restringidos: requiere usuario registrado.
   hasValidUserSession(): boolean {
     const session = this.authSessionStore.getSession();
-    return !!session && session.mode === 'local' && !!session.username.trim();
+    return (
+      !!session
+      && session.mode === 'local'
+      && !!session.username.trim()
+      && !!this.authSessionStore.getToken().trim()
+    );
   }
 
-  // Devuelve información del usuario activo.
   getCurrentUser(): { username: string; mode: 'local' | 'guest' } | null {
     const session = this.authSessionStore.getSession();
 
@@ -138,6 +166,40 @@ export class AuthService {
       username: session.username,
       mode: session.mode
     };
+  }
+
+  private startSessionKeepalive(): void {
+    if (this.keepaliveStarted) {
+      this.injector.get(AuthSessionKeepaliveService).start();
+      return;
+    }
+    this.keepaliveStarted = true;
+    this.injector.get(AuthSessionKeepaliveService).start();
+  }
+
+  private stopSessionKeepalive(): void {
+    this.keepaliveStarted = false;
+    try {
+      this.injector.get(AuthSessionKeepaliveService).stop();
+    } catch {
+      // noop si el keepalive aun no esta registrado
+    }
+  }
+
+  private buildRefreshTokenBody(token: string): string | Record<string, string> {
+    const normalized = this.normalizeToken(token);
+    return normalized;
+  }
+
+  private parseJsonPayload(raw: string | null): unknown {
+    if (raw == null || raw === '') {
+      return null;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
   }
 
   private extractToken(payload: unknown): string {
@@ -153,6 +215,7 @@ export class AuthService {
     const direct = this.readString(body['token'])
       || this.readString(body['accessToken'])
       || this.readString(body['access_token'])
+      || this.readString(body['refreshToken'])
       || this.readString(body['jwt'])
       || this.readString(body['bearer']);
 
@@ -171,5 +234,4 @@ export class AuthService {
   private normalizeToken(token: string): string {
     return token.replace(/^Bearer\s+/i, '').trim();
   }
-
 }

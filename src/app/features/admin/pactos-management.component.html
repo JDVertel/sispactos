@@ -392,12 +392,50 @@
           <button
             type="submit"
             class="btn btn-primary"
-            [disabled]="!puedeGuardarPacto"
+            [disabled]="isSubmitting || isLoadingCatalogos"
           >
             {{ isSubmitting ? 'Guardando...' : (modoFormulario === 'editar' ? 'Actualizar Pacto' : 'Crear Pacto') }}
           </button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de errores al guardar (sobre el formulario de pacto) -->
+<div
+  class="modal fade pacto-save-error-modal"
+  id="pactoSaveErrorModal"
+  tabindex="-1"
+  aria-labelledby="pactoSaveErrorModalLabel"
+  aria-hidden="true"
+  data-bs-backdrop="true"
+  data-bs-keyboard="true"
+>
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-danger shadow-lg">
+      <div class="modal-header bg-danger text-white">
+        <h2 class="modal-title h5 mb-0" id="pactoSaveErrorModalLabel">
+          No se puede guardar el pacto
+        </h2>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          aria-label="Cerrar"
+          (click)="closeSavePactoErrorModal()"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2 small text-secondary">Revise lo siguiente y corrija el formulario:</p>
+        <ul class="mb-0 ps-3">
+          <li *ngFor="let err of savePactoErrores" class="mb-1">{{ err }}</li>
+        </ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" (click)="closeSavePactoErrorModal()">
+          Entendido
+        </button>
+      </div>
     </div>
   </div>
 </div>

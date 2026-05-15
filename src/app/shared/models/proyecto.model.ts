@@ -1,5 +1,22 @@
 export interface Proyecto {
   id: number;
+  /** Id del registro en la API (`PUT /api/Proyecto`). */
+  apiId?: number;
+  idPactoTerritorial?: number;
+  idAreaInfluencia?: number;
+  idEstadoProyecto?: number;
+  idCondicionProyecto?: number;
+  idSectorCatalogo?: number;
+  idAportanteNacion?: number;
+  idMecanismoInclusion?: number;
+  idSectorAdministracionNacional?: number;
+  idEntidadProyecto?: string;
+  metaPaTexto?: string;
+  inversionClimatica?: boolean;
+  /** Fecha plazo estimado (yyyy-MM-dd) para reabrir el formulario. */
+  plazoEstimadoEjecucion?: string;
+  actaCdNumero?: string;
+  actaCdFecha?: string;
   nombre: string;
   descripcion: string;
   pactoAsociado?: string;
@@ -26,4 +43,8 @@ export interface Proyecto {
   fechaFin: Date;
   avance: number;
   fechaCreacion: Date;
+  productoPrincipalMga?: string;
+  /** Cantidad asociada a la meta PA (entero no negativo). */
+  cantidadMetaPa?: number;
+  multimediaNombres?: string[];
 }

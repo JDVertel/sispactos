@@ -14,158 +14,56 @@
       <span class="badge text-bg-light border px-3 py-2">Directos: {{ getTotalEmpleosDirectos() }}</span>
       <span class="badge text-bg-light border px-3 py-2">Indirectos: {{ getTotalEmpleosIndirectos() }}</span>
       <div>
-        <button
-          type="button"
-          class="btn btn-primary"
-          data-bs-toggle="modal"
-          data-bs-target="#nuevoProyectoModal"
-        >
+        <button type="button" class="btn btn-primary" (click)="abrirModalNuevoProyecto()">
           Nuevo Proyecto
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Listado de proyectos registrados -->
+  <!-- Listado compacto de proyectos -->
   <div class="card border-0 shadow-sm">
-    <div class="card-header bg-body-tertiary py-3">
-      <h2 class="h5 mb-0">Proyectos Registrados</h2>
+    <div class="card-header bg-body-tertiary py-2 px-3">
+      <h2 class="h6 mb-0">Proyectos registrados</h2>
     </div>
-    <div class="card-body p-2 p-md-3">
-      <div *ngIf="(proyectos$ | async)?.length === 0" class="alert alert-light border text-center mb-0">
-        No hay proyectos registrados. Usa el botón <strong>Nuevo Proyecto</strong> para crear el primero.
+    <div class="card-body p-0">
+      <div *ngIf="(proyectos$ | async)?.length === 0" class="alert alert-light border text-center m-2 mb-0">
+        No hay proyectos registrados. Usa <strong>Nuevo Proyecto</strong> para crear el primero.
       </div>
 
-      <article *ngFor="let proyecto of proyectos$ | async" class="card mb-3 border">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
-            <div>
-              <h3 class="h5 mb-1">{{ proyecto.nombre }}</h3>
-              <p class="card-code mb-0">{{ proyecto.codigo }}</p>
-            </div>
-            <button
-              type="button"
-              class="btn btn-outline-danger btn-sm"
-              (click)="deleteProyecto(proyecto.id)"
-              aria-label="Eliminar proyecto"
-            >
-              <svg viewBox="0 0 24 24" width="16" height="16">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-              </svg>
-              Eliminar
-            </button>
-          </div>
-
-          <p class="mb-3">{{ proyecto.descripcion }}</p>
-
-          <div class="row g-3">
-          <div class="col-12 col-md-6" *ngIf="proyecto.bpin">
-            <span class="small text-uppercase text-secondary fw-semibold">BPIN:</span>
-            <strong>{{ proyecto.bpin }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.sector">
-            <span class="small text-uppercase text-secondary fw-semibold">Sector:</span>
-            <strong>{{ proyecto.sector }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.lineaTematica">
-            <span class="small text-uppercase text-secondary fw-semibold">Linea tematica:</span>
-            <strong>{{ proyecto.lineaTematica }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.consecutivoConpes !== undefined">
-            <span class="small text-uppercase text-secondary fw-semibold">Consecutivo CONPES:</span>
-            <strong>{{ proyecto.consecutivoConpes }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.actaCd">
-            <span class="small text-uppercase text-secondary fw-semibold">Acta CD:</span>
-            <strong>{{ proyecto.actaCd }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.numeroEmpleosDirectos !== undefined">
-            <span class="small text-uppercase text-secondary fw-semibold">Empleos directos:</span>
-            <strong>{{ proyecto.numeroEmpleosDirectos }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.numeroEmpleosIndirectos !== undefined">
-            <span class="small text-uppercase text-secondary fw-semibold">Empleos indirectos:</span>
-            <strong>{{ proyecto.numeroEmpleosIndirectos }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.tieneViabilidad !== undefined">
-            <span class="small text-uppercase text-secondary fw-semibold">Tiene viabilidad:</span>
-            <strong>{{ proyecto.tieneViabilidad ? 'Si' : 'No' }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.fechaViabilidad">
-            <span class="small text-uppercase text-secondary fw-semibold">Fecha viabilidad:</span>
-            <strong>{{ formatDate(proyecto.fechaViabilidad) }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.frpt !== undefined">
-            <span class="small text-uppercase text-secondary fw-semibold">FRPT:</span>
-            <strong>{{ proyecto.frpt ? 'Si' : 'No' }}</strong>
-          </div>
-          <div class="col-12 col-md-6" *ngIf="proyecto.frpt && proyecto.numeroContratoEspecifico !== undefined">
-            <span class="small text-uppercase text-secondary fw-semibold">Nro contrato especifico:</span>
-            <strong>{{ proyecto.numeroContratoEspecifico }}</strong>
-          </div>
-          <div class="col-12 col-md-6">
-            <span class="small text-uppercase text-secondary fw-semibold">Presupuesto:</span>
-            <strong>{{ formatCurrency(proyecto.presupuesto) }}</strong>
-          </div>
-          <div class="col-12 col-md-6">
-            <span class="small text-uppercase text-secondary fw-semibold">Entidad responsable PI:</span>
-            <strong>{{ proyecto.responsable }}</strong>
-          </div>
-          <div class="col-12 col-md-6">
-            <span class="small text-uppercase text-secondary fw-semibold">Estado:</span>
-            <span class="badge" [attr.data-estado]="proyecto.estado">{{ proyecto.estado }}</span>
-          </div>
-          <div class="col-12 col-md-6">
-            <span class="small text-uppercase text-secondary fw-semibold">Avance:</span>
-            <div class="d-flex align-items-center gap-2">
-              <div class="progress flex-grow-1">
-                <div class="progress-bar" [style.width.%]="proyecto.avance"></div>
-              </div>
-              <span class="small text-secondary">{{ proyecto.avance }}%</span>
-            </div>
-          </div>
-          </div>
-
-          <p class="small text-secondary border-top pt-2 mt-3 mb-0">
-            Creado el {{ formatDate(proyecto.fechaCreacion) }}
-          </p>
-        </div>
-      </article>
-    </div>
-  </div>
-
-  <!-- Tabla de proyectos creados (API) -->
-  <div class="card border-0 shadow-sm mt-3">
-    <div class="card-header bg-body-tertiary py-3">
-      <h2 class="h5 mb-0">Proyectos creados (API)</h2>
-    </div>
-    <div class="card-body p-2 p-md-3">
-      <div *ngIf="(proyectosApi$ | async)?.length === 0" class="alert alert-light border text-center mb-0">
-        La respuesta de <strong>/api/PactoTerritorial</strong> no trae proyectos embebidos (o no hay proyectos).
-      </div>
-
-      <div class="table-responsive" *ngIf="(proyectosApi$ | async)?.length">
-        <table class="table table-striped table-hover align-middle mb-0">
-          <thead>
+      <div class="table-responsive" *ngIf="(proyectos$ | async)?.length">
+        <table class="table table-sm table-hover align-middle mb-0 proyecto-table-compact">
+          <thead class="table-light">
             <tr>
-              <th>Pacto</th>
-              <th>ID</th>
-              <th>Código</th>
-              <th>BPIN</th>
+              <th>Codigo</th>
               <th>Nombre</th>
+              <th>BPIN</th>
+              <th>Pacto</th>
               <th>Sector</th>
               <th>Estado</th>
+              <th>Responsable</th>
+              <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of (proyectosApi$ | async)">
-              <td>{{ row.pactoNombre || 'N/A' }}</td>
-              <td>{{ row.id ?? 'N/A' }}</td>
-              <td>{{ row.codigo || 'N/A' }}</td>
-              <td>{{ row.bpin || 'N/A' }}</td>
-              <td>{{ row.nombre || 'N/A' }}</td>
-              <td>{{ row.sector || 'N/A' }}</td>
-              <td>{{ row.estado || 'N/A' }}</td>
+            <tr *ngFor="let proyecto of proyectos$ | async">
+              <td class="text-nowrap">{{ proyecto.codigo }}</td>
+              <td class="proyecto-nombre-cell" [title]="proyecto.nombre">{{ proyecto.nombre }}</td>
+              <td class="text-nowrap">{{ proyecto.bpin || '—' }}</td>
+              <td class="proyecto-pacto-cell" [title]="proyecto.pactoAsociado || ''">{{ proyecto.pactoAsociado || '—' }}</td>
+              <td>{{ proyecto.sector || '—' }}</td>
+              <td><span class="badge text-bg-light border proyecto-estado-badge">{{ proyecto.estado }}</span></td>
+              <td class="proyecto-responsable-cell" [title]="proyecto.responsable">{{ proyecto.responsable }}</td>
+              <td class="text-end text-nowrap">
+                <button
+                  type="button"
+                  class="btn btn-outline-primary btn-sm"
+                  (click)="abrirModalEditarProyecto(proyecto)"
+                  aria-label="Editar proyecto"
+                >
+                  Editar
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -173,19 +71,23 @@
     </div>
   </div>
 
+
   <!-- Modal para crear un proyecto nuevo -->
   <div class="modal fade" id="nuevoProyectoModal" tabindex="-1" aria-labelledby="nuevoProyectoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title h5 mb-0" id="nuevoProyectoModalLabel"><i class="bi bi-briefcase"></i> Nuevo Proyecto</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          <h2 class="modal-title h5 mb-0" id="nuevoProyectoModalLabel">
+            <i class="bi bi-briefcase"></i>
+            {{ modoFormulario === 'editar' ? 'Editar Proyecto' : 'Nuevo Proyecto' }}
+          </h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" (click)="resetForm()"></button>
         </div>
 
-        <form (ngSubmit)="addProyecto()">
+        <form (ngSubmit)="guardarProyecto()">
           <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-            <div *ngIf="saveProyectoError" class="alert alert-danger py-2 px-3">
-              {{ saveProyectoError }}
+            <div *ngIf="isLoadingProyectoDetalle" class="alert alert-light border text-center small mb-3">
+              Cargando datos del proyecto...
             </div>
             <div class="form-grid">
               <label>
@@ -200,12 +102,13 @@
                 BPIN
                 <input
                   class="form-control"
-                  type="number"
+                  type="text"
                   name="proyectoBpin"
-                  [(ngModel)]="newProyecto.bpin"
-                  min="0"
+                  autocomplete="off"
                   maxlength="13"
-                  title="El BPIN debe tener exactamente 13 digitos numericos"
+                  pattern="[A-Za-z0-9]{13}"
+                  [(ngModel)]="newProyecto.bpin"
+                  title="El BPIN debe tener exactamente 13 caracteres alfanumericos (letras y numeros)"
                   (input)="onBpinInput($event)"
                   required
                 />
@@ -230,11 +133,12 @@
                 Consecutivo CONPES
                 <input
                   class="form-control"
-                  type="number"
+                  type="text"
                   name="proyectoConsecutivoConpes"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  maxlength="5"
                   [(ngModel)]="newProyecto.consecutivoConpes"
-                  min="0"
-                  max="99999"
                   title="El consecutivo CONPES debe tener 5 digitos"
                   (input)="onConpesInput($event)"
                   required
@@ -243,7 +147,7 @@
 
               <label>
                 Acta CD Numero
-                <input class="form-control" type="number" name="proyectoActaCdNumero" [(ngModel)]="newProyecto.actaCdNumero" min="0" required />
+                <input class="form-control" type="text" name="proyectoActaCdNumero" [(ngModel)]="newProyecto.actaCdNumero" required />
               </label>
 
               <label>
@@ -253,41 +157,82 @@
 
               <label>
                 Area de influencia
-                <select class="form-select" name="proyectoAreaInfluencia" [(ngModel)]="newProyecto.areaInfluencia" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let area of areasInfluencia" [value]="area">{{ area }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoAreaInfluencia"
+                  [(ngModel)]="newProyecto.idAreaInfluencia"
+                  [disabled]="!areasInfluenciaCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of areasInfluenciaCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!areasInfluenciaCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoAreaInfluencia) }}.
+                </span>
               </label>
 
               <label>
                 Estado de proyecto
-                <select class="form-select" name="proyectoEstado" [(ngModel)]="newProyecto.estadoProyecto" disabled required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let estado of estadosProyecto" [value]="estado">{{ estado }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoEstado"
+                  [(ngModel)]="newProyecto.idEstadoProyecto"
+                  [disabled]="!estadosProyectoCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of estadosProyectoCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!estadosProyectoCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoEstadoProyecto) }}.
+                </span>
               </label>
 
               <label>
                 Condicion de proyecto
-                <select class="form-select" name="proyectoCondicion" [(ngModel)]="newProyecto.condicionProyecto" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let condicion of condicionesProyecto" [value]="condicion">{{ condicion }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoCondicion"
+                  [(ngModel)]="newProyecto.idCondicionProyecto"
+                  [disabled]="!condicionesProyectoCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of condicionesProyectoCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!condicionesProyectoCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoCondicionProyecto) }}.
+                </span>
               </label>
 
               <label>
                 Sector
-                <select class="form-select" name="proyectoSector" [(ngModel)]="newProyecto.sector" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let sector of sectores" [value]="sector">{{ sector }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoSector"
+                  [(ngModel)]="newProyecto.idSector"
+                  [disabled]="!sectoresProyectoCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of sectoresProyectoCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!sectoresProyectoCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoSectorProyecto) }}.
+                </span>
               </label>
 
               <label>
                 Linea tematica
-                <select class="form-select" name="proyectoLineaTematica" [(ngModel)]="newProyecto.lineaTematica" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngIf="lineasTematicasDisponibles.length === 0" value="" disabled>Sin lineas tematicas</option>
+                <select
+                  class="form-select"
+                  name="proyectoLineaTematica"
+                  [(ngModel)]="newProyecto.lineaTematica"
+                  [required]="lineasTematicasDisponibles.length > 0"
+                >
+                  <option value="" [disabled]="lineasTematicasDisponibles.length > 0">--seleccione--</option>
+                  <option *ngIf="lineasTematicasDisponibles.length === 0" value="" disabled>Sin lineas tematicas para el pacto</option>
                   <option *ngFor="let linea of lineasTematicasDisponibles" [value]="linea">{{ linea }}</option>
                 </select>
               </label>
@@ -324,31 +269,43 @@
 
               <label *ngIf="newProyecto.frpt">
                 Numero contrato especifico
-                <input class="form-control" type="number" name="proyectoNumeroContratoEspecifico" [(ngModel)]="newProyecto.numeroContratoEspecifico" min="0" required />
+                <input class="form-control" type="text" name="proyectoNumeroContratoEspecifico" [(ngModel)]="newProyecto.numeroContratoEspecifico" required />
               </label>
 
               <label>
                 Aporte nacion
-                <select class="form-select" name="proyectoAporteNacion" [(ngModel)]="newProyecto.aporteNacion" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let aporte of aportesNacion" [value]="aporte">{{ aporte }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoAporteNacion"
+                  [(ngModel)]="newProyecto.idAportanteNacion"
+                  [disabled]="!aportantesNacionCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of aportantesNacionCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!aportantesNacionCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoAportanteNacion) }} (catalogo 10).
+                </span>
               </label>
 
               <label>
-                Municipio
-                <select class="form-select" name="proyectoMunicipioEntidad" [(ngModel)]="newProyecto.municipioEntidad" (ngModelChange)="onMunicipioEntidadChange()" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let municipio of municipiosEntidadDisponibles" [value]="municipio">{{ municipio }}</option>
+                Municipio (entidad territorial)
+                <select
+                  class="form-select"
+                  name="proyectoMunicipioEntidad"
+                  [(ngModel)]="newProyecto.municipioEntidad"
+                  [disabled]="!entidadesTerritorialesProyecto.length"
+                  required
+                >
+                  <option [ngValue]="''" disabled>--seleccione--</option>
+                  <option *ngFor="let e of entidadesTerritorialesProyecto" [ngValue]="e.idEntidadTerritorial">
+                    {{ e.displayName || e.nombreEntidadTerritorial }}
+                  </option>
                 </select>
-              </label>
-
-              <label>
-                Entidad responsable PI
-                <select class="form-select" name="proyectoEntidadResponsablePi" [(ngModel)]="newProyecto.entidadResponsablePi" [disabled]="!newProyecto.municipioEntidad" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let entidad of entidadesResponsableDisponibles" [value]="entidad">{{ entidad }}</option>
-                </select>
+                <span *ngIf="!entidadesTerritorialesProyecto.length" class="small text-warning">
+                  Sin datos en GET /api/EntidadTerritorial.
+                </span>
               </label>
 
               <label class="checkbox-field">
@@ -367,27 +324,117 @@
               </label>
 
               <label>
+                Producto principal MGA
+                <input class="form-control" type="text" name="proyectoProductoMga" [(ngModel)]="newProyecto.productoPrincipalMga" />
+              </label>
+
+              <label>
+                Cantidad Meta PA
+                <input
+                  class="form-control"
+                  type="number"
+                  name="proyectoCantidadMetaPa"
+                  min="0"
+                  step="1"
+                  [(ngModel)]="newProyecto.cantidadMetaPa"
+                  required
+                />
+              </label>
+
+              <label>
                 Mecanismo de inclusion
-                <select class="form-select" name="proyectoMecanismoInclusion" [(ngModel)]="newProyecto.mecanismoInclusion" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let mecanismo of mecanismosInclusion" [value]="mecanismo">{{ mecanismo }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoMecanismoInclusion"
+                  [(ngModel)]="newProyecto.idMecanismoInclusion"
+                  [disabled]="!mecanismosInclusionCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of mecanismosInclusionCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!mecanismosInclusionCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoMecanismoInclusion) }}.
+                </span>
               </label>
 
               <label>
                 Sector Admin Nacional
-                <select class="form-select" name="proyectoSectorAdminNacional" [(ngModel)]="newProyecto.sectorAdminNacional" required>
-                  <option value="" disabled>--seleccione--</option>
-                  <option *ngFor="let sectorAdmin of sectoresAdminNacional" [value]="sectorAdmin">{{ sectorAdmin }}</option>
+                <select
+                  class="form-select"
+                  name="proyectoSectorAdminNacional"
+                  [(ngModel)]="newProyecto.idSectorAdministracionNacional"
+                  [disabled]="!sectoresAdminNacionCatalogo.length"
+                  required
+                >
+                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option *ngFor="let opt of sectoresAdminNacionCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <span *ngIf="!sectoresAdminNacionCatalogo.length" class="small text-warning">
+                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoSectorAdminNacional) }}.
+                </span>
+              </label>
+
+              <label class="full-width multimedia-field">
+                Imagenes y videos
+                <span class="small text-secondary fw-normal">
+                  Imagen o video. Maximo 300 KB por imagen, 5 MB por video. Al guardar se guardan los nombres en el listado local.
+                </span>
+                <input
+                  type="file"
+                  class="form-control"
+                  name="proyectoMultimedia"
+                  accept="image/*,video/*"
+                  multiple
+                  (change)="onMultimediaChange($event)"
+                />
+                <div *ngIf="multimediaSeleccionError" class="alert alert-warning py-2 px-3 mb-0 small">
+                  {{ multimediaSeleccionError }}
+                </div>
+                <div *ngIf="multimediaAdjuntos.length" class="multimedia-preview-list">
+                  <div *ngFor="let m of multimediaAdjuntos; let i = index" class="multimedia-preview-item">
+                    <img *ngIf="m.tipo === 'imagen'" [src]="m.url" [alt]="m.nombre" />
+                    <video *ngIf="m.tipo === 'video'" [src]="m.url" controls muted playsinline></video>
+                    <span class="multimedia-nombre">{{ m.nombre }}</span>
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-remove-mm" (click)="removeMultimediaAdjunto(i)" aria-label="Quitar archivo">
+                      Quitar
+                    </button>
+                  </div>
+                </div>
               </label>
             </div>
           </div>
 
+          <div
+            *ngIf="saveProyectoErrores.length"
+            class="alert alert-danger py-2 px-3 mx-3 mb-0 proyecto-save-errors"
+            role="alert"
+          >
+            <p class="mb-2 small fw-semibold">No se puede guardar el proyecto. Revise lo siguiente:</p>
+            <ul class="mb-0 ps-3 small">
+              <li *ngFor="let err of saveProyectoErrores" class="mb-1">{{ err }}</li>
+            </ul>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-danger mt-2"
+              (click)="closeSaveProyectoErrorModal()"
+            >
+              Cerrar aviso
+            </button>
+          </div>
+
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" (click)="resetForm()">Cancelar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="isSavingProyecto">
-              {{ isSavingProyecto ? 'Guardando...' : 'Agregar Proyecto' }}
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="isSavingProyecto || isLoadingProyectoDetalle"
+            >
+              {{
+                isSavingProyecto
+                  ? 'Guardando...'
+                  : (modoFormulario === 'editar' ? 'Guardar cambios' : 'Agregar Proyecto')
+              }}
             </button>
           </div>
         </form>

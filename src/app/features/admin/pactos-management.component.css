@@ -507,3 +507,12 @@ textarea {
     padding-right: 1rem;
   }
 }
+
+/* Modal de errores por encima del formulario de pacto */
+.pacto-save-error-modal {
+  z-index: 1065;
+}
+
+.pacto-save-error-modal.show ~ .modal-backdrop {
+  z-index: 1060;
+}

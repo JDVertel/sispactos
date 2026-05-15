@@ -11,7 +11,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = authSessionStore.getToken().trim();
 
   const isBackendRequest = req.url.startsWith('/api/') || req.url.startsWith(window.location.origin);
-  const isAuthRequest = req.url.includes('/api/Auth/Login') || req.url.includes('/api/Auth/RefreshToken');
+  const isAuthRequest =
+    req.url.includes('/api/Auth/Login')
+    || req.url.includes('/api/Auth/RefreshToken');
   const refreshAttempted = req.headers.get('x-sispactos-refresh-attempt') === '1';
 
   const applyAuthHeader = (request: typeof req) => {
@@ -27,7 +29,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     });
   };
 
-  const requestWithAuth = (token && isBackendRequest)
+  const skipAuthHeader = isAuthRequest;
+  const requestWithAuth = token && isBackendRequest && !skipAuthHeader
     ? applyAuthHeader(req)
     : req;
 

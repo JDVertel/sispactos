@@ -58,8 +58,11 @@ export class PactosManagementComponent implements OnInit {
   isSubmitting = false;
   isLoadingPactos = false;
   isLoadingCatalogos = false;
+  /** Avisos inline (catalogos, agregar municipio, etc.). */
   submitError = '';
   submitSuccess = '';
+  /** Errores al guardar el pacto (modal superpuesto). */
+  savePactoErrores: string[] = [];
   // Campos auxiliares del formulario.
   lineaTematicaInput = '';
   /** Municipios ya agregados al alcance. */
@@ -119,6 +122,7 @@ export class PactosManagementComponent implements OnInit {
     this.resetForm();
     this.submitError = '';
     this.submitSuccess = '';
+    this.closeSavePactoErrorModal();
     this.openPactoModal();
   }
 
@@ -126,71 +130,71 @@ export class PactosManagementComponent implements OnInit {
   abrirModalEditarPacto(pacto: Pacto): void {
     this.submitError = '';
     this.submitSuccess = '';
+    this.closeSavePactoErrorModal();
     this.modoFormulario = 'editar';
     this.cargarFormularioDesdePacto(pacto);
     this.openPactoModal();
   }
 
+  closeSavePactoErrorModal(): void {
+    this.savePactoErrores = [];
+    this.hideBootstrapModal('pactoSaveErrorModal');
+  }
+
   // Crea o actualiza un pacto dependiendo del modo del formulario.
   guardarPacto(): void {
-    const {
-      id,
-      nombre,
-      descripcion,
-      objetivo,
-      tipoPacto,
-      fechaSuscripcion,
-      fechaVencimiento,
-      idEtapa
-    } = this.pactoForm;
-    this.submitError = '';
+    if (this.isSubmitting) {
+      return;
+    }
+
+    this.closeSavePactoErrorModal();
     this.submitSuccess = '';
 
-    if (!nombre.trim() || !descripcion.trim() || !objetivo.trim() || !tipoPacto.trim()) {
-      this.submitError = 'Faltan campos obligatorios para guardar el pacto.';
-      return;
-    }
-
-    if (!this.tiposPactos.length || !this.etapasPacto.length) {
-      this.submitError = 'No fue posible cargar los catálogos requeridos para guardar el pacto.';
-      return;
-    }
-
-    if (!fechaSuscripcion || !fechaVencimiento) {
-      this.submitError = 'Debe diligenciar las fechas de suscripción y vencimiento.';
-      return;
-    }
-
-    if (!idEtapa?.trim()) {
-      this.submitError = 'No se encontró una etapa válida para el pacto.';
-      return;
-    }
-
+    const isEditMode = this.modoFormulario === 'editar';
     const idAreasIntervencion = this.obtenerIdAreasIntervencion();
-    if (!idAreasIntervencion.length) {
-      this.submitError = 'Agregue al menos un municipio o área de intervención.';
+    const errores = this.collectPactoFormValidationErrors({
+      isEditMode,
+      id: this.pactoForm.id,
+      tipoPacto: this.pactoForm.tipoPacto,
+      nombre: this.pactoForm.nombre,
+      descripcion: this.pactoForm.descripcion,
+      objetivo: this.pactoForm.objetivo,
+      idEtapa: this.pactoForm.idEtapa,
+      fechaSuscripcion: this.pactoForm.fechaSuscripcion,
+      fechaVencimiento: this.pactoForm.fechaVencimiento,
+      lineasTematicasCount: this.pactoForm.lineasTematicas.length,
+      idAreasIntervencionCount: idAreasIntervencion.length
+    });
+
+    if (errores.length) {
+      this.presentSavePactoErrores(errores);
       return;
     }
 
-    const isEditMode = this.modoFormulario === 'editar' && typeof id === 'number' && id > 0;
+    const pactoId = this.pactoForm.id;
+    if (isEditMode && (pactoId == null || pactoId < 1)) {
+      this.presentSavePactoErrores(['No fue posible identificar el pacto a actualizar.']);
+      return;
+    }
 
     this.isSubmitting = true;
 
     const request$ = isEditMode
-      ? this.pactosService.updatePactoInApi(this.buildUpdatePayload(id, idAreasIntervencion))
+      ? this.pactosService.updatePactoInApi(this.buildUpdatePayload(pactoId!, idAreasIntervencion))
       : this.pactosService.createPactoInApi(this.buildCreatePayload());
 
     request$
       .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe((result) => {
         if (!result.success) {
-          this.submitError = result.message || 'No se pudo guardar el pacto.';
+          this.presentSavePactoErrores([result.message || 'No se pudo guardar el pacto en la API.']);
           return;
         }
 
-        this.submitSuccess = this.modoFormulario === 'editar'
+        this.submitSuccess = isEditMode
           ? 'Pacto actualizado correctamente.'
           : 'Pacto creado correctamente.';
+        this.closeSavePactoErrorModal();
         this.resetForm();
         this.closePactoModal();
         this.refreshPactos();
@@ -413,30 +417,8 @@ export class PactosManagementComponent implements OnInit {
     return this.pactosService.getTotalValorEstimado();
   }
 
-  get puedeGuardarPacto(): boolean {
-    const camposBasicosValidos =
-      !!this.pactoForm.nombre.trim()
-      && !!this.pactoForm.descripcion.trim()
-      && !!this.pactoForm.objetivo.trim()
-      && !!this.pactoForm.tipoPacto.trim()
-      && !!this.pactoForm.idEtapa.trim()
-      && !this.isSubmitting
-      && !this.isLoadingCatalogos
-      && !!this.tiposPactos.length
-      && !!this.etapasPacto.length;
-
-    if (!camposBasicosValidos) {
-      return false;
-    }
-
-    if (this.modoFormulario === 'editar') {
-      return !!this.pactoForm.id;
-    }
-
-    return this.obtenerIdAreasIntervencion().length > 0;
-  }
-
   private resetForm(): void {
+    this.closeSavePactoErrorModal();
     this.lineaTematicaInput = '';
     this.municipiosAlcance = [];
     this.departamentosDisponibles = [];
@@ -872,5 +854,129 @@ export class PactosManagementComponent implements OnInit {
 
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+  }
+
+  private collectPactoFormValidationErrors(f: {
+    isEditMode: boolean;
+    id: number | null;
+    tipoPacto: string;
+    nombre: string;
+    descripcion: string;
+    objetivo: string;
+    idEtapa: string;
+    fechaSuscripcion: string;
+    fechaVencimiento: string;
+    lineasTematicasCount: number;
+    idAreasIntervencionCount: number;
+  }): string[] {
+    const errores: string[] = [];
+
+    if (this.isLoadingCatalogos) {
+      errores.push('Espere a que terminen de cargar los catalogos de tipo de pacto y etapa.');
+    }
+
+    if (!this.tiposPactos.length) {
+      errores.push('Tipo de Pacto: no hay opciones de catalogo disponibles.');
+    }
+    if (!this.etapasPacto.length) {
+      errores.push('ID Etapa: no hay opciones de catalogo disponibles.');
+    }
+
+    const tipoId = this.readNumericSelection(f.tipoPacto);
+    if (!f.tipoPacto.trim()) {
+      errores.push('Tipo de Pacto: debe seleccionar una opcion.');
+    } else if (tipoId < 1) {
+      errores.push('Tipo de Pacto: seleccion invalida.');
+    }
+
+    if (!f.nombre.trim()) {
+      errores.push('Nombre del pacto: campo obligatorio.');
+    }
+
+    const etapaId = this.readNumericSelection(f.idEtapa);
+    if (!f.idEtapa.trim()) {
+      errores.push('ID Etapa: debe seleccionar una etapa.');
+    } else if (etapaId < 1) {
+      errores.push('ID Etapa: seleccion invalida.');
+    }
+
+    if (!f.descripcion.trim()) {
+      errores.push('Suscribientes o integrantes: campo obligatorio.');
+    }
+
+    if (!f.objetivo.trim()) {
+      errores.push('Objetivo: campo obligatorio.');
+    }
+
+    if (f.lineasTematicasCount < 1) {
+      errores.push('Lineas tematicas: agregue al menos una linea tematica.');
+    }
+
+    const suscripcionYmd = (f.fechaSuscripcion || '').trim();
+    if (!suscripcionYmd) {
+      errores.push('Fecha de Suscripcion: campo obligatorio.');
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(suscripcionYmd)) {
+      errores.push('Fecha de Suscripcion: formato invalido (use AAAA-MM-DD).');
+    }
+
+    const vencimientoYmd = (f.fechaVencimiento || '').trim();
+    if (!vencimientoYmd) {
+      errores.push('Fecha de Vencimiento: campo obligatorio.');
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimientoYmd)) {
+      errores.push('Fecha de Vencimiento: formato invalido (use AAAA-MM-DD).');
+    } else if (
+      /^\d{4}-\d{2}-\d{2}$/.test(suscripcionYmd)
+      && vencimientoYmd < suscripcionYmd
+    ) {
+      errores.push('Fecha de Vencimiento: debe ser igual o posterior a la fecha de suscripcion.');
+    }
+
+    if (!f.isEditMode && f.idAreasIntervencionCount < 1) {
+      errores.push('Municipio de alcance: agregue al menos un municipio o area de intervencion.');
+    }
+
+    if (f.isEditMode && (f.id == null || f.id < 1)) {
+      errores.push('No fue posible identificar el pacto a editar.');
+    }
+
+    return errores;
+  }
+
+  private presentSavePactoErrores(errores: string[]): void {
+    this.savePactoErrores = errores.filter((e) => !!e?.trim());
+    if (!this.savePactoErrores.length) {
+      return;
+    }
+    setTimeout(() => this.showBootstrapModal('pactoSaveErrorModal'), 0);
+  }
+
+  private showBootstrapModal(elementId: string): void {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      return;
+    }
+
+    const bootstrap = (window as { bootstrap?: { Modal?: { getOrCreateInstance?: (el: Element) => { show?: () => void } } } })
+      .bootstrap;
+    try {
+      bootstrap?.Modal?.getOrCreateInstance?.(el)?.show?.();
+    } catch {
+      // noop
+    }
+  }
+
+  private hideBootstrapModal(elementId: string): void {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      return;
+    }
+
+    const bootstrap = (window as { bootstrap?: { Modal?: { getInstance?: (el: Element) => { hide?: () => void } } } })
+      .bootstrap;
+    try {
+      bootstrap?.Modal?.getInstance?.(el)?.hide?.();
+    } catch {
+      // noop
+    }
   }
 }

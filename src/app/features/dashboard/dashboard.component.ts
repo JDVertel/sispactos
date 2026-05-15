@@ -6,21 +6,9 @@ import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { LoginComponent } from '../auth/login.component';
 import { TextScaleControlComponent } from '../../shared/components/text-scale-control/text-scale-control.component';
+import { DASHBOARD_PATHS_REQUIRING_SESSION } from '../../core/auth/route-access.policy';
 
-const PROTECTED_ROUTES = new Set([
-  'avances',
-  'alertas',
-  'financiero',
-  'pei',
-  'plan-accion',
-  'proyectos-cp',
-  'proyectos-frcp',
-  'compromisos-pactos',
-  'compromisos-proyectos',
-  'mapas',
-  'reportes',
-  'tablero-mando'
-]);
+const PROTECTED_ROUTES = DASHBOARD_PATHS_REQUIRING_SESSION;
 
 const RESTRICTED_MENU_SEPARATORS = new Set(['Herramientas']);
 const RESTRICTED_MENU_SUBMENUS = new Set(['administracion', 'configuracion']);
