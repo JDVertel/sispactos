@@ -1,0 +1,255 @@
+<section class="container-fluid px-0 proyecto-financiera-page" *ngIf="proyecto">
+  <header class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-4">
+    <div>
+      <p class="text-uppercase small text-secondary mb-1">Financiera · Proyecto</p>
+      <h1 class="h3 mb-1">Modulo financiero</h1>
+      <p class="text-secondary mb-0">
+        <span class="fw-semibold">{{ proyecto.codigo }}</span> — {{ proyecto.nombre }}
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a routerLink="/dashboard/gestion-proyectos" class="btn btn-outline-secondary btn-sm">
+        Volver a proyectos
+      </a>
+      <button type="button" class="btn btn-primary btn-sm" (click)="guardar()">Guardar financiera</button>
+    </div>
+  </header>
+
+  <div *ngIf="guardadoOk" class="alert alert-success py-2 px-3 small" role="status">
+    Informacion financiera guardada correctamente.
+  </div>
+
+  <div class="card financiera-card border-0 shadow-sm">
+    <div class="card-header financiera-card__header p-0 border-bottom-0">
+      <ul class="nav nav-tabs financiera-nav-tabs px-2 pt-2" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="activeTab === 'indicativos'"
+            (click)="setTab('indicativos')"
+          >
+            Presupuesto indicativos
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="activeTab === 'comprometido'"
+            (click)="setTab('comprometido')"
+          >
+            Presupuesto comprometido
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="activeTab === 'conpes'"
+            (click)="setTab('conpes')"
+          >
+            CONPES
+          </button>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body">
+      <!-- Tab indicativos -->
+      <div *ngIf="activeTab === 'indicativos'" class="tab-pane-financiera">
+        <h2 class="h6 text-secondary mb-3">Sesion presupuesto indicativos</h2>
+
+        <div class="financiera-totales-panel mb-4">
+          <p class="financiera-totales-panel__titulo mb-2">Totales calculados (sumatorias)</p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--principal">
+                <span class="financiera-total-card__label">Presupuesto indicativo total de inversion</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totalesIndicativos.totalInversion) }}</output>
+                <span class="financiera-total-card__hint">
+                  Consolidado nacion + Entidades territoriales + Otros
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card">
+                <span class="financiera-total-card__label">Aporte indicativo consolidado nacion</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totalesIndicativos.consolidadoNacion) }}</output>
+                <span class="financiera-total-card__hint">
+                  DNP FRPT + DNP distribucion + Sector
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card">
+                <span class="financiera-total-card__label">Aporte indicativo Entidades territoriales</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totalesIndicativos.entidadesTerritoriales) }}</output>
+                <span class="financiera-total-card__hint">
+                  Suma de aportes ET, regalias, SGR, CTEL, ambiental, OCAD y otros territorio
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="h6 text-secondary mb-3">Detalle (valores editables)</h3>
+        <div class="row g-3">
+          <div class="col-md-4" *ngFor="let campo of camposDetalleIndicativos">
+            <label class="financiera-field">
+              <span class="financiera-field__label">{{ campo.label }}</span>
+              <input
+                type="number"
+                class="form-control form-control-sm"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                [value]="valorCampo(campo) ?? ''"
+                (input)="actualizarCampo(campo, $any($event.target).value)"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab comprometido -->
+      <div *ngIf="activeTab === 'comprometido'" class="tab-pane-financiera">
+        <h2 class="h6 text-secondary mb-3">Sesion presupuesto comprometido</h2>
+
+        <div class="financiera-totales-panel mb-4">
+          <p class="financiera-totales-panel__titulo mb-2">Totales calculados (sumatorias)</p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--principal">
+                <span class="financiera-total-card__label">Presupuesto comprometido total</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totalesComprometido.totalInversion) }}</output>
+                <span class="financiera-total-card__hint">
+                  Consolidado nacion + Entidades territoriales + Aportes otros
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card">
+                <span class="financiera-total-card__label">Presupuesto comprometido consolidado nacion</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totalesComprometido.consolidadoNacion) }}</output>
+                <span class="financiera-total-card__hint">
+                  DNP-FRPT + DNP-distribucion + Sector
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card">
+                <span class="financiera-total-card__label">Presupuesto comprometido entidades territoriales</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totalesComprometido.entidadesTerritoriales) }}</output>
+                <span class="financiera-total-card__hint">
+                  Suma de comprometidos ET, regalias, SGR, CTEL, ambiental, OCAD y otros territorios
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="h6 text-secondary mb-3">Detalle (valores editables)</h3>
+        <div class="row g-3">
+          <div class="col-md-4" *ngFor="let campo of camposDetalleComprometido">
+            <label class="financiera-field">
+              <span class="financiera-field__label">{{ campo.label }}</span>
+              <input
+                type="number"
+                class="form-control form-control-sm"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                [value]="valorCampo(campo) ?? ''"
+                (input)="actualizarCampo(campo, $any($event.target).value)"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab CONPES -->
+      <div *ngIf="activeTab === 'conpes'" class="tab-pane-financiera">
+        <h2 class="h6 text-secondary mb-3">Sesion CONPES</h2>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="financiera-field">
+              <span class="financiera-field__label">Numero de CONPES</span>
+              <input class="form-control form-control-sm" type="text" [(ngModel)]="financiera.conpes.numeroConpes" name="numeroConpes" />
+            </label>
+          </div>
+          <div class="col-md-4">
+            <label class="financiera-field">
+              <span class="financiera-field__label">Fecha</span>
+              <input class="form-control form-control-sm" type="date" [(ngModel)]="financiera.conpes.fechaConpes" name="fechaConpes" />
+            </label>
+          </div>
+          <div class="col-md-4">
+            <label class="financiera-field">
+              <span class="financiera-field__label">Consecutivo del proyecto</span>
+              <input
+                class="form-control form-control-sm"
+                type="text"
+                [(ngModel)]="financiera.conpes.consecutivoProyecto"
+                name="consecutivoProyecto"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="h6 mb-0">Vigencia</h3>
+          <button type="button" class="btn btn-outline-primary btn-sm" (click)="agregarVigencia()">Agregar vigencia</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-2 financiera-vigencia-table">
+            <thead class="table-light">
+              <tr>
+                <th>Valor</th>
+                <th>Ano</th>
+                <th class="text-end" style="width: 5rem">Accion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let v of financiera.conpes.vigencias; let i = index; trackBy: trackVigencia">
+                <td>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                    [(ngModel)]="v.valor"
+                    [name]="'vigenciaValor' + i"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    min="1900"
+                    max="2100"
+                    step="1"
+                    inputmode="numeric"
+                    [(ngModel)]="v.anio"
+                    [name]="'vigenciaAnio' + i"
+                  />
+                </td>
+                <td class="text-end">
+                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="quitarVigencia(i)">Quitar</button>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="financiera-total-row">
+                <th>Valor total (suma valores)</th>
+                <td colspan="2" class="fw-bold">{{ formatCurrency(valorTotalVigencias) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

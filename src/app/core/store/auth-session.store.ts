@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { validateLoginSessionToken } from '../auth/auth-token.util';
 
 export interface AuthSession {
   username: string;
@@ -53,10 +54,16 @@ export class AuthSessionStore {
         return null;
       }
 
+      const token = typeof parsed.token === 'string' ? parsed.token.trim() : '';
+      const username = parsed.username.trim();
+      if (!validateLoginSessionToken(token, username).valid) {
+        return null;
+      }
+
       return {
         username: parsed.username,
         mode: 'local',
-        token: typeof parsed.token === 'string' ? parsed.token : ''
+        token
       };
     } catch {
       return null;

@@ -16,7 +16,8 @@ export type CreateProyectoCommand = {
   nombre: string;
   fechaActaCD: string;
   actaCD: string;
-  idAreaInfluencia: number;
+  /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
+  idAreaInfluencia: number | null;
   idEstadoProyecto: number;
   idCondicionProyecto: number;
   idSector: number;
@@ -26,7 +27,8 @@ export type CreateProyectoCommand = {
   plazoEstimadoEjecucion: string;
   /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
   idFaseInversion?: number | null;
-  idAportanteNacion: number;
+  /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
+  idAportanteNacion: number | null;
   entidadResponsablePI: string;
   esInversionClimatica: boolean;
   /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
@@ -43,8 +45,10 @@ export type CreateProyectoCommand = {
   aporteIndicativoOtros: number;
   productoMGA: string;
   metaPa: string;
-  idMecanismoInclusion: number;
-  idSectorAdministracionNacional: number;
+  /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
+  idMecanismoInclusion: number | null;
+  /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
+  idSectorAdministracionNacional: number | null;
   fechaReporte: string;
   numeroEmpleosDirectos: number;
   numeroEmpleosIndirectos: number;
@@ -70,6 +74,7 @@ export interface ProyectoApiResult {
   id?: number;
   nombre?: string;
   message?: string;
+  httpStatus?: number;
 }
 
 type ApiProyectoCreateResponse = {
@@ -138,7 +143,8 @@ export class ProyectosService {
         console.error('[API ERROR] POST /api/Proyecto', error);
         return of({
           success: false,
-          message: this.buildCreateProyectoErrorMessage(error)
+          message: this.buildCreateProyectoErrorMessage(error),
+          httpStatus: error.status
         } as ProyectoApiResult);
       })
     );
@@ -159,7 +165,8 @@ export class ProyectosService {
         console.error('[API ERROR] PUT /api/Proyecto', error);
         return of({
           success: false,
-          message: this.buildProyectoApiErrorMessage(error, 'actualizar')
+          message: this.buildProyectoApiErrorMessage(error, 'actualizar'),
+          httpStatus: error.status
         } as ProyectoApiResult);
       })
     );
@@ -278,16 +285,22 @@ export class ProyectosService {
     const payload = { ...command } as CreateProyectoCommand | UpdateProyectoCommand;
     payload.idFaseInversion = null;
     payload.idTipoOferta = null;
+    // La BD actual del servidor aun no expone idMecanismoInclusion (sesion CD va en alcance).
+    delete (payload as Record<string, unknown>)['idMecanismoInclusion'];
     return payload;
   }
 
   private buildProyectoApiErrorMessage(error: HttpErrorResponse, accion: 'crear' | 'actualizar'): string {
+    if (error.status === 401 || error.status === 403) {
+      return 'Su sesion expiro o no tiene permiso para guardar proyectos. Inicie sesion nuevamente con su usuario y contrasena.';
+    }
+
     const raw = this.extractHttpErrorText(error);
     const fkMessage = this.parseProyectoForeignKeyError(raw);
     if (fkMessage) {
       return fkMessage;
     }
-    if (raw.trim()) {
+    if (raw.trim() && !raw.includes('Http failure response')) {
       return this.truncateErrorText(raw.trim());
     }
     if (error.status === 0) {
@@ -328,6 +341,12 @@ export class ProyectosService {
     const fkMatch = text.match(/FOREIGN KEY constraint "([^"]+)"/i);
     if (fkMatch?.[1]) {
       return `Referencia de catalogo invalida (${fkMatch[1]}). Verifique los valores seleccionados en el formulario.`;
+    }
+    if (normalized.includes('invalid column name')) {
+      if (normalized.includes('productomga') || normalized.includes('metapa')) {
+        return 'El servidor aun no tiene en base de datos los campos Producto MGA o Meta PA. Contacte al administrador para actualizar la BD.';
+      }
+      return 'El servidor aun no tiene en base de datos algunos campos del formulario (por ejemplo Sesion CD). Los datos de sesion se envian dentro de Alcance hasta que se actualice la BD.';
     }
     return null;
   }

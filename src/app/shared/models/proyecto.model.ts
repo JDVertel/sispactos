@@ -12,12 +12,15 @@ export interface Proyecto {
   idSectorAdministracionNacional?: number;
   idEntidadProyecto?: string;
   metaPaTexto?: string;
+  metaProductoPrincipal?: string;
   inversionClimatica?: boolean;
   /** Fecha plazo estimado (yyyy-MM-dd) para reabrir el formulario. */
   plazoEstimadoEjecucion?: string;
   actaCdNumero?: string;
   actaCdFecha?: string;
   nombre: string;
+  /** Nombre de proyecto BPIN en MGA (formulario / API). */
+  nombreBpin?: string;
   descripcion: string;
   pactoAsociado?: string;
   codigo: string;
@@ -34,7 +37,7 @@ export interface Proyecto {
   tieneViabilidad?: boolean;
   fechaViabilidad?: Date;
   frpt?: boolean;
-  numeroContratoEspecifico?: number;
+  numeroContratoEspecifico?: string;
   fechaFinalizacionCe?: Date;
   presupuesto: number;
   responsable: string;
@@ -47,4 +50,5 @@ export interface Proyecto {
   /** Cantidad asociada a la meta PA (entero no negativo). */
   cantidadMetaPa?: number;
   multimediaNombres?: string[];
+  multimediaVideoUrls?: string[];
 }

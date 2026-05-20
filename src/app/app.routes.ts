@@ -4,6 +4,7 @@ import { DashboardPageComponent } from './features/dashboard/dashboard-page.comp
 import { AdminRolesComponent } from './features/admin/admin-roles.component';
 import { PactosManagementComponent } from './features/admin/pactos-management.component';
 import { ProyectosManagementComponent } from './features/admin/proyectos-management.component';
+import { ProyectoFinancieraComponent } from './features/admin/proyecto-financiera.component';
 import { ContratosManagementComponent } from './features/admin/contratos-management.component';
 import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
 import { PactosTerritorialesComponent } from './features/pactos-territoriales/pactos-territoriales.component';
@@ -37,6 +38,11 @@ export const routes: Routes = [
       {
         path: 'gestion-proyectos',
         component: ProyectosManagementComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'gestion-proyectos/:proyectoId/financiera',
+        component: ProyectoFinancieraComponent,
         canActivate: [dashboardAccessGuard]
       },
       {

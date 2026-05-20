@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { AuthPromptService } from '../../core/services/auth-prompt.service';
 import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar/sidebar.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { LoginComponent } from '../auth/login.component';
@@ -97,8 +99,9 @@ const MENU_ITEMS: MenuItem[] = [
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnDestroy {
   menuItems: MenuItem[] = [];
+  private authPromptSub?: Subscription;
   // Controla si el menú lateral está abierto en pantallas pequeñas.
   isSidebarOpen = false;
   // Guarda qué submenú está desplegado actualmente.
@@ -109,9 +112,17 @@ export class DashboardComponent {
 
   constructor(
     private readonly authService: AuthService,
+    private readonly authPromptService: AuthPromptService,
     private readonly router: Router
   ) {
     this.refreshMenuItems();
+    this.authPromptSub = this.authPromptService.loginRequested$.subscribe(() => {
+      this.openLoginModal();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.authPromptSub?.unsubscribe();
   }
 
   private formatMenuLabel(label: string): string {

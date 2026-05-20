@@ -173,6 +173,57 @@ textarea {
   box-shadow: 0 0 0 0.18rem rgba(0, 195, 193, 0.2);
 }
 
+.dashboard-shell .content .form-control.is-invalid,
+.dashboard-shell .content .form-select.is-invalid,
+.dashboard-shell .content textarea.is-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.25) !important;
+  background-image: none;
+  padding-right: 0.65rem;
+}
+
+.dashboard-shell .content .form-control.is-invalid:focus,
+.dashboard-shell .content .form-select.is-invalid:focus,
+.dashboard-shell .content textarea.is-invalid:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.35) !important;
+}
+
+.dashboard-shell .content .invalid-feedback,
+.dashboard-shell .content .proyecto-field-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #dc3545;
+}
+
+.dashboard-shell .content .form-check-input {
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0;
+  border: 1px solid rgba(0, 195, 193, 0.55);
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.dashboard-shell .content .form-check-input:focus {
+  border-color: var(--inst-cyan);
+  box-shadow: 0 0 0 0.18rem rgba(0, 195, 193, 0.2);
+}
+
+.dashboard-shell .content .form-check-input:checked {
+  background-color: var(--inst-cyan);
+  border-color: var(--inst-cyan);
+}
+
+.dashboard-shell .content .form-check-input:checked:focus {
+  border-color: var(--inst-cyan);
+  box-shadow: 0 0 0 0.18rem rgba(0, 195, 193, 0.28);
+}
+
 .dashboard-shell .content .btn-primary {
   background: linear-gradient(135deg, #00c3c1, #00a2a0);
   border-color: transparent;

@@ -55,6 +55,13 @@
               <td><span class="badge text-bg-light border proyecto-estado-badge">{{ proyecto.estado }}</span></td>
               <td class="proyecto-responsable-cell" [title]="proyecto.responsable">{{ proyecto.responsable }}</td>
               <td class="text-end text-nowrap">
+                <a
+                  class="btn btn-outline-success btn-sm me-1"
+                  [routerLink]="['/dashboard/gestion-proyectos', proyecto.id, 'financiera']"
+                  aria-label="Modulo financiero del proyecto"
+                >
+                  Financiera
+                </a>
                 <button
                   type="button"
                   class="btn btn-outline-primary btn-sm"
@@ -74,8 +81,8 @@
 
   <!-- Modal para crear un proyecto nuevo -->
   <div class="modal fade" id="nuevoProyectoModal" tabindex="-1" aria-labelledby="nuevoProyectoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down">
-      <div class="modal-content">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-fullscreen-lg-down proyecto-modal-dialog">
+      <div class="modal-content proyecto-modal-content">
         <div class="modal-header">
           <h2 class="modal-title h5 mb-0" id="nuevoProyectoModalLabel">
             <i class="bi bi-briefcase"></i>
@@ -84,53 +91,91 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" (click)="resetForm()"></button>
         </div>
 
-        <form (ngSubmit)="guardarProyecto()">
-          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <form class="proyecto-modal-form" (ngSubmit)="guardarProyecto()" novalidate>
+          <div class="modal-body proyecto-modal-body">
             <div *ngIf="isLoadingProyectoDetalle" class="alert alert-light border text-center small mb-3">
               Cargando datos del proyecto...
             </div>
+            <ng-template #campoLabel let-texto>
+              <span class="proyecto-campo-label">{{ texto }}</span>
+            </ng-template>
+            <ng-template #validacionCampo let-campo>
+              <div
+                class="invalid-feedback d-block proyecto-field-feedback"
+                *ngIf="mostrarErrorCampo(campo)"
+                role="alert"
+              >
+                {{ mensajeErrorCampo(campo) }}
+              </div>
+            </ng-template>
+
             <div class="form-grid">
               <label>
-                Pacto
-                <select class="form-select" name="proyectoPactoAsociado" [(ngModel)]="newProyecto.pactoAsociado" (ngModelChange)="onPactoAsociadoChange()" required>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Pacto', campo: 'pacto' }"></ng-container>
+                <select
+                  class="form-select"
+                  name="proyectoPactoAsociado"
+                  [(ngModel)]="newProyecto.pactoAsociado"
+                  (ngModelChange)="onPactoAsociadoChange()"
+                  [ngClass]="claseValidacionCampo('pacto')"
+                  [attr.title]="mostrarErrorCampo('pacto') ? mensajeErrorCampo('pacto') : null"
+                  (blur)="marcarCampoTocado('pacto')"
+                >
                   <option value="" disabled>--seleccione--</option>
                   <option *ngFor="let pacto of pactosDisponibles" [value]="pacto">{{ pacto }}</option>
                 </select>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'pacto' }"></ng-container>
               </label>
 
               <label>
-                BPIN
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'BPIN', campo: 'bpin' }"></ng-container>
                 <input
                   class="form-control"
                   type="text"
                   name="proyectoBpin"
                   autocomplete="off"
                   maxlength="13"
-                  pattern="[A-Za-z0-9]{13}"
                   [(ngModel)]="newProyecto.bpin"
-                  title="El BPIN debe tener exactamente 13 caracteres alfanumericos (letras y numeros)"
+                  [ngClass]="claseValidacionCampo('bpin')"
+                  [attr.title]="mostrarErrorCampo('bpin') ? mensajeErrorCampo('bpin') : '13 caracteres alfanumericos (opcional)'"
                   (input)="onBpinInput($event)"
-                  required
+                  (blur)="marcarCampoTocado('bpin')"
                 />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'bpin' }"></ng-container>
               </label>
 
               <label>
-                Nombre BPIN
-                <input class="form-control" type="text" name="proyectoNombreBpin" [(ngModel)]="newProyecto.nombreBpin" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Nombre de proyecto BPIN en MGA', campo: 'nombreBpin' }"></ng-container>
+                <input
+                  class="form-control"
+                  type="text"
+                  name="proyectoNombreBpin"
+                  [(ngModel)]="newProyecto.nombreBpin"
+                  [ngClass]="claseValidacionCampo('nombreBpin')"
+                  [attr.title]="mostrarErrorCampo('nombreBpin') ? mensajeErrorCampo('nombreBpin') : null"
+                  (ngModelChange)="onCampoValidacionChange('nombreBpin')"
+                  (blur)="marcarCampoTocado('nombreBpin')"
+                />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombreBpin' }"></ng-container>
               </label>
 
               <label>
-                Codigo
-                <input class="form-control" type="text" name="proyectoCodigo" [(ngModel)]="newProyecto.codigo" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Nombre iniciativa', campo: 'nombre' }"></ng-container>
+                <input
+                  class="form-control"
+                  type="text"
+                  name="proyectoNombre"
+                  [(ngModel)]="newProyecto.nombre"
+                  [ngClass]="claseValidacionCampo('nombre')"
+                  [attr.title]="mostrarErrorCampo('nombre') ? mensajeErrorCampo('nombre') : null"
+                  (ngModelChange)="onCampoValidacionChange('nombre')"
+                  (blur)="marcarCampoTocado('nombre')"
+                />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombre' }"></ng-container>
               </label>
 
               <label>
-                Nombre
-                <input class="form-control" type="text" name="proyectoNombre" [(ngModel)]="newProyecto.nombre" required />
-              </label>
-
-              <label>
-                Consecutivo CONPES
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Consecutivo CONPES', campo: 'consecutivoConpes' }"></ng-container>
                 <input
                   class="form-control"
                   type="text"
@@ -139,32 +184,43 @@
                   autocomplete="off"
                   maxlength="5"
                   [(ngModel)]="newProyecto.consecutivoConpes"
-                  title="El consecutivo CONPES debe tener 5 digitos"
+                  [ngClass]="claseValidacionCampo('consecutivoConpes')"
+                  [attr.title]="mostrarErrorCampo('consecutivoConpes') ? mensajeErrorCampo('consecutivoConpes') : '5 digitos (opcional)'"
                   (input)="onConpesInput($event)"
-                  required
+                  (blur)="marcarCampoTocado('consecutivoConpes')"
                 />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'consecutivoConpes' }"></ng-container>
               </label>
 
               <label>
-                Acta CD Numero
-                <input class="form-control" type="text" name="proyectoActaCdNumero" [(ngModel)]="newProyecto.actaCdNumero" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Acta CD Numero', campo: 'actaCdNumero' }"></ng-container>
+                <input class="form-control" type="text" name="proyectoActaCdNumero" [(ngModel)]="newProyecto.actaCdNumero" />
               </label>
 
               <label>
-                Acta CD Fecha
-                <input class="form-control" type="date" name="proyectoActaCdFecha" [(ngModel)]="newProyecto.actaCdFecha" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Acta CD Fecha', campo: 'actaCdFecha' }"></ng-container>
+                <input
+                  class="form-control"
+                  type="date"
+                  name="proyectoActaCdFecha"
+                  [(ngModel)]="newProyecto.actaCdFecha"
+                  [ngClass]="claseValidacionCampo('actaCdFecha')"
+                  [attr.title]="mostrarErrorCampo('actaCdFecha') ? mensajeErrorCampo('actaCdFecha') : null"
+                  (ngModelChange)="onCampoValidacionChange('actaCdFecha')"
+                  (blur)="marcarCampoTocado('actaCdFecha')"
+                />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'actaCdFecha' }"></ng-container>
               </label>
 
               <label>
-                Area de influencia
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Area de influencia', campo: 'areaInfluencia' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoAreaInfluencia"
                   [(ngModel)]="newProyecto.idAreaInfluencia"
                   [disabled]="!areasInfluenciaCatalogo.length"
-                  required
                 >
-                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option [ngValue]="null">--opcional--</option>
                   <option *ngFor="let opt of areasInfluenciaCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
                 <span *ngIf="!areasInfluenciaCatalogo.length" class="small text-warning">
@@ -173,115 +229,160 @@
               </label>
 
               <label>
-                Estado de proyecto
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Estado de proyecto', campo: 'estado' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoEstado"
                   [(ngModel)]="newProyecto.idEstadoProyecto"
                   [disabled]="!estadosProyectoCatalogo.length"
-                  required
+                  [ngClass]="claseValidacionCampo('estado')"
+                  [attr.title]="mostrarErrorCampo('estado') ? mensajeErrorCampo('estado') : null"
+                  (ngModelChange)="onCampoValidacionChange('estado')"
+                  (blur)="marcarCampoTocado('estado')"
                 >
                   <option [ngValue]="null" disabled>--seleccione--</option>
                   <option *ngFor="let opt of estadosProyectoCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'estado' }"></ng-container>
                 <span *ngIf="!estadosProyectoCatalogo.length" class="small text-warning">
                   Sin datos en {{ catalogoByTipoRoute(catalogoTipoEstadoProyecto) }}.
                 </span>
               </label>
 
               <label>
-                Condicion de proyecto
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Condicion de proyecto', campo: 'condicion' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoCondicion"
                   [(ngModel)]="newProyecto.idCondicionProyecto"
                   [disabled]="!condicionesProyectoCatalogo.length"
-                  required
+                  [ngClass]="claseValidacionCampo('condicion')"
+                  [attr.title]="mostrarErrorCampo('condicion') ? mensajeErrorCampo('condicion') : null"
+                  (ngModelChange)="onCampoValidacionChange('condicion')"
+                  (blur)="marcarCampoTocado('condicion')"
                 >
                   <option [ngValue]="null" disabled>--seleccione--</option>
                   <option *ngFor="let opt of condicionesProyectoCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'condicion' }"></ng-container>
                 <span *ngIf="!condicionesProyectoCatalogo.length" class="small text-warning">
                   Sin datos en {{ catalogoByTipoRoute(catalogoTipoCondicionProyecto) }}.
                 </span>
               </label>
 
               <label>
-                Sector
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Sector', campo: 'sector' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoSector"
                   [(ngModel)]="newProyecto.idSector"
                   [disabled]="!sectoresProyectoCatalogo.length"
-                  required
+                  [ngClass]="claseValidacionCampo('sector')"
+                  [attr.title]="mostrarErrorCampo('sector') ? mensajeErrorCampo('sector') : null"
+                  (ngModelChange)="onCampoValidacionChange('sector')"
+                  (blur)="marcarCampoTocado('sector')"
                 >
                   <option [ngValue]="null" disabled>--seleccione--</option>
                   <option *ngFor="let opt of sectoresProyectoCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'sector' }"></ng-container>
                 <span *ngIf="!sectoresProyectoCatalogo.length" class="small text-warning">
                   Sin datos en {{ catalogoByTipoRoute(catalogoTipoSectorProyecto) }}.
                 </span>
               </label>
 
               <label>
-                Linea tematica
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Linea tematica', campo: 'lineaTematica' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoLineaTematica"
                   [(ngModel)]="newProyecto.lineaTematica"
-                  [required]="lineasTematicasDisponibles.length > 0"
+                  [ngClass]="claseValidacionCampo('lineaTematica')"
+                  [attr.title]="mostrarErrorCampo('lineaTematica') ? mensajeErrorCampo('lineaTematica') : null"
+                  (ngModelChange)="onCampoValidacionChange('lineaTematica')"
+                  (blur)="marcarCampoTocado('lineaTematica')"
                 >
                   <option value="" [disabled]="lineasTematicasDisponibles.length > 0">--seleccione--</option>
                   <option *ngIf="lineasTematicasDisponibles.length === 0" value="" disabled>Sin lineas tematicas para el pacto</option>
                   <option *ngFor="let linea of lineasTematicasDisponibles" [value]="linea">{{ linea }}</option>
                 </select>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'lineaTematica' }"></ng-container>
               </label>
 
               <label>
-                Plazo estimado ejecucion
-                <input class="form-control" type="date" name="proyectoPlazoEstimado" [(ngModel)]="newProyecto.plazoEstimadoEjecucion" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Numero empleos directos', campo: 'empleosDirectos' }"></ng-container>
+                <input class="form-control" type="number" name="proyectoEmpleosDirectos" [(ngModel)]="newProyecto.numeroEmpleosDirectos" min="0" />
               </label>
 
               <label>
-                Numero empleos directos
-                <input class="form-control" type="number" name="proyectoEmpleosDirectos" [(ngModel)]="newProyecto.numeroEmpleosDirectos" min="0" required />
-              </label>
-
-              <label>
-                Numero empleos indirectos
-                <input class="form-control" type="number" name="proyectoEmpleosIndirectos" [(ngModel)]="newProyecto.numeroEmpleosIndirectos" min="0" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Numero empleos indirectos', campo: 'empleosIndirectos' }"></ng-container>
+                <input class="form-control" type="number" name="proyectoEmpleosIndirectos" [(ngModel)]="newProyecto.numeroEmpleosIndirectos" min="0" />
               </label>
 
               <label class="checkbox-field">
-                <span>Tiene viabilidad</span>
-                <input class="form-check-input" type="checkbox" name="proyectoTieneViabilidad" [(ngModel)]="newProyecto.tieneViabilidad" (ngModelChange)="onTieneViabilidadChange()" />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Tiene viabilidad', campo: 'tieneViabilidad' }"></ng-container>
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  name="proyectoTieneViabilidad"
+                  [(ngModel)]="newProyecto.tieneViabilidad"
+                  (ngModelChange)="onTieneViabilidadChange()"
+                />
               </label>
 
               <label *ngIf="newProyecto.tieneViabilidad">
-                Fecha viabilidad
-                <input class="form-control" type="date" name="proyectoFechaViabilidad" [(ngModel)]="newProyecto.fechaViabilidad" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Fecha viabilidad', campo: 'fechaViabilidad' }"></ng-container>
+                <input
+                  class="form-control"
+                  type="date"
+                  name="proyectoFechaViabilidad"
+                  [(ngModel)]="newProyecto.fechaViabilidad"
+                  [ngClass]="claseValidacionCampo('fechaViabilidad')"
+                  [attr.title]="mostrarErrorCampo('fechaViabilidad') ? mensajeErrorCampo('fechaViabilidad') : null"
+                  (ngModelChange)="onCampoValidacionChange('fechaViabilidad')"
+                  (blur)="marcarCampoTocado('fechaViabilidad')"
+                />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'fechaViabilidad' }"></ng-container>
               </label>
 
               <label class="checkbox-field">
-                <span>FRPT</span>
-                <input class="form-check-input" type="checkbox" name="proyectoFrpt" [(ngModel)]="newProyecto.frpt" (ngModelChange)="onFrptChange()" />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'FRPT', campo: 'frpt' }"></ng-container>
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  name="proyectoFrpt"
+                  [(ngModel)]="newProyecto.frpt"
+                  (ngModelChange)="onFrptChange()"
+                />
               </label>
 
               <label *ngIf="newProyecto.frpt">
-                Numero contrato especifico
-                <input class="form-control" type="text" name="proyectoNumeroContratoEspecifico" [(ngModel)]="newProyecto.numeroContratoEspecifico" required />
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Numero contrato especifico', campo: 'numeroContratoEspecifico' }"></ng-container>
+                <input
+                  class="form-control"
+                  type="text"
+                  name="proyectoNumeroContratoEspecifico"
+                  autocomplete="off"
+                  maxlength="11"
+                  placeholder="ABC-1234567"
+                  [(ngModel)]="newProyecto.numeroContratoEspecifico"
+                  [ngClass]="claseValidacionCampo('numeroContratoEspecifico')"
+                  [attr.title]="mostrarErrorCampo('numeroContratoEspecifico') ? mensajeErrorCampo('numeroContratoEspecifico') : 'Formato ABC-1234567'"
+                  (input)="onNumeroContratoEspecificoInput($event)"
+                  (blur)="marcarCampoTocado('numeroContratoEspecifico')"
+                />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'numeroContratoEspecifico' }"></ng-container>
               </label>
 
               <label>
-                Aporte nacion
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Aporte nacion', campo: 'aporteNacion' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoAporteNacion"
                   [(ngModel)]="newProyecto.idAportanteNacion"
                   [disabled]="!aportantesNacionCatalogo.length"
-                  required
                 >
-                  <option [ngValue]="null" disabled>--seleccione--</option>
+                  <option [ngValue]="null">--opcional--</option>
                   <option *ngFor="let opt of aportantesNacionCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
                 </select>
                 <span *ngIf="!aportantesNacionCatalogo.length" class="small text-warning">
@@ -290,15 +391,14 @@
               </label>
 
               <label>
-                Municipio (entidad territorial)
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Municipio (entidad territorial)', campo: 'municipio' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoMunicipioEntidad"
                   [(ngModel)]="newProyecto.municipioEntidad"
                   [disabled]="!entidadesTerritorialesProyecto.length"
-                  required
                 >
-                  <option [ngValue]="''" disabled>--seleccione--</option>
+                  <option [ngValue]="''">--opcional--</option>
                   <option *ngFor="let e of entidadesTerritorialesProyecto" [ngValue]="e.idEntidadTerritorial">
                     {{ e.displayName || e.nombreEntidadTerritorial }}
                   </option>
@@ -309,99 +409,185 @@
               </label>
 
               <label class="checkbox-field">
-                <span>Inversion climatica</span>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Inversion climatica', campo: 'inversionClimatica' }"></ng-container>
                 <input class="form-check-input" type="checkbox" name="proyectoInversionClimatica" [(ngModel)]="newProyecto.inversionClimatica" />
               </label>
 
               <label class="full-width">
-                Alcance
-                <textarea class="form-control" name="proyectoAlcance" [(ngModel)]="newProyecto.alcance" rows="3" required></textarea>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Alcance del proyecto', campo: 'alcance' }"></ng-container>
+                <textarea
+                  class="form-control"
+                  name="proyectoAlcance"
+                  [(ngModel)]="newProyecto.alcance"
+                  rows="3"
+                  [ngClass]="claseValidacionCampo('alcance')"
+                  [attr.title]="mostrarErrorCampo('alcance') ? mensajeErrorCampo('alcance') : null"
+                  (ngModelChange)="onCampoValidacionChange('alcance')"
+                  (blur)="marcarCampoTocado('alcance')"
+                ></textarea>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'alcance' }"></ng-container>
               </label>
 
-              <label>
-                Meta PA
-                <input class="form-control" type="text" name="proyectoMetaPa" [(ngModel)]="newProyecto.metaPa" required />
-              </label>
+              <div class="mga-meta-secuencia full-width">
+                <p class="mga-meta-secuencia__titulo">Producto y meta (MGA)</p>
+
+                <div class="mga-meta-secuencia__campos">
+                  <label class="mga-meta-paso">
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Producto principal MGA', campo: 'productoMga' }"></ng-container>
+                    <input class="form-control" type="text" name="proyectoProductoMga" [(ngModel)]="newProyecto.productoPrincipalMga" />
+                  </label>
+
+                  <label class="mga-meta-paso">
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta de producto principal', campo: 'metaProductoPrincipal' }"></ng-container>
+                    <span class="mga-meta-paso__detalle">(Producto principal MGA)</span>
+                    <input
+                      class="form-control"
+                      type="text"
+                      name="proyectoMetaProductoPrincipal"
+                      [(ngModel)]="newProyecto.metaProductoPrincipal"
+                    />
+                  </label>
+
+                  <label class="mga-meta-paso">
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta PA', campo: 'metaPa' }"></ng-container>
+                    <span class="mga-meta-paso__detalle">Medido a través de (Meta PA)</span>
+                    <input class="form-control" type="text" name="proyectoMetaPa" [(ngModel)]="newProyecto.metaPa" />
+                  </label>
+
+                  <label class="mga-meta-paso">
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Cantidad Meta PA', campo: 'cantidadMetaPa' }"></ng-container>
+                    <input
+                      class="form-control"
+                      type="number"
+                      name="proyectoCantidadMetaPa"
+                      min="0"
+                      step="1"
+                      [(ngModel)]="newProyecto.cantidadMetaPa"
+                      [ngClass]="claseValidacionCampo('cantidadMetaPa')"
+                      [attr.title]="mostrarErrorCampo('cantidadMetaPa') ? mensajeErrorCampo('cantidadMetaPa') : null"
+                      (ngModelChange)="onCampoValidacionChange('cantidadMetaPa')"
+                      (blur)="marcarCampoTocado('cantidadMetaPa')"
+                    />
+                    <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'cantidadMetaPa' }"></ng-container>
+                  </label>
+                </div>
+              </div>
 
               <label>
-                Producto principal MGA
-                <input class="form-control" type="text" name="proyectoProductoMga" [(ngModel)]="newProyecto.productoPrincipalMga" />
-              </label>
-
-              <label>
-                Cantidad Meta PA
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Sesion CD inclusion PEI (#)', campo: 'sesionCdInclusionPei' }"></ng-container>
                 <input
                   class="form-control"
                   type="number"
-                  name="proyectoCantidadMetaPa"
-                  min="0"
+                  name="proyectoSesionCdInclusionPei"
+                  min="1"
                   step="1"
-                  [(ngModel)]="newProyecto.cantidadMetaPa"
-                  required
+                  inputmode="numeric"
+                  placeholder="Opcional"
+                  [ngModel]="newProyecto.idMecanismoInclusion"
+                  (ngModelChange)="onSesionCdInclusionPeiChange($event)"
+                  [ngClass]="claseValidacionCampo('sesionCd')"
+                  [attr.title]="mostrarErrorCampo('sesionCd') ? mensajeErrorCampo('sesionCd') : null"
+                  (blur)="marcarCampoTocado('sesionCd')"
                 />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'sesionCd' }"></ng-container>
               </label>
 
-              <label>
-                Mecanismo de inclusion
-                <select
-                  class="form-select"
-                  name="proyectoMecanismoInclusion"
-                  [(ngModel)]="newProyecto.idMecanismoInclusion"
-                  [disabled]="!mecanismosInclusionCatalogo.length"
-                  required
-                >
-                  <option [ngValue]="null" disabled>--seleccione--</option>
-                  <option *ngFor="let opt of mecanismosInclusionCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
-                </select>
-                <span *ngIf="!mecanismosInclusionCatalogo.length" class="small text-warning">
-                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoMecanismoInclusion) }}.
-                </span>
-              </label>
-
-              <label>
-                Sector Admin Nacional
-                <select
-                  class="form-select"
-                  name="proyectoSectorAdminNacional"
-                  [(ngModel)]="newProyecto.idSectorAdministracionNacional"
-                  [disabled]="!sectoresAdminNacionCatalogo.length"
-                  required
-                >
-                  <option [ngValue]="null" disabled>--seleccione--</option>
-                  <option *ngFor="let opt of sectoresAdminNacionCatalogo" [ngValue]="opt.id">{{ opt.texto }}</option>
-                </select>
-                <span *ngIf="!sectoresAdminNacionCatalogo.length" class="small text-warning">
-                  Sin datos en {{ catalogoByTipoRoute(catalogoTipoSectorAdminNacional) }}.
-                </span>
-              </label>
-
-              <label class="full-width multimedia-field">
-                Imagenes y videos
+              <div class="full-width multimedia-field form-field-block">
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Multimedia (opcional)' }"></ng-container>
                 <span class="small text-secondary fw-normal">
-                  Imagen o video. Maximo 300 KB por imagen, 5 MB por video. Al guardar se guardan los nombres en el listado local.
+                  No es obligatorio agregar imagenes ni videos para guardar el proyecto.
+                  Imagenes: max. 300 KB (se comprimen automaticamente en el navegador, salvo GIF). Videos: solo por URL.
                 </span>
+
+                <label class="multimedia-sub-label" for="proyectoMultimediaImagenes">Imagenes</label>
                 <input
+                  id="proyectoMultimediaImagenes"
                   type="file"
                   class="form-control"
-                  name="proyectoMultimedia"
-                  accept="image/*,video/*"
+                  name="proyectoMultimediaImagenes"
+                  accept="image/*"
                   multiple
+                  [disabled]="isProcessingMultimedia"
                   (change)="onMultimediaChange($event)"
                 />
-                <div *ngIf="multimediaSeleccionError" class="alert alert-warning py-2 px-3 mb-0 small">
+                <span *ngIf="isProcessingMultimedia" class="small text-secondary">Comprimiendo imagenes...</span>
+
+                <span class="small fw-semibold text-secondary mt-2">Video (URL)</span>
+                <div class="multimedia-url-row">
+                  <input
+                    class="form-control"
+                    type="url"
+                    name="proyectoMultimediaVideoUrl"
+                    placeholder="https://..."
+                    [(ngModel)]="multimediaVideoUrlDraft"
+                  />
+                  <button type="button" class="btn btn-outline-primary btn-sm" (click)="agregarMultimediaVideoUrl()">
+                    Agregar URL
+                  </button>
+                </div>
+
+                <div *ngIf="multimediaSeleccionError" class="alert alert-warning py-2 px-3 mb-0 small" role="status">
                   {{ multimediaSeleccionError }}
                 </div>
+
                 <div *ngIf="multimediaAdjuntos.length" class="multimedia-preview-list">
                   <div *ngFor="let m of multimediaAdjuntos; let i = index" class="multimedia-preview-item">
-                    <img *ngIf="m.tipo === 'imagen'" [src]="m.url" [alt]="m.nombre" />
-                    <video *ngIf="m.tipo === 'video'" [src]="m.url" controls muted playsinline></video>
-                    <span class="multimedia-nombre">{{ m.nombre }}</span>
-                    <button type="button" class="btn btn-outline-danger btn-sm btn-remove-mm" (click)="removeMultimediaAdjunto(i)" aria-label="Quitar archivo">
+                    <button
+                      type="button"
+                      class="multimedia-img-thumb-btn"
+                      (click)="abrirVistaImagenMultimedia(m)"
+                      [attr.aria-label]="'Ver imagen: ' + m.nombre"
+                      [attr.title]="'Ver como quedo: ' + m.nombre"
+                    >
+                      <img [src]="m.url" [alt]="m.nombre" />
+                    </button>
+                    <span class="multimedia-nombre">
+                      {{ m.nombre }}
+                      <span *ngIf="m.comprimida" class="badge text-bg-info ms-1">Comprimida</span>
+                    </span>
+                    <span class="multimedia-img-hint small text-secondary">Clic en la miniatura para ver la imagen</span>
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-remove-mm" (click)="removeMultimediaAdjunto(i)" aria-label="Quitar imagen">
                       Quitar
                     </button>
                   </div>
                 </div>
-              </label>
+
+                <div *ngIf="multimediaVideoUrls.length" class="multimedia-preview-list multimedia-video-preview-list">
+                  <div *ngFor="let v of multimediaVideoUrls; let i = index" class="multimedia-preview-item multimedia-video-item">
+                    <a
+                      class="multimedia-video-thumb-link"
+                      [href]="v.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      [attr.title]="'Abrir video en ' + v.etiqueta + ': ' + v.url"
+                      [attr.aria-label]="'Abrir video en nueva pestaña (' + v.etiqueta + ')'"
+                    >
+                      <div class="multimedia-video-thumb" [class.multimedia-video-thumb--valida]="v.valida">
+                        <img
+                          *ngIf="v.thumbnailUrl"
+                          [src]="v.thumbnailUrl"
+                          alt=""
+                          (error)="onVideoThumbError(v)"
+                        />
+                        <div *ngIf="!v.thumbnailUrl" class="multimedia-video-thumb-placeholder" aria-hidden="true">
+                          <span class="multimedia-video-play">&#9654;</span>
+                        </div>
+                        <span *ngIf="v.valida" class="multimedia-video-valid-badge" title="URL valida">&#10003;</span>
+                      </div>
+                    </a>
+                    <span class="multimedia-nombre">{{ v.etiqueta }}</span>
+                    <span class="multimedia-video-hint small text-secondary">Clic en la miniatura abre el video</span>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm btn-remove-mm"
+                      (click)="removeMultimediaVideoUrl(i)"
+                      aria-label="Quitar URL de video"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -410,7 +596,7 @@
             class="alert alert-danger py-2 px-3 mx-3 mb-0 proyecto-save-errors"
             role="alert"
           >
-            <p class="mb-2 small fw-semibold">No se puede guardar el proyecto. Revise lo siguiente:</p>
+            <p class="mb-2 small fw-semibold">Error al guardar en el servidor:</p>
             <ul class="mb-0 ps-3 small">
               <li *ngFor="let err of saveProyectoErrores" class="mb-1">{{ err }}</li>
             </ul>
@@ -441,7 +627,37 @@
       </div>
     </div>
   </div>
+
+  <div
+    *ngIf="multimediaImagenPreview"
+    class="multimedia-img-preview-backdrop"
+    (click)="cerrarVistaImagenMultimedia()"
+    role="presentation"
+  >
+    <section
+      class="multimedia-img-preview-dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="'Vista previa: ' + multimediaImagenPreview.nombre"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        type="button"
+        class="btn-close multimedia-img-preview-close"
+        aria-label="Cerrar vista previa"
+        (click)="cerrarVistaImagenMultimedia()"
+      ></button>
+      <img
+        class="multimedia-img-preview-dialog__img"
+        [src]="multimediaImagenPreview.src"
+        [alt]="multimediaImagenPreview.alt"
+      />
+      <p class="multimedia-img-preview-dialog__meta mb-0">
+        <span class="fw-semibold">{{ multimediaImagenPreview.nombre }}</span>
+        <span *ngIf="multimediaImagenPreview.comprimida" class="badge text-bg-info ms-1">Comprimida</span>
+        <span class="text-secondary"> · {{ multimediaImagenPreview.tamano }}</span>
+      </p>
+    </section>
+  </div>
 </section>
-
-
 

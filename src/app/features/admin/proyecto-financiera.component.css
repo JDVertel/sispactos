@@ -1,0 +1,150 @@
+:host {
+  display: block;
+  --home-font-size: 0.82rem;
+}
+
+.financiera-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.financiera-card__header {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+.financiera-card .card-body {
+  background: transparent;
+  padding-top: 0.75rem;
+}
+
+.financiera-nav-tabs {
+  border-bottom: 1px solid #ebebeb;
+}
+
+.financiera-nav-tabs .nav-link {
+  font-size: var(--home-font-size);
+  font-weight: 600;
+  color: #4d4d4d;
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.financiera-nav-tabs .nav-link.active {
+  color: #4d4d4d;
+  background: #ffffff;
+  border-color: #ebebeb #ebebeb #fff;
+}
+
+.financiera-totales-panel {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.financiera-totales-panel__titulo {
+  font-size: var(--home-font-size);
+  font-weight: 700;
+  color: #4d4d4d;
+  margin: 0 0 0.65rem;
+  padding: 0 0.1rem;
+}
+
+.financiera-total-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 100%;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.15rem;
+  border: 1px solid #ebebeb;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.financiera-total-card--principal {
+  border: 1px solid #d5d5d5;
+  background: #ffffff;
+}
+
+.financiera-total-card__label {
+  font-size: var(--home-font-size);
+  font-weight: 600;
+  color: #4d4d4d;
+  line-height: 1.3;
+}
+
+.financiera-total-card__valor {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333333;
+  font-variant-numeric: tabular-nums;
+}
+
+.financiera-total-card__hint {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6c757d;
+  line-height: 1.35;
+}
+
+.financiera-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid #ebebeb;
+  border-radius: 0.15rem;
+  background: #ffffff;
+  margin: 0;
+  height: 100%;
+  min-width: 0;
+  color: #4d4d4d;
+  font-size: var(--home-font-size);
+  font-weight: 600;
+}
+
+.financiera-field__label {
+  font-size: var(--home-font-size);
+  font-weight: 600;
+  color: #4d4d4d;
+  line-height: 1.25;
+}
+
+.financiera-field .form-control {
+  font-weight: 400;
+}
+
+.financiera-field input[type='number'] {
+  font-variant-numeric: tabular-nums;
+}
+
+.tab-pane-financiera h2,
+.tab-pane-financiera h3 {
+  color: #4d4d4d;
+  font-size: var(--home-font-size);
+  font-weight: 700;
+}
+
+.financiera-vigencia-table thead th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #4d4d4d;
+  background: #fafafa;
+  border-color: #ebebeb;
+}
+
+.financiera-vigencia-table tbody td {
+  background: #ffffff;
+  border-color: #ebebeb;
+}
+
+.financiera-total-row th,
+.financiera-total-row td {
+  background: #fafafa;
+  color: #4d4d4d;
+  border-color: #ebebeb;
+  font-size: var(--home-font-size);
+}

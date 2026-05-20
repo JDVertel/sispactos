@@ -1,13 +1,29 @@
 import { Injectable, Injector } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map, tap, shareReplay, finalize } from 'rxjs/operators';
+import { catchError, map, shareReplay, finalize } from 'rxjs/operators';
 import { AuthSessionStore } from '../store/auth-session.store';
 import { AuthSessionKeepaliveService } from './auth-session-keepalive.service';
+import {
+  extractAccessToken,
+  extractAuthErrorMessage,
+  extractRefreshResponseToken,
+  isAuthFailurePayload,
+  isOAuthLoginSuccessPayload,
+  isValidSessionToken,
+  loginRejectionMessage,
+  validateLoginSessionToken
+} from '../auth/auth-token.util';
 
 export interface LoginResult {
   isAuthenticated: boolean;
   message?: string;
+}
+
+/** Cuerpo POST /api/Auth/Login (UserCredentials, OpenAPI). */
+export interface AuthLoginRequest {
+  username: string;
+  password: string;
 }
 
 const AUTH_LOGIN_URL = '/api/Auth/Login';
@@ -37,88 +53,64 @@ export class AuthService {
       });
     }
 
-    return this.http.post(AUTH_LOGIN_URL, {
+    const body: AuthLoginRequest = {
       username: safeUsername,
       password: safePassword
-    }, { responseType: 'text' }).pipe(
-      tap((response) => {
-        console.groupCollapsed('[API OK] POST /api/Auth/Login');
-        console.log('response:', response);
-        console.groupEnd();
-      }),
-      map((raw) => {
-        const token = this.extractToken(this.parseJsonPayload(raw));
+    };
 
-        if (!token) {
-          return {
-            isAuthenticated: false,
-            message: 'El servidor no devolvio un token de sesion.'
-          } as LoginResult;
-        }
-
-        this.authSessionStore.setSession({
-          username: safeUsername,
-          mode: 'local',
-          token
-        });
-
-        this.startSessionKeepalive();
-
-        return { isAuthenticated: true };
-      }),
-      catchError((error) => {
-        console.error('[API ERROR] POST /api/Auth/Login', error);
-        this.logout();
-        return of({
-          isAuthenticated: false,
-          message: 'No fue posible autenticar el usuario.'
-        });
-      })
+    return this.http.post(AUTH_LOGIN_URL, body, {
+      observe: 'response',
+      responseType: 'text'
+    }).pipe(
+      map((response) => this.handleLoginHttpResponse(response, safeUsername)),
+      catchError((error) => of(this.handleLoginHttpError(error)))
     );
   }
 
-  /**
-   * Renueva el JWT (POST /api/Auth/RefreshToken).
-   * No cierra sesion por errores de red; solo si el servidor rechaza el token (401/403).
-   */
+  prepareSessionBeforeSave(): Observable<boolean> {
+    if (!this.hasValidUserSession()) {
+      return of(false);
+    }
+    return this.refreshToken();
+  }
+
   refreshToken(): Observable<boolean> {
     if (this.refreshInFlight$) {
       return this.refreshInFlight$;
     }
 
     const token = this.authSessionStore.getToken().trim();
-    if (!token) {
+    const session = this.authSessionStore.getSession();
+    if (!session || !isValidSessionToken(token)) {
+      this.logout();
+      return of(false);
+    }
+
+    const sessionCheck = validateLoginSessionToken(token, session.username);
+    if (!sessionCheck.valid) {
+      this.logout();
       return of(false);
     }
 
     const body = this.buildRefreshTokenBody(token);
 
-    this.refreshInFlight$ = this.http.post(AUTH_REFRESH_TOKEN_URL, body, { responseType: 'text' }).pipe(
-      tap((response) => {
-        console.groupCollapsed('[API OK] POST /api/Auth/RefreshToken');
-        console.log('response:', response);
-        console.groupEnd();
-      }),
-      map((raw) => {
-        const refreshedToken = this.extractToken(this.parseJsonPayload(raw)) || token;
-        const current = this.authSessionStore.getSession();
-        if (!current || !refreshedToken) {
-          return false;
+    this.refreshInFlight$ = this.http.post(AUTH_REFRESH_TOKEN_URL, body, {
+      observe: 'response',
+      responseType: 'text'
+    }).pipe(
+      map((response) => {
+        if (response.status < 200 || response.status >= 300) {
+          return this.handleRefreshHttpFailure(response.status, response.body ?? '');
         }
-
-        this.authSessionStore.setSession({
-          ...current,
-          token: refreshedToken
-        });
-
-        return true;
+        return this.handleRefreshSuccess(response.body ?? '', token, session.username);
       }),
       catchError((error: HttpErrorResponse) => {
         console.error('[API ERROR] POST /api/Auth/RefreshToken', error);
         if (error.status === 401 || error.status === 403) {
           this.logout();
+          return of(false);
         }
-        return of(false);
+        return of(this.hasValidUserSession());
       }),
       finalize(() => {
         this.refreshInFlight$ = null;
@@ -134,31 +126,34 @@ export class AuthService {
     this.authSessionStore.clearSession();
   }
 
-  /** Reanuda renovacion automatica si hay sesion guardada (p. ej. al recargar la app). */
   ensureSessionKeepalive(): void {
-    if (this.hasValidUserSession()) {
-      this.startSessionKeepalive();
+    if (!this.hasValidUserSession()) {
+      if (this.authSessionStore.getSession()) {
+        this.logout();
+      }
+      return;
     }
+    this.startSessionKeepalive();
   }
 
   isLoggedIn(): boolean {
-    return !!this.authSessionStore.getSession();
+    return this.hasValidUserSession();
   }
 
   hasValidUserSession(): boolean {
     const session = this.authSessionStore.getSession();
-    return (
-      !!session
-      && session.mode === 'local'
-      && !!session.username.trim()
-      && !!this.authSessionStore.getToken().trim()
-    );
+    const token = this.authSessionStore.getToken().trim();
+    if (!session || session.mode !== 'local' || !session.username.trim()) {
+      return false;
+    }
+    const check = validateLoginSessionToken(token, session.username);
+    return check.valid;
   }
 
   getCurrentUser(): { username: string; mode: 'local' | 'guest' } | null {
     const session = this.authSessionStore.getSession();
 
-    if (!session) {
+    if (!session || !this.hasValidUserSession()) {
       return null;
     }
 
@@ -166,6 +161,131 @@ export class AuthService {
       username: session.username,
       mode: session.mode
     };
+  }
+
+  private handleLoginHttpResponse(
+    response: HttpResponse<string>,
+    username: string
+  ): LoginResult {
+    const raw = response.body ?? '';
+
+    if (response.status < 200 || response.status >= 300) {
+      return this.handleLoginHttpFailure(response.status, raw);
+    }
+
+    return this.handleLoginSuccess(raw, username);
+  }
+
+  private handleLoginSuccess(raw: string, username: string): LoginResult {
+    const payload = this.parseJsonPayload(raw);
+
+    if (isAuthFailurePayload(payload)) {
+      this.logout();
+      return {
+        isAuthenticated: false,
+        message: extractAuthErrorMessage(payload) || 'Usuario o contrasena incorrectos.'
+      };
+    }
+
+    const token = extractAccessToken(payload);
+
+    if (!token && !isOAuthLoginSuccessPayload(payload)) {
+      this.logout();
+      return {
+        isAuthenticated: false,
+        message:
+          extractAuthErrorMessage(payload)
+          || 'El servidor no confirmo el inicio de sesion (respuesta no valida).'
+      };
+    }
+    const sessionCheck = validateLoginSessionToken(token, username);
+
+    if (!sessionCheck.valid) {
+      this.logout();
+      return {
+        isAuthenticated: false,
+        message:
+          extractAuthErrorMessage(payload) || loginRejectionMessage(sessionCheck.reason)
+      };
+    }
+
+    this.authSessionStore.setSession({
+      username,
+      mode: 'local',
+      token
+    });
+
+    this.startSessionKeepalive();
+
+    return { isAuthenticated: true };
+  }
+
+  private handleLoginHttpFailure(status: number, raw: string): LoginResult {
+    this.logout();
+    const payload = this.parseJsonPayload(raw);
+    const apiMessage = extractAuthErrorMessage(payload);
+
+    if (status === 401 || status === 403) {
+      return {
+        isAuthenticated: false,
+        message: apiMessage || 'Usuario o contrasena incorrectos.'
+      };
+    }
+
+    if (status === 400) {
+      return {
+        isAuthenticated: false,
+        message: apiMessage || 'Datos de acceso invalidos.'
+      };
+    }
+
+    return {
+      isAuthenticated: false,
+      message: apiMessage || `No fue posible autenticar el usuario (${status}).`
+    };
+  }
+
+  private handleLoginHttpError(error: HttpErrorResponse): LoginResult {
+    console.error('[API ERROR] POST /api/Auth/Login', error);
+    const raw = typeof error.error === 'string' ? error.error : '';
+    return this.handleLoginHttpFailure(error.status, raw || JSON.stringify(error.error ?? ''));
+  }
+
+  private handleRefreshHttpFailure(status: number, raw: string): boolean {
+    if (status === 401 || status === 403) {
+      this.logout();
+      return false;
+    }
+    return this.hasValidUserSession();
+  }
+
+  private handleRefreshSuccess(raw: string, previousToken: string, username: string): boolean {
+    const payload = this.parseJsonPayload(raw);
+
+    if (isAuthFailurePayload(payload)) {
+      this.logout();
+      return false;
+    }
+
+    const refreshedToken = extractRefreshResponseToken(payload, previousToken);
+    const sessionCheck = validateLoginSessionToken(refreshedToken, username);
+
+    if (!sessionCheck.valid) {
+      this.logout();
+      return false;
+    }
+
+    const current = this.authSessionStore.getSession();
+    if (!current) {
+      return false;
+    }
+
+    this.authSessionStore.setSession({
+      ...current,
+      token: refreshedToken
+    });
+
+    return true;
   }
 
   private startSessionKeepalive(): void {
@@ -182,13 +302,14 @@ export class AuthService {
     try {
       this.injector.get(AuthSessionKeepaliveService).stop();
     } catch {
-      // noop si el keepalive aun no esta registrado
+      // noop
     }
   }
 
-  private buildRefreshTokenBody(token: string): string | Record<string, string> {
-    const normalized = this.normalizeToken(token);
-    return normalized;
+  private buildRefreshTokenBody(token: string): { refreshToken: string } {
+    return {
+      refreshToken: token.replace(/^Bearer\s+/i, '').trim()
+    };
   }
 
   private parseJsonPayload(raw: string | null): unknown {
@@ -200,38 +321,5 @@ export class AuthService {
     } catch {
       return raw;
     }
-  }
-
-  private extractToken(payload: unknown): string {
-    if (typeof payload === 'string') {
-      return this.normalizeToken(payload);
-    }
-
-    if (!payload || typeof payload !== 'object') {
-      return '';
-    }
-
-    const body = payload as Record<string, unknown>;
-    const direct = this.readString(body['token'])
-      || this.readString(body['accessToken'])
-      || this.readString(body['access_token'])
-      || this.readString(body['refreshToken'])
-      || this.readString(body['jwt'])
-      || this.readString(body['bearer']);
-
-    if (direct) {
-      return this.normalizeToken(direct);
-    }
-
-    const nested = body['data'] ?? body['result'] ?? body['value'];
-    return nested && nested !== payload ? this.extractToken(nested) : '';
-  }
-
-  private readString(value: unknown): string {
-    return typeof value === 'string' ? value.trim() : '';
-  }
-
-  private normalizeToken(token: string): string {
-    return token.replace(/^Bearer\s+/i, '').trim();
   }
 }
