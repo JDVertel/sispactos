@@ -211,7 +211,7 @@
                 <div class="col-6 col-md-3">
                   <div class="card card-dato h-100">
                     <div class="card-body py-2 px-3">
-                      <div class="fw-bold small text-secondary">Ver PEI Vigente Pacto Territorial</div>
+                      <div class="fw-bold small text-secondary">Ver PEI vigente pacto territorial</div>
                       <div class="fs-6 mt-1">
                         <a
                           *ngIf="urlPeiVigentePacto; else peiDocNoDisponible"
@@ -230,7 +230,7 @@
                 <div class="col-6 col-md-3">
                   <div class="card card-dato h-100">
                     <div class="card-body py-2 px-3">
-                      <div class="fw-bold small text-secondary">Ver minuta Pacto Territorial</div>
+                      <div class="fw-bold small text-secondary">Ver minuta pacto territorial</div>
                       <div class="fs-6 mt-1">
                         <a
                           *ngIf="urlMinutaPacto; else minutaDocNoDisponible"
@@ -564,7 +564,7 @@
                       </select>
                     </div>
                     <div class="col-12">
-                      <label class="form-label small fw-bold">Entidad Responsable PEI</label>
+                      <label class="form-label small fw-bold">Entidad responsable PEI</label>
                       <select class="form-select" [(ngModel)]="filtrosProyectos.entidadResponsablePei">
                         <option value="">Todas</option>
                         <option *ngFor="let opcion of opcionesProyectosEntidadResponsablePei" [value]="opcion">{{ opcion }}</option>
@@ -638,7 +638,7 @@
                           <th>Proyecto</th>
                           <th>Estado proyecto</th>
                           <th>Valor indicativo</th>
-                          <th>Aporte indicativo consolidado Nación</th>
+                          <th>Aporte indicativo consolidado nación</th>
                           <th>Aporte indicativo entidades territoriales</th>
                           <th>Aporte indicativos otros</th>
                         </tr>

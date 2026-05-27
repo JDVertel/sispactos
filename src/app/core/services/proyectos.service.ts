@@ -2,7 +2,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Proyecto } from '../../shared/models';
+import { Proyecto, ProyectoImagenRegistrada, ProyectoMultimediaMetadato } from '../../shared/models';
 import { of } from 'rxjs';
 
 const PROYECTO_API_URL = '/api/Proyecto';
@@ -43,10 +43,11 @@ export type CreateProyectoCommand = {
   aporteIndicativoNacion: number;
   aporteIndicativoTerritorio: number;
   aporteIndicativoOtros: number;
-  productoMGA: string;
-  metaPa: string;
-  /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
-  idMecanismoInclusion: number | null;
+  productoPrincipalMGA: string;
+  cantidadMeta: number;
+  unidadMedidaMeta: string;
+  /** Sesion CD inclusion PEI (#); enviar `null` si no aplica. */
+  sesionCDInclusion: number | null;
   /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
   idSectorAdministracionNacional: number | null;
   fechaReporte: string;
@@ -56,6 +57,15 @@ export type CreateProyectoCommand = {
   tieneViabilidad: boolean;
   fechaViabilidad: string;
   numeroContratoEspecifico: string;
+  latitudProyecto: string;
+  longitudProyecto: string;
+  imagenes: ProyectoImagenApiCommand[];
+};
+
+export type ProyectoImagenApiCommand = {
+  descripcionImagen: string;
+  fechaImagen: string;
+  archivoImagen: string | null;
 };
 
 /** Cuerpo PUT `/api/Proyecto` (`EditaProyecto_Command`). */
@@ -77,6 +87,13 @@ export interface ProyectoApiResult {
   httpStatus?: number;
 }
 
+/** Opción mínima desde GET `/api/Proyecto`. */
+export interface ProyectoApiOption {
+  id: number;
+  nombre: string;
+  idPactoTerritorial: number;
+}
+
 type ApiProyectoCreateResponse = {
   id?: unknown;
   nombre?: unknown;
@@ -86,9 +103,7 @@ type ApiProyectoCreateResponse = {
   providedIn: 'root'
 })
 export class ProyectosService {
-  private readonly storageKey = 'sispactos.proyectos';
-
-  // Almacena los proyectos en memoria para consulta y actualización.
+  // Cache en memoria de la última consulta GET `/api/Proyecto`.
   private proyectos = new BehaviorSubject<Proyecto[]>([]);
   public proyectos$ = this.proyectos.asObservable();
 
@@ -101,17 +116,75 @@ export class ProyectosService {
     'Cancelado'
   ];
 
-  constructor(private readonly http: HttpClient) {
-    this.loadFromStorage();
-  }
+  constructor(private readonly http: HttpClient) {}
 
-  // Entrega la lista de proyectos a quien la necesite.
+  /** Lista en memoria (se alimenta con {@link refreshProyectosFromApi}). */
   getProyectos(): Observable<Proyecto[]> {
     return this.proyectos$;
   }
 
   getProyectosSnapshot(): Proyecto[] {
     return this.proyectos.value;
+  }
+
+  /** GET `/api/Proyecto` — recarga tabla y BehaviorSubject desde BD. */
+  refreshProyectosFromApi(): Observable<Proyecto[]> {
+    return this.fetchProyectosApiRaw$().pipe(
+      map((list) => {
+        const proyectos = list
+          .map((row) => this.mapApiRowToProyecto(row))
+          .filter((p) => p.apiId != null && p.apiId >= 1)
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' }));
+        this.proyectos.next(proyectos);
+        return proyectos;
+      }),
+      catchError((error: HttpErrorResponse) => {
+        console.error('[API ERROR] GET /api/Proyecto', error);
+        this.proyectos.next([]);
+        return of([] as Proyecto[]);
+      })
+    );
+  }
+
+  /** GET `/api/Proyecto` — listado mínimo para selects (p. ej. contratos). */
+  getProyectosFromApi(): Observable<ProyectoApiOption[]> {
+    return this.fetchProyectosApiRaw$().pipe(
+      map((list) => this.normalizeProyectosApiList(list)),
+      map((rows) =>
+        rows
+          .filter((p) => p.id > 0 && !!p.nombre && p.idPactoTerritorial > 0)
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' }))
+      ),
+      catchError((error: HttpErrorResponse) => {
+        console.error('[API ERROR] GET /api/Proyecto', error);
+        return of([] as ProyectoApiOption[]);
+      })
+    );
+  }
+
+  private fetchProyectosApiRaw$(): Observable<Record<string, unknown>[]> {
+    return this.http.get(PROYECTO_API_URL, { responseType: 'text' }).pipe(
+      map((raw) => {
+        const parsed = this.parseJsonPayload(raw);
+        const list = this.unwrapApiArray(parsed);
+        if (!list) {
+          return [];
+        }
+        return list.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+      })
+    );
+  }
+
+  /** Proyectos con `idPactoTerritorial` igual al pacto seleccionado (GET `/api/Proyecto`). */
+  getProyectosByPactoTerritorial(idPactoTerritorial: number): Observable<ProyectoApiOption[]> {
+    if (!Number.isFinite(idPactoTerritorial) || idPactoTerritorial < 1) {
+      return of([]);
+    }
+    return this.getProyectosFromApi().pipe(
+      map((rows) =>
+        rows.filter((p) => this.mismoIdNumerico(p.idPactoTerritorial, idPactoTerritorial))
+      )
+    );
   }
 
   /** GET `/api/Proyecto/{Id}` — detalle para edición. */
@@ -128,19 +201,26 @@ export class ProyectosService {
     );
   }
 
-  /** POST `/api/Proyecto` — la API suele responder `text/plain` con JSON `{ id, nombre }`. */
+  /**
+   * POST `/api/Proyecto` — alta de un registro nuevo.
+   * El cuerpo no debe incluir `id`; la API asigna la PK (identity) y responde `{ id, nombre }`.
+   */
   createProyecto(command: CreateProyectoCommand): Observable<ProyectoApiResult> {
-    const payload = this.sanitizeCreateProyectoPayload(command);
+    const payload = this.buildPostProyectoPayload(command);
+    console.info('[SISPACTOS] HTTP POST /api/Proyecto (crear — no usa PUT)', payload);
     return this.http.post(PROYECTO_API_URL, payload, { responseType: 'text' }).pipe(
       tap((raw) => {
         console.groupCollapsed('[API OK] POST /api/Proyecto');
+        console.log('method:', 'POST');
+        console.log('contentType:', 'application/json');
         console.log('request:', payload);
         console.log('response:', raw);
         console.groupEnd();
       }),
       map((raw) => this.mapCreateProyectoResponse(raw)),
       catchError((error: HttpErrorResponse) => {
-        console.error('[API ERROR] POST /api/Proyecto', error);
+        const errText = this.extractHttpErrorText(error);
+        console.error('[API ERROR] POST /api/Proyecto', error.status, errText || error.message);
         return of({
           success: false,
           message: this.buildCreateProyectoErrorMessage(error),
@@ -152,10 +232,13 @@ export class ProyectosService {
 
   /** PUT `/api/Proyecto` — actualiza un proyecto existente. */
   updateProyectoInApi(command: UpdateProyectoCommand): Observable<ProyectoApiResult> {
-    const payload = this.sanitizeCreateProyectoPayload(command);
+    const payload = this.sanitizeCreateProyectoPayload(command, true);
+    console.info('[SISPACTOS] HTTP PUT /api/Proyecto (editar)', payload);
     return this.http.put(PROYECTO_API_URL, payload, { responseType: 'text' }).pipe(
       tap((raw) => {
         console.groupCollapsed('[API OK] PUT /api/Proyecto');
+        console.log('method:', 'PUT');
+        console.log('contentType:', 'application/json');
         console.log('request:', payload);
         console.log('response:', raw);
         console.groupEnd();
@@ -173,15 +256,209 @@ export class ProyectosService {
   }
 
   private mapCreateProyectoResponse(raw: string): ProyectoApiResult {
-    const parsed = this.parseJsonPayload(raw);
+    const text = (raw ?? '').trim();
+    if (!text) {
+      return {
+        success: false,
+        message: 'La API respondio vacio. El proyecto puede no haberse guardado en la base de datos.'
+      };
+    }
+
+    const lower = text.toLowerCase();
+    if (
+      lower.includes('exception')
+      || lower.includes('duplicate key')
+      || lower.includes('pk_proyecto')
+      || lower.includes('sqlexception')
+      || (lower.includes('error') && !lower.includes('"id"'))
+    ) {
+      const parsedError = this.parseProyectoForeignKeyError(text);
+      return {
+        success: false,
+        message: parsedError || this.truncateErrorText(text)
+      };
+    }
+
+    const parsed = this.parseJsonPayload(text);
     const row = (parsed && typeof parsed === 'object' ? parsed : {}) as ApiProyectoCreateResponse;
     const id = typeof row.id === 'number' ? row.id : Number(row.id);
     const nombre = typeof row.nombre === 'string' ? row.nombre : '';
+
+    if (!Number.isFinite(id) || id < 1) {
+      return {
+        success: false,
+        message:
+          'La API no devolvio un id de proyecto valido. Revise en Red (F12) que la peticion sea POST y que el servidor confirme el alta.'
+      };
+    }
+
     return {
       success: true,
-      id: Number.isFinite(id) ? id : undefined,
+      id,
       nombre: nombre.trim() || undefined
     };
+  }
+
+  /** Convierte detalle API a modelo de vista (financiera, etc.). */
+  mapDetalleToProyecto(detalle: ProyectoDetalleApi): Proyecto | null {
+    const apiId = detalle.id;
+    if (apiId == null || apiId < 1) {
+      return null;
+    }
+    const multimedia = this.mapImagenesApiToProyecto(detalle.imagenes);
+    const presupuesto =
+      (detalle.presupuestoDnp ?? 0) +
+      (detalle.presupuestoSector ?? 0) +
+      (detalle.presuspuestoTerritorio ?? 0) +
+      (detalle.presupuestoOtros ?? 0);
+    return {
+      id: apiId,
+      apiId,
+      idPactoTerritorial: detalle.idPactoTerritorial,
+      nombre: (detalle.nombre ?? '').trim() || 'Sin nombre',
+      nombreBpin: detalle.nombreBpin,
+      descripcion: (detalle.alcance ?? '').trim(),
+      codigo: (detalle.codigo ?? String(apiId)).trim() || String(apiId),
+      bpin: detalle.bpin,
+      pactoAsociado: '',
+      sector: '',
+      estado: '—',
+      responsable: (detalle.entidadResponsablePI ?? '—').trim() || '—',
+      presupuesto: presupuesto > 0 ? presupuesto : 0,
+      avance: 0,
+      fechaInicio: this.parseApiDate(detalle.fechaInicio),
+      fechaFin: this.parseApiDate(detalle.fechaFin),
+      fechaCreacion: new Date(),
+      latitud: this.readApiCoordinate(detalle.latitudProyecto),
+      longitud: this.readApiCoordinate(detalle.longitudProyecto),
+      ...multimedia,
+      consecutivoConpes: detalle.consecutivoConpes
+        ? Number(detalle.consecutivoConpes)
+        : undefined,
+      frpt: detalle.esFRPT,
+      numeroContratoEspecifico: detalle.numeroContratoEspecifico,
+      numeroEmpleosDirectos: detalle.numeroEmpleosDirectos,
+      numeroEmpleosIndirectos: detalle.numeroEmpleosIndirectos
+    };
+  }
+
+  private mapApiRowToProyecto(row: Record<string, unknown>): Proyecto {
+    const apiId = this.readApiNumber(row['id'] ?? row['Id']) ?? 0;
+    const idPactoTerritorial = this.readIdPactoTerritorialFromProyectoRow(row);
+    const multimedia = this.mapImagenesApiToProyecto(
+      this.normalizeProyectoImagenesApi(row['imagenes'] ?? row['Imagenes'])
+    );
+    const presupuesto =
+      (this.readApiNumber(row['presupuestoDnp'] ?? row['PresupuestoDnp']) ?? 0) +
+      (this.readApiNumber(row['presupuestoSector'] ?? row['PresupuestoSector']) ?? 0) +
+      (this.readApiNumber(row['presuspuestoTerritorio'] ?? row['PresuspuestoTerritorio']) ?? 0) +
+      (this.readApiNumber(row['presupuestoOtros'] ?? row['PresupuestoOtros']) ?? 0);
+
+    const pactoNested = row['pactoTerritorial'] ?? row['PactoTerritorial'] ?? row['pacto'] ?? row['Pacto'];
+    let pactoAsociado = '';
+    if (pactoNested && typeof pactoNested === 'object') {
+      const pacto = pactoNested as Record<string, unknown>;
+      pactoAsociado = (this.readApiString(pacto['nombre'] ?? pacto['Nombre']) ?? '').trim();
+    }
+
+    return {
+      id: apiId,
+      apiId,
+      idPactoTerritorial,
+      idEstadoProyecto: this.readApiNumber(row['idEstadoProyecto'] ?? row['IdEstadoProyecto']),
+      idCondicionProyecto: this.readApiNumber(row['idCondicionProyecto'] ?? row['IdCondicionProyecto']),
+      idSectorCatalogo: this.readApiNumber(row['idSector'] ?? row['IdSector']),
+      nombre: (this.readApiString(row['nombre'] ?? row['Nombre']) ?? '').trim() || 'Sin nombre',
+      nombreBpin: this.readApiString(row['nombreBpin'] ?? row['NombreBpin']),
+      descripcion: (this.readApiString(row['alcance'] ?? row['Alcance']) ?? '').trim(),
+      codigo: (this.readApiString(row['codigo'] ?? row['Codigo']) ?? String(apiId)).trim() || String(apiId),
+      bpin: this.readApiString(row['bpin'] ?? row['Bpin']),
+      pactoAsociado,
+      sector:
+        this.readApiString(row['sector'] ?? row['Sector'])
+        ?? this.readApiString(row['nombreSector'] ?? row['NombreSector'])
+        ?? '—',
+      estado:
+        this.readApiString(row['estado'] ?? row['Estado'])
+        ?? this.readApiString(row['estadoProyecto'] ?? row['EstadoProyecto'])
+        ?? '—',
+      responsable:
+        (this.readApiString(row['entidadResponsablePI'] ?? row['EntidadResponsablePI']) ?? '—').trim() || '—',
+      presupuesto: presupuesto > 0 ? presupuesto : 0,
+      avance: this.readApiNumber(row['avance'] ?? row['Avance']) ?? 0,
+      fechaInicio: this.parseApiDate(row['fechaInicio'] ?? row['FechaInicio']),
+      fechaFin: this.parseApiDate(row['fechaFin'] ?? row['FechaFin']),
+      fechaCreacion: this.parseApiDate(row['fechaCreacion'] ?? row['FechaCreacion'] ?? row['fechaReporte']),
+      latitud: this.readApiCoordinate(row['latitudProyecto'] ?? row['LatitudProyecto']),
+      longitud: this.readApiCoordinate(row['longitudProyecto'] ?? row['LongitudProyecto']),
+      ...multimedia,
+      frpt: this.readApiBoolean(row['esFRPT'] ?? row['EsFRPT']),
+      consecutivoConpes: this.readApiNumber(row['consecutivoConpes'] ?? row['ConsecutivoConpes']),
+      numeroEmpleosDirectos: this.readApiNumber(row['numeroEmpleosDirectos'] ?? row['NumeroEmpleosDirectos']),
+      numeroEmpleosIndirectos: this.readApiNumber(row['numeroEmpleosIndirectos'] ?? row['NumeroEmpleosIndirectos'])
+    };
+  }
+
+  private parseApiDate(value: unknown): Date {
+    const text = this.readApiString(value);
+    if (!text) {
+      return new Date();
+    }
+    const d = new Date(text.includes('T') ? text : `${text}T12:00:00`);
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+  }
+
+  private normalizeProyectosApiList(list: Record<string, unknown>[]): ProyectoApiOption[] {
+    const out: ProyectoApiOption[] = [];
+    for (const row of list) {
+      const id = this.readApiNumber(row['id'] ?? row['Id']);
+      const idPactoTerritorial = this.readIdPactoTerritorialFromProyectoRow(row);
+      const nombre = (this.readApiString(row['nombre'] ?? row['Nombre']) ?? '').trim();
+      if (!id || !idPactoTerritorial || !nombre) {
+        continue;
+      }
+      out.push({ id, nombre, idPactoTerritorial });
+    }
+    return out;
+  }
+
+  private readIdPactoTerritorialFromProyectoRow(row: Record<string, unknown>): number | undefined {
+    const direct = this.readApiNumber(
+      row['idPactoTerritorial']
+        ?? row['IdPactoTerritorial']
+        ?? row['idPacto']
+        ?? row['IdPacto']
+    );
+    if (direct) {
+      return direct;
+    }
+    const nested = row['pactoTerritorial'] ?? row['PactoTerritorial'] ?? row['pacto'] ?? row['Pacto'];
+    if (nested && typeof nested === 'object') {
+      const pacto = nested as Record<string, unknown>;
+      return this.readApiNumber(pacto['id'] ?? pacto['Id']);
+    }
+    return undefined;
+  }
+
+  private mismoIdNumerico(a: number, b: number): boolean {
+    return Math.trunc(Number(a)) === Math.trunc(Number(b));
+  }
+
+  private unwrapApiArray(response: unknown): unknown[] | null {
+    if (Array.isArray(response)) {
+      return response;
+    }
+    if (!response || typeof response !== 'object') {
+      return null;
+    }
+    const payload = response as Record<string, unknown>;
+    for (const key of ['items', 'data', 'result', 'value']) {
+      const candidate = payload[key];
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   private parseJsonPayload(raw: string | null): unknown {
@@ -228,9 +505,11 @@ export class ProyectosService {
       idTipoOferta: n('idTipoOferta', 'IdTipoOferta'),
       esFRPT: b('esFRPT', 'EsFRPT'),
       alcance: s('alcance', 'Alcance'),
-      productoMGA: s('productoMGA', 'ProductoMGA'),
-      metaPa: s('metaPa', 'MetaPa'),
-      idMecanismoInclusion: n('idMecanismoInclusion', 'IdMecanismoInclusion'),
+      productoPrincipalMGA: s('productoPrincipalMGA', 'ProductoPrincipalMGA') ?? s('productoMGA', 'ProductoMGA'),
+      cantidadMeta: n('cantidadMeta', 'CantidadMeta'),
+      unidadMedidaMeta: s('unidadMedidaMeta', 'UnidadMedidaMeta') ?? s('metaPa', 'MetaPa'),
+      sesionCDInclusion:
+        n('sesionCDInclusion', 'SesionCDInclusion') ?? n('idMecanismoInclusion', 'IdMecanismoInclusion'),
       idSectorAdministracionNacional: n(
         'idSectorAdministracionNacional',
         'IdSectorAdministracionNacional'
@@ -241,7 +520,58 @@ export class ProyectosService {
       consecutivoConpes: s('consecutivoConpes', 'ConsecutivoConpes'),
       tieneViabilidad: b('tieneViabilidad', 'TieneViabilidad'),
       fechaViabilidad: s('fechaViabilidad', 'FechaViabilidad'),
-      numeroContratoEspecifico: s('numeroContratoEspecifico', 'NumeroContratoEspecifico')
+      numeroContratoEspecifico: s('numeroContratoEspecifico', 'NumeroContratoEspecifico'),
+      latitudProyecto: s('latitudProyecto', 'LatitudProyecto'),
+      longitudProyecto: s('longitudProyecto', 'LongitudProyecto'),
+      imagenes: this.normalizeProyectoImagenesApi(r['imagenes'] ?? r['Imagenes'])
+    };
+  }
+
+  private normalizeProyectoImagenesApi(raw: unknown): ProyectoImagenApiCommand[] {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+
+    return raw
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+      .map((item) => ({
+        descripcionImagen:
+          this.readApiString(item['descripcionImagen'] ?? item['DescripcionImagen']) ?? '',
+        fechaImagen:
+          this.readApiString(item['fechaImagen'] ?? item['FechaImagen']) ?? '',
+        archivoImagen:
+          this.readApiString(item['archivoImagen'] ?? item['ArchivoImagen']) ?? ''
+      }))
+      .filter((item) => !!item.archivoImagen);
+  }
+
+  private mapImagenesApiToProyecto(
+    imagenes: ProyectoImagenApiCommand[] | undefined
+  ): Pick<Proyecto, 'imagenes' | 'multimediaNombres' | 'multimediaMetadatos'> {
+    const safeImagenes: ProyectoImagenRegistrada[] = (imagenes ?? [])
+      .filter((item) => !!item?.archivoImagen)
+      .map((item) => ({
+        descripcionImagen: item.descripcionImagen,
+        fechaImagen: item.fechaImagen,
+        archivoImagen: item.archivoImagen
+      }));
+
+    const multimediaNombres = safeImagenes.map((item, index) => {
+      const descripcion = item.descripcionImagen.trim();
+      return descripcion || `Imagen ${index + 1}`;
+    });
+
+    const multimediaMetadatos: ProyectoMultimediaMetadato[] = safeImagenes.map((item, index) => ({
+      tipo: 'imagen',
+      referencia: multimediaNombres[index],
+      fecha: item.fechaImagen,
+      detalle: item.descripcionImagen
+    }));
+
+    return {
+      ...(safeImagenes.length ? { imagenes: safeImagenes } : {}),
+      ...(multimediaNombres.length ? { multimediaNombres } : {}),
+      ...(multimediaMetadatos.length ? { multimediaMetadatos } : {})
     };
   }
 
@@ -267,6 +597,15 @@ export class ProyectosService {
     return undefined;
   }
 
+  private readApiCoordinate(value: unknown): number | undefined {
+    const text = this.readApiString(value);
+    if (!text) {
+      return undefined;
+    }
+    const n = Number(text.replace(',', '.'));
+    return Number.isFinite(n) ? n : undefined;
+  }
+
   private readApiBoolean(value: unknown): boolean | undefined {
     if (typeof value === 'boolean') {
       return value;
@@ -279,14 +618,28 @@ export class ProyectosService {
     return undefined;
   }
 
-  private sanitizeCreateProyectoPayload(
-    command: CreateProyectoCommand | UpdateProyectoCommand
-  ): CreateProyectoCommand | UpdateProyectoCommand {
-    const payload = { ...command } as CreateProyectoCommand | UpdateProyectoCommand;
+  /** Cuerpo exclusivo para POST: sin `id`, `codigo` vacío hasta que la API devuelva el nuevo id. */
+  private buildPostProyectoPayload(command: CreateProyectoCommand): CreateProyectoCommand {
+    const payload = { ...command } as CreateProyectoCommand & Partial<UpdateProyectoCommand>;
+    delete payload.id;
+    const codigo = (command.codigo ?? '').trim();
+    payload.codigo = codigo || `P-${Date.now()}`;
     payload.idFaseInversion = null;
     payload.idTipoOferta = null;
-    // La BD actual del servidor aun no expone idMecanismoInclusion (sesion CD va en alcance).
-    delete (payload as Record<string, unknown>)['idMecanismoInclusion'];
+    return payload;
+  }
+
+  private sanitizeCreateProyectoPayload(
+    command: CreateProyectoCommand | UpdateProyectoCommand,
+    isUpdate: boolean
+  ): CreateProyectoCommand | UpdateProyectoCommand {
+    if (!isUpdate) {
+      return this.buildPostProyectoPayload(command as CreateProyectoCommand);
+    }
+
+    const payload = { ...command } as UpdateProyectoCommand;
+    payload.idFaseInversion = null;
+    payload.idTipoOferta = null;
     return payload;
   }
 
@@ -319,6 +672,24 @@ export class ProyectosService {
       return body.trim();
     }
     if (body && typeof body === 'object') {
+      const errors = (body as { errors?: Record<string, unknown> }).errors;
+      if (errors && typeof errors === 'object') {
+        const flattened = Object.entries(errors)
+          .flatMap(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              return messages
+                .map((message) => String(message || '').trim())
+                .filter(Boolean)
+                .map((message) => `${field}: ${message}`);
+            }
+            const single = String(messages || '').trim();
+            return single ? [`${field}: ${single}`] : [];
+          })
+          .filter(Boolean);
+        if (flattened.length) {
+          return flattened.join(' | ');
+        }
+      }
       const msg =
         (body as { message?: string }).message
         ?? (body as { title?: string }).title
@@ -332,6 +703,13 @@ export class ProyectosService {
 
   private parseProyectoForeignKeyError(text: string): string | null {
     const normalized = text.toLowerCase();
+    if (
+      normalized.includes('pk_proyecto')
+      || normalized.includes('cannot insert duplicate key')
+      || normalized.includes('duplicate key')
+    ) {
+      return 'Ya existe un proyecto con ese identificador en la base de datos. Si estaba creando uno nuevo, intente de nuevo sin editar un registro existente. Si estaba editando, use Guardar en modo edicion (no crear otro).';
+    }
     if (normalized.includes('fk_proyecto_catalogo_faseinversion')) {
       return 'Fase de inversion: debe seleccionar un valor valido del catalogo (no se acepta id 0). Si el listado esta vacio, solicite al administrador cargar el catalogo en la API.';
     }
@@ -343,8 +721,14 @@ export class ProyectosService {
       return `Referencia de catalogo invalida (${fkMatch[1]}). Verifique los valores seleccionados en el formulario.`;
     }
     if (normalized.includes('invalid column name')) {
-      if (normalized.includes('productomga') || normalized.includes('metapa')) {
-        return 'El servidor aun no tiene en base de datos los campos Producto MGA o Meta PA. Contacte al administrador para actualizar la BD.';
+      if (
+        normalized.includes('productoprincipalmga')
+        || normalized.includes('productomga')
+        || normalized.includes('cantidadmeta')
+        || normalized.includes('unidadmedidameta')
+        || normalized.includes('metapa')
+      ) {
+        return 'El servidor aun no tiene en base de datos los campos MGA (producto principal, cantidad meta o unidad de medida). Contacte al administrador para actualizar la BD.';
       }
       return 'El servidor aun no tiene en base de datos algunos campos del formulario (por ejemplo Sesion CD). Los datos de sesion se envian dentro de Alcance hasta que se actualice la BD.';
     }
@@ -356,30 +740,6 @@ export class ProyectosService {
       return text;
     }
     return `${text.slice(0, maxLength)}…`;
-  }
-
-  // Crea un proyecto nuevo y le asigna ID y fecha de creación.
-  addProyecto(proyecto: Omit<Proyecto, 'id' | 'fechaCreacion'>): void {
-    const currentProyectos = this.proyectos.value;
-    const nextId = currentProyectos.length ? Math.max(...currentProyectos.map(p => p.id)) + 1 : 1;
-
-    const newProyecto: Proyecto = this.sanitizeRecord({
-      id: nextId,
-      ...proyecto,
-      fechaCreacion: new Date()
-    });
-
-    this.proyectos.next([...currentProyectos, newProyecto]);
-    this.saveToStorage();
-  }
-
-  // Actualiza campos puntuales de un proyecto existente.
-  updateProyecto(id: number, proyecto: Partial<Omit<Proyecto, 'id' | 'fechaCreacion'>>): void {
-    const proyectos = this.proyectos.value.map(p =>
-      p.id === id ? { ...p, ...proyecto } : p
-    );
-    this.proyectos.next(proyectos);
-    this.saveToStorage();
   }
 
   // Devuelve los estados permitidos para los proyectos.
@@ -410,58 +770,5 @@ export class ProyectosService {
     return this.proyectos.value.reduce((sum, p) => sum + (p.numeroEmpleosIndirectos ?? 0), 0);
   }
 
-  private loadFromStorage(): void {
-    const raw = localStorage.getItem(this.storageKey);
-    if (!raw) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Proyecto[];
-      if (!Array.isArray(parsed)) {
-        this.proyectos.next([]);
-        return;
-      }
-
-      const hydrated = parsed.map((proyecto) => this.sanitizeRecord({
-        ...proyecto,
-        fechaInicio: new Date(proyecto.fechaInicio),
-        fechaFin: new Date(proyecto.fechaFin),
-        fechaCreacion: new Date(proyecto.fechaCreacion),
-        fechaViabilidad: proyecto.fechaViabilidad ? new Date(proyecto.fechaViabilidad) : undefined,
-        fechaReporte: proyecto.fechaReporte ? new Date(proyecto.fechaReporte) : undefined,
-        fechaFinalizacionCe: proyecto.fechaFinalizacionCe ? new Date(proyecto.fechaFinalizacionCe) : undefined
-      }));
-
-      this.proyectos.next(hydrated);
-      this.saveToStorage();
-    } catch {
-      this.proyectos.next([]);
-    }
-  }
-
-  private saveToStorage(): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.proyectos.value));
-  }
-
-  private sanitizeRecord<T extends Record<string, unknown>>(record: T): T {
-    const cleanedEntries = Object.entries(record).filter(([, value]) => {
-      if (value === null || value === undefined) {
-        return false;
-      }
-
-      if (typeof value === 'string') {
-        return value.trim().length > 0;
-      }
-
-      if (Array.isArray(value)) {
-        return value.length > 0;
-      }
-
-      return true;
-    });
-
-    return Object.fromEntries(cleanedEntries) as T;
-  }
-
 }
+

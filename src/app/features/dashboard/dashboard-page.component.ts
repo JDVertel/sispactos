@@ -280,7 +280,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   dashboardCards = [
     {
       icon: 'pin',
-      label: 'Pactos Territoriales',
+      label: 'Pactos territoriales',
       value: '16',
       type: 'cantidad',
       size: 'medium',
@@ -288,7 +288,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     },
     {
       icon: 'currency',
-      label: 'Valor Indicativo',
+      label: 'Valor indicativo',
       value: '$2.5B',
       type: 'valor',
       size: 'medium',
@@ -304,7 +304,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     },
     {
       icon: 'check-circle',
-      label: 'Proyectos en Ejecución/Terminados',
+      label: 'Proyectos en ejecución/terminados',
       value: '156',
       type: 'cantidad',
       size: 'wide',
@@ -312,7 +312,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     },
     {
       icon: 'progress',
-      label: 'Avance Comprometido/Indicativo',
+      label: 'Avance comprometido/indicativo',
       value: '68%',
       type: 'porcentaje',
       size: 'medium',
@@ -320,7 +320,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     },
     {
       icon: 'wallet-check',
-      label: 'Presupuesto Comprometido',
+      label: 'Presupuesto comprometido',
       value: '$1.7B',
       type: 'valor',
       size: 'medium',

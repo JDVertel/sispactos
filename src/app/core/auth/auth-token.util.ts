@@ -22,6 +22,10 @@ export interface JwtClaims {
   typ?: string;
   exp?: number;
   sub?: string;
+  role?: string;
+  rol?: string;
+  roles?: string[];
+  realm_access?: { roles?: string[] };
 }
 
 export function normalizeBearerToken(token: string): string {
@@ -57,6 +61,15 @@ export function isJwtExpired(token: string, skewSeconds = 30): boolean {
     return false;
   }
   return Date.now() >= (claims.exp - skewSeconds) * 1000;
+}
+
+/** True si el JWT expira dentro de `withinSeconds` (renovar solo cuando hace falta). */
+export function tokenExpiresWithin(token: string, withinSeconds = 120): boolean {
+  const claims = decodeJwtClaims(token);
+  if (!claims || typeof claims.exp !== 'number' || !Number.isFinite(claims.exp)) {
+    return false;
+  }
+  return Date.now() >= (claims.exp - withinSeconds) * 1000;
 }
 
 export function isValidSessionToken(token: string): boolean {
@@ -176,6 +189,61 @@ export function validateLoginSessionToken(token: string, username: string): {
   }
 
   return { valid: true };
+}
+
+/** Id de rol de sesion (`admin`, etc.) leido del JWT si existe. */
+export function extractSessionRoleIdFromToken(token: string): string | null {
+  const claims = decodeJwtClaims(token);
+  if (!claims) {
+    return null;
+  }
+
+  const candidates: string[] = [];
+  if (typeof claims.role === 'string') {
+    candidates.push(claims.role);
+  }
+  if (typeof claims.rol === 'string') {
+    candidates.push(claims.rol);
+  }
+  if (Array.isArray(claims.roles)) {
+    candidates.push(...claims.roles.map(String));
+  }
+  const realmRoles = claims.realm_access?.roles;
+  if (Array.isArray(realmRoles)) {
+    candidates.push(...realmRoles.map(String));
+  }
+
+  for (const raw of candidates) {
+    const normalized = raw.trim().toLowerCase();
+    if (
+      normalized === 'admin'
+      || normalized === 'administrador'
+      || normalized.includes('admin')
+    ) {
+      return 'admin';
+    }
+  }
+
+  return null;
+}
+
+export function isAdministratorRoleId(roleId: string | null | undefined): boolean {
+  if (!roleId?.trim()) {
+    return false;
+  }
+  const normalized = roleId.trim().toLowerCase();
+  return normalized === 'admin' || normalized === 'administrador' || normalized.includes('admin');
+}
+
+export function sessionRoleDisplayLabel(roleId: string | null | undefined): string {
+  if (!roleId?.trim()) {
+    return 'Invitado';
+  }
+  const normalized = roleId.trim().toLowerCase();
+  if (normalized === 'admin' || normalized === 'administrador') {
+    return 'Administrador';
+  }
+  return roleId.trim();
 }
 
 export function extractAccessToken(payload: unknown): string {

@@ -3,8 +3,8 @@
   <!-- Encabezado con indicadores y acceso rápido al formulario -->
   <header class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
-      <p class="text-uppercase small text-secondary mb-1">Administracion</p>
-      <h1 class="h3 mb-1">Gestion de Proyectos</h1>
+      <p class="text-uppercase small text-secondary mb-1">Administración</p>
+      <h1 class="h3 mb-1">Gestión de proyectos</h1>
       <p class="text-secondary mb-0">Crea, administra y visualiza los proyectos asociados a los pactos territoriales.</p>
     </div>
     <div class="d-flex flex-wrap align-items-center gap-2">
@@ -15,7 +15,7 @@
       <span class="badge text-bg-light border px-3 py-2">Indirectos: {{ getTotalEmpleosIndirectos() }}</span>
       <div>
         <button type="button" class="btn btn-primary" (click)="abrirModalNuevoProyecto()">
-          Nuevo Proyecto
+          Nuevo proyecto
         </button>
       </div>
     </div>
@@ -27,15 +27,22 @@
       <h2 class="h6 mb-0">Proyectos registrados</h2>
     </div>
     <div class="card-body p-0">
-      <div *ngIf="(proyectos$ | async)?.length === 0" class="alert alert-light border text-center m-2 mb-0">
-        No hay proyectos registrados. Usa <strong>Nuevo Proyecto</strong> para crear el primero.
+      <div *ngIf="isLoadingProyectosTabla" class="alert alert-light border text-center m-2 mb-0" role="status">
+        Cargando proyectos desde la API…
       </div>
 
-      <div class="table-responsive" *ngIf="(proyectos$ | async)?.length">
+      <div
+        *ngIf="!isLoadingProyectosTabla && (proyectos$ | async)?.length === 0"
+        class="alert alert-light border text-center m-2 mb-0"
+      >
+        No hay proyectos en la base de datos. Usa <strong>Nuevo proyecto</strong> para crear el primero.
+      </div>
+
+      <div class="table-responsive" *ngIf="!isLoadingProyectosTabla && (proyectos$ | async)?.length">
         <table class="table table-sm table-hover align-middle mb-0 proyecto-table-compact">
           <thead class="table-light">
             <tr>
-              <th>Codigo</th>
+              <th>Código</th>
               <th>Nombre</th>
               <th>BPIN</th>
               <th>Pacto</th>
@@ -48,7 +55,15 @@
           <tbody>
             <tr *ngFor="let proyecto of proyectos$ | async">
               <td class="text-nowrap">{{ proyecto.codigo }}</td>
-              <td class="proyecto-nombre-cell" [title]="proyecto.nombre">{{ proyecto.nombre }}</td>
+              <td class="proyecto-nombre-cell" [title]="proyecto.nombre">
+                <div>{{ proyecto.nombre }}</div>
+                <div class="small text-secondary" *ngIf="proyecto.latitud != null || proyecto.longitud != null">
+                  Coord: {{ formatCoordenadaResumen(proyecto.latitud) }}, {{ formatCoordenadaResumen(proyecto.longitud) }}
+                </div>
+                <div class="small text-secondary" *ngIf="getProyectoImagenesCount(proyecto) > 0">
+                  Imágenes: {{ getProyectoImagenesCount(proyecto) }}
+                </div>
+              </td>
               <td class="text-nowrap">{{ proyecto.bpin || '—' }}</td>
               <td class="proyecto-pacto-cell" [title]="proyecto.pactoAsociado || ''">{{ proyecto.pactoAsociado || '—' }}</td>
               <td>{{ proyecto.sector || '—' }}</td>
@@ -57,7 +72,7 @@
               <td class="text-end text-nowrap">
                 <a
                   class="btn btn-outline-success btn-sm me-1"
-                  [routerLink]="['/dashboard/gestion-proyectos', proyecto.id, 'financiera']"
+                  [routerLink]="['/dashboard/gestion-proyectos', proyecto.apiId ?? proyecto.id, 'financiera']"
                   aria-label="Modulo financiero del proyecto"
                 >
                   Financiera
@@ -86,7 +101,7 @@
         <div class="modal-header">
           <h2 class="modal-title h5 mb-0" id="nuevoProyectoModalLabel">
             <i class="bi bi-briefcase"></i>
-            {{ modoFormulario === 'editar' ? 'Editar Proyecto' : 'Nuevo Proyecto' }}
+            {{ modoFormulario === 'editar' ? 'Editar proyecto' : 'Nuevo proyecto' }}
           </h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar" (click)="resetForm()"></button>
         </div>
@@ -193,12 +208,12 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Acta CD Numero', campo: 'actaCdNumero' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Acta CD número', campo: 'actaCdNumero' }"></ng-container>
                 <input class="form-control" type="text" name="proyectoActaCdNumero" [(ngModel)]="newProyecto.actaCdNumero" />
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Acta CD Fecha', campo: 'actaCdFecha' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Acta CD fecha', campo: 'actaCdFecha' }"></ng-container>
                 <input
                   class="form-control"
                   type="date"
@@ -213,7 +228,7 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Area de influencia', campo: 'areaInfluencia' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Área de influencia', campo: 'areaInfluencia' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoAreaInfluencia"
@@ -250,7 +265,7 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Condicion de proyecto', campo: 'condicion' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Condición de proyecto', campo: 'condicion' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoCondicion"
@@ -292,7 +307,7 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Linea tematica', campo: 'lineaTematica' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Línea temática', campo: 'lineaTematica' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoLineaTematica"
@@ -310,12 +325,12 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Numero empleos directos', campo: 'empleosDirectos' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Número empleos directos', campo: 'empleosDirectos' }"></ng-container>
                 <input class="form-control" type="number" name="proyectoEmpleosDirectos" [(ngModel)]="newProyecto.numeroEmpleosDirectos" min="0" />
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Numero empleos indirectos', campo: 'empleosIndirectos' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Número empleos indirectos', campo: 'empleosIndirectos' }"></ng-container>
                 <input class="form-control" type="number" name="proyectoEmpleosIndirectos" [(ngModel)]="newProyecto.numeroEmpleosIndirectos" min="0" />
               </label>
 
@@ -357,7 +372,7 @@
               </label>
 
               <label *ngIf="newProyecto.frpt">
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Numero contrato especifico', campo: 'numeroContratoEspecifico' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Número contrato específico', campo: 'numeroContratoEspecifico' }"></ng-container>
                 <input
                   class="form-control"
                   type="text"
@@ -375,7 +390,7 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Aporte nacion', campo: 'aporteNacion' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Aporte nación', campo: 'aporteNacion' }"></ng-container>
                 <select
                   class="form-select"
                   name="proyectoAporteNacion"
@@ -409,8 +424,27 @@
               </label>
 
               <label class="checkbox-field">
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Inversion climatica', campo: 'inversionClimatica' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Inversión climática', campo: 'inversionClimatica' }"></ng-container>
                 <input class="form-check-input" type="checkbox" name="proyectoInversionClimatica" [(ngModel)]="newProyecto.inversionClimatica" />
+              </label>
+
+              <label>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Sesión CD inclusión PEI (#)', campo: 'sesionCdInclusionPei' }"></ng-container>
+                <input
+                  class="form-control"
+                  type="number"
+                  name="proyectoSesionCdInclusionPei"
+                  min="1"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="Opcional"
+                  [ngModel]="newProyecto.sesionCDInclusion"
+                  (ngModelChange)="onSesionCdInclusionPeiChange($event)"
+                  [ngClass]="claseValidacionCampo('sesionCd')"
+                  [attr.title]="mostrarErrorCampo('sesionCd') ? mensajeErrorCampo('sesionCd') : null"
+                  (blur)="marcarCampoTocado('sesionCd')"
+                />
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'sesionCd' }"></ng-container>
               </label>
 
               <label class="full-width">
@@ -434,97 +468,104 @@
                 <div class="mga-meta-secuencia__campos">
                   <label class="mga-meta-paso">
                     <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Producto principal MGA', campo: 'productoMga' }"></ng-container>
-                    <input class="form-control" type="text" name="proyectoProductoMga" [(ngModel)]="newProyecto.productoPrincipalMga" />
-                  </label>
-
-                  <label class="mga-meta-paso">
-                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta de producto principal', campo: 'metaProductoPrincipal' }"></ng-container>
-                    <span class="mga-meta-paso__detalle">(Producto principal MGA)</span>
                     <input
                       class="form-control"
                       type="text"
-                      name="proyectoMetaProductoPrincipal"
-                      [(ngModel)]="newProyecto.metaProductoPrincipal"
+                      name="proyectoProductoMga"
+                      [(ngModel)]="newProyecto.productoPrincipalMga"
                     />
                   </label>
 
                   <label class="mga-meta-paso">
-                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta PA', campo: 'metaPa' }"></ng-container>
-                    <span class="mga-meta-paso__detalle">Medido a través de (Meta PA)</span>
-                    <input class="form-control" type="text" name="proyectoMetaPa" [(ngModel)]="newProyecto.metaPa" />
-                  </label>
-
-                  <label class="mga-meta-paso">
-                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Cantidad Meta PA', campo: 'cantidadMetaPa' }"></ng-container>
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta de producto principal', campo: 'cantidadMeta' }"></ng-container>
                     <input
                       class="form-control"
                       type="number"
-                      name="proyectoCantidadMetaPa"
+                      name="proyectoCantidadMeta"
                       min="0"
                       step="1"
-                      [(ngModel)]="newProyecto.cantidadMetaPa"
-                      [ngClass]="claseValidacionCampo('cantidadMetaPa')"
-                      [attr.title]="mostrarErrorCampo('cantidadMetaPa') ? mensajeErrorCampo('cantidadMetaPa') : null"
-                      (ngModelChange)="onCampoValidacionChange('cantidadMetaPa')"
-                      (blur)="marcarCampoTocado('cantidadMetaPa')"
+                      inputmode="numeric"
+                      [(ngModel)]="newProyecto.cantidadMeta"
+                      [ngClass]="claseValidacionCampo('cantidadMeta')"
+                      [attr.title]="mostrarErrorCampo('cantidadMeta') ? mensajeErrorCampo('cantidadMeta') : null"
+                      (ngModelChange)="onCampoValidacionChange('cantidadMeta')"
+                      (blur)="marcarCampoTocado('cantidadMeta')"
                     />
-                    <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'cantidadMetaPa' }"></ng-container>
+                    <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'cantidadMeta' }"></ng-container>
+                  </label>
+
+                  <label class="mga-meta-paso">
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Medido a través de', campo: 'unidadMedidaMeta' }"></ng-container>
+                    <input
+                      class="form-control"
+                      type="text"
+                      name="proyectoUnidadMedidaMeta"
+                      [(ngModel)]="newProyecto.unidadMedidaMeta"
+                    />
                   </label>
                 </div>
               </div>
 
-              <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Sesion CD inclusion PEI (#)', campo: 'sesionCdInclusionPei' }"></ng-container>
-                <input
-                  class="form-control"
-                  type="number"
-                  name="proyectoSesionCdInclusionPei"
-                  min="1"
-                  step="1"
-                  inputmode="numeric"
-                  placeholder="Opcional"
-                  [ngModel]="newProyecto.idMecanismoInclusion"
-                  (ngModelChange)="onSesionCdInclusionPeiChange($event)"
-                  [ngClass]="claseValidacionCampo('sesionCd')"
-                  [attr.title]="mostrarErrorCampo('sesionCd') ? mensajeErrorCampo('sesionCd') : null"
-                  (blur)="marcarCampoTocado('sesionCd')"
-                />
-                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'sesionCd' }"></ng-container>
-              </label>
+              <div class="full-width ubicacion-coordenadas-block form-field-block">
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Ubicación geográfica' }"></ng-container>
+                <div class="ubicacion-coordenadas-inputs">
+                  <label>
+                    <span class="proyecto-campo-label">Latitud</span>
+                    <input
+                      class="form-control"
+                      type="number"
+                      name="proyectoLatitud"
+                      step="any"
+                      min="-90"
+                      max="90"
+                      placeholder="Ej: 4.6097"
+                      [(ngModel)]="newProyecto.latitud"
+                    />
+                  </label>
+                  <label>
+                    <span class="proyecto-campo-label">Longitud</span>
+                    <input
+                      class="form-control"
+                      type="number"
+                      name="proyectoLongitud"
+                      step="any"
+                      min="-180"
+                      max="180"
+                      placeholder="Ej: -74.0817"
+                      [(ngModel)]="newProyecto.longitud"
+                    />
+                  </label>
+                </div>
+                <app-ubicacion-map
+                  [latitud]="newProyecto.latitud"
+                  [longitud]="newProyecto.longitud"
+                ></app-ubicacion-map>
+              </div>
 
               <div class="full-width multimedia-field form-field-block">
                 <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Multimedia (opcional)' }"></ng-container>
                 <span class="small text-secondary fw-normal">
-                  No es obligatorio agregar imagenes ni videos para guardar el proyecto.
                   Imagenes: max. 300 KB (se comprimen automaticamente en el navegador, salvo GIF). Videos: solo por URL.
                 </span>
 
-                <label class="multimedia-sub-label" for="proyectoMultimediaImagenes">Imagenes</label>
-                <input
-                  id="proyectoMultimediaImagenes"
-                  type="file"
-                  class="form-control"
-                  name="proyectoMultimediaImagenes"
-                  accept="image/*"
-                  multiple
-                  [disabled]="isProcessingMultimedia"
-                  (change)="onMultimediaChange($event)"
-                />
-                <span *ngIf="isProcessingMultimedia" class="small text-secondary">Comprimiendo imagenes...</span>
-
-                <span class="small fw-semibold text-secondary mt-2">Video (URL)</span>
-                <div class="multimedia-url-row">
-                  <input
-                    class="form-control"
-                    type="url"
-                    name="proyectoMultimediaVideoUrl"
-                    placeholder="https://..."
-                    [(ngModel)]="multimediaVideoUrlDraft"
-                  />
-                  <button type="button" class="btn btn-outline-primary btn-sm" (click)="agregarMultimediaVideoUrl()">
-                    Agregar URL
+                <div class="multimedia-actions-row">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    [disabled]="isProcessingMultimedia"
+                    (click)="abrirModalMultimediaImagen()"
+                  >
+                    Agregar imagen
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    (click)="abrirModalMultimediaVideo()"
+                  >
+                    Agregar video (URL)
                   </button>
                 </div>
+                <span *ngIf="isProcessingMultimedia" class="small text-secondary">Comprimiendo imagenes...</span>
 
                 <div *ngIf="multimediaSeleccionError" class="alert alert-warning py-2 px-3 mb-0 small" role="status">
                   {{ multimediaSeleccionError }}
@@ -533,6 +574,7 @@
                 <div *ngIf="multimediaAdjuntos.length" class="multimedia-preview-list">
                   <div *ngFor="let m of multimediaAdjuntos; let i = index" class="multimedia-preview-item">
                     <button
+                      *ngIf="m.url"
                       type="button"
                       class="multimedia-img-thumb-btn"
                       (click)="abrirVistaImagenMultimedia(m)"
@@ -541,11 +583,16 @@
                     >
                       <img [src]="m.url" [alt]="m.nombre" />
                     </button>
+                    <div *ngIf="!m.url" class="multimedia-img-thumb-placeholder" aria-hidden="true">
+                      <span class="small text-secondary">Sin vista previa</span>
+                    </div>
                     <span class="multimedia-nombre">
                       {{ m.nombre }}
                       <span *ngIf="m.comprimida" class="badge text-bg-info ms-1">Comprimida</span>
                     </span>
-                    <span class="multimedia-img-hint small text-secondary">Clic en la miniatura para ver la imagen</span>
+                    <span *ngIf="m.fecha" class="multimedia-meta-line small text-secondary">{{ m.fecha }}</span>
+                    <span *ngIf="m.detalle" class="multimedia-meta-line small">{{ m.detalle }}</span>
+                    <span *ngIf="m.url" class="multimedia-img-hint small text-secondary">Clic en la miniatura para ver la imagen</span>
                     <button type="button" class="btn btn-outline-danger btn-sm btn-remove-mm" (click)="removeMultimediaAdjunto(i)" aria-label="Quitar imagen">
                       Quitar
                     </button>
@@ -576,6 +623,8 @@
                       </div>
                     </a>
                     <span class="multimedia-nombre">{{ v.etiqueta }}</span>
+                    <span *ngIf="v.fecha" class="multimedia-meta-line small text-secondary">{{ v.fecha }}</span>
+                    <span *ngIf="v.detalle" class="multimedia-meta-line small">{{ v.detalle }}</span>
                     <span class="multimedia-video-hint small text-secondary">Clic en la miniatura abre el video</span>
                     <button
                       type="button"
@@ -619,7 +668,7 @@
               {{
                 isSavingProyecto
                   ? 'Guardando...'
-                  : (modoFormulario === 'editar' ? 'Guardar cambios' : 'Agregar Proyecto')
+                  : (modoFormulario === 'editar' ? 'Guardar cambios' : 'Agregar proyecto')
               }}
             </button>
           </div>
@@ -657,7 +706,125 @@
         <span *ngIf="multimediaImagenPreview.comprimida" class="badge text-bg-info ms-1">Comprimida</span>
         <span class="text-secondary"> · {{ multimediaImagenPreview.tamano }}</span>
       </p>
+      <p *ngIf="multimediaImagenPreview.fecha" class="multimedia-img-preview-dialog__meta mb-0 small text-secondary">
+        Fecha: {{ multimediaImagenPreview.fecha }}
+      </p>
+      <p *ngIf="multimediaImagenPreview.detalle" class="multimedia-img-preview-dialog__meta mb-0 small">
+        {{ multimediaImagenPreview.detalle }}
+      </p>
     </section>
+  </div>
+
+  <!-- Modal: carga de multimedia con metadatos -->
+  <div
+    class="modal fade multimedia-carga-modal"
+    id="multimediaCargaModal"
+    tabindex="-1"
+    aria-labelledby="multimediaCargaModalLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h6 mb-0" id="multimediaCargaModalLabel">
+            {{ multimediaModalTipo === 'imagen' ? 'Agregar imagen' : 'Agregar video (URL)' }}
+          </h2>
+          <button
+            type="button"
+            class="btn-close"
+            aria-label="Cerrar"
+            [disabled]="isProcessingMultimedia"
+            (click)="cerrarModalMultimediaCarga()"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <p class="small text-secondary mb-3">
+            Complete la fecha y el detalle del registro antes de confirmar la carga.
+          </p>
+
+          <label class="d-block mb-3">
+            <span class="proyecto-campo-label">Fecha</span>
+            <input
+              class="form-control"
+              type="date"
+              name="multimediaModalFecha"
+              [(ngModel)]="multimediaModalFecha"
+              required
+            />
+          </label>
+
+          <label class="d-block mb-3">
+            <span class="proyecto-campo-label">Detalle</span>
+            <textarea
+              class="form-control"
+              name="multimediaModalDetalle"
+              rows="3"
+              placeholder="Descripción del contenido multimedia"
+              [(ngModel)]="multimediaModalDetalle"
+            ></textarea>
+          </label>
+
+          <ng-container *ngIf="multimediaModalTipo === 'imagen'">
+            <label class="d-block mb-2">
+              <span class="proyecto-campo-label">Archivo(s) de imagen</span>
+              <input
+                class="form-control"
+                type="file"
+                name="multimediaModalArchivos"
+                accept="image/*"
+                multiple
+                [disabled]="isProcessingMultimedia"
+                (change)="onMultimediaModalArchivoChange($event)"
+              />
+            </label>
+            <div *ngIf="multimediaModalPreviewUrls.length" class="multimedia-modal-preview-list">
+              <img
+                *ngFor="let src of multimediaModalPreviewUrls"
+                [src]="src"
+                alt="Vista previa"
+                class="multimedia-modal-preview-thumb"
+              />
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="multimediaModalTipo === 'video'">
+            <label class="d-block mb-0">
+              <span class="proyecto-campo-label">URL del video</span>
+              <input
+                class="form-control"
+                type="url"
+                name="multimediaModalUrlVideo"
+                placeholder="https://..."
+                [(ngModel)]="multimediaModalUrlVideo"
+              />
+            </label>
+          </ng-container>
+
+          <div *ngIf="multimediaModalError" class="alert alert-warning py-2 px-3 mt-3 mb-0 small" role="alert">
+            {{ multimediaModalError }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            [disabled]="isProcessingMultimedia"
+            (click)="cerrarModalMultimediaCarga()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="isProcessingMultimedia"
+            (click)="confirmarMultimediaModal()"
+          >
+            {{ isProcessingMultimedia ? 'Procesando...' : 'Agregar' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 

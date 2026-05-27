@@ -508,6 +508,28 @@ textarea {
   }
 }
 
+.pacto-field-feedback {
+  display: block !important;
+  width: 100%;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #dc3545 !important;
+}
+
+.territorial-selector.is-invalid {
+  border-color: #dc3545;
+  padding: 0.5rem;
+  border-radius: 0.15rem;
+}
+
+.territorial-selector.is-valid {
+  border-color: #198754;
+  padding: 0.5rem;
+  border-radius: 0.15rem;
+}
+
 /* Modal de errores por encima del formulario de pacto */
 .pacto-save-error-modal {
   z-index: 1065;

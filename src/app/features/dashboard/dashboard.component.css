@@ -23,6 +23,16 @@
   box-shadow: 0 6px 14px rgba(0, 162, 160, 0.25);
   max-width: 100%;
   overflow-x: hidden;
+  transition: box-shadow 0.25s ease, border-bottom-color 0.25s ease;
+}
+
+/* Sombreado amarillo cuando la sesion es rol administrador */
+.topbar.topbar--admin-session {
+  border-bottom-color: #e6b800;
+  box-shadow:
+    0 4px 10px rgba(255, 214, 0, 0.45),
+    0 8px 22px rgba(255, 193, 7, 0.55),
+    0 0 28px rgba(255, 235, 59, 0.35);
 }
 
 .topbar-brand {

@@ -1,0 +1,24 @@
+<div class="ubicacion-map">
+  <iframe
+    *ngIf="coordenadasValidas && mapEmbedUrl"
+    class="ubicacion-map__iframe"
+    [src]="mapEmbedUrl"
+    title="Ubicacion del proyecto en el mapa"
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+  ></iframe>
+
+  <p *ngIf="!coordenadasValidas" class="ubicacion-map__placeholder small text-secondary mb-0">
+    Ingrese latitud y longitud válidas para visualizar la ubicación en el mapa.
+  </p>
+
+  <a
+    *ngIf="coordenadasValidas"
+    class="ubicacion-map__link small"
+    [href]="openStreetMapLink"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    Abrir ubicacion en OpenStreetMap
+  </a>
+</div>

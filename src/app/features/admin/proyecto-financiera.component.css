@@ -148,3 +148,16 @@
   border-color: #ebebeb;
   font-size: var(--home-font-size);
 }
+
+.financiera-currency-input .input-group-text {
+  font-size: var(--home-font-size);
+  font-weight: 600;
+  color: #4d4d4d;
+  background: #fafafa;
+  border-color: #ebebeb;
+}
+
+.financiera-currency-input .form-control {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}

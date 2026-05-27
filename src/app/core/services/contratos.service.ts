@@ -12,11 +12,10 @@ interface ContratoExtended extends Contrato {
 export class ContratosService {
   private readonly storageKey = 'sispactos.contratos';
 
-  // Mantiene los contratos en memoria y emite cambios a la vista.
   private contratos = new BehaviorSubject<ContratoExtended[]>([]);
   public contratos$ = this.contratos.asObservable();
 
-  private tiposContrato = [
+  private readonly tiposContratoFallback = [
     'Obra Pública',
     'Consultoría',
     'Prestación de Servicios',
@@ -25,84 +24,53 @@ export class ContratosService {
     'Interventoría'
   ];
 
-  private proyectos = ['Proyecto A', 'Proyecto B', 'Proyecto C'];
-  private contratistas = ['Consorcio Alfa', 'Unión Temporal Beta', 'Empresa Gamma'];
-  private contratosPadre = ['N/A', 'CP-001', 'CP-002', 'CP-003'];
-  private contratantes = ['DNP', 'Ministerio de Transporte', 'Gobernación'];
-  private supervisores = ['Supervisor 1', 'Supervisor 2', 'Supervisor 3'];
-
   constructor() {
     this.loadFromStorage();
   }
 
-  // Devuelve la lista de contratos.
   getContratos(): Observable<ContratoExtended[]> {
     return this.contratos$;
   }
 
-  // Agrega un contrato nuevo con ID y fecha de creación.
+  getContratosSnapshot(): ContratoExtended[] {
+    return this.contratos.value;
+  }
+
   addContrato(contrato: Omit<ContratoExtended, 'id' | 'fechaCreacion'>): void {
     const currentContratos = this.contratos.value;
-    const nextId = currentContratos.length ? Math.max(...currentContratos.map(c => c.id)) + 1 : 1;
+    const nextId = currentContratos.length ? Math.max(...currentContratos.map((c) => c.id)) + 1 : 1;
 
-    const newContrato: ContratoExtended = this.sanitizeRecord({
+    const newContrato: ContratoExtended = {
       id: nextId,
       ...contrato,
       fechaCreacion: new Date()
-    });
+    };
 
     this.contratos.next([...currentContratos, newContrato]);
     this.saveToStorage();
   }
 
-  // Elimina un contrato según su ID.
   removeContrato(id: number): void {
-    this.contratos.next(this.contratos.value.filter(c => c.id !== id));
+    this.contratos.next(this.contratos.value.filter((c) => c.id !== id));
     this.saveToStorage();
   }
 
-  // Actualiza datos puntuales de un contrato.
   updateContrato(id: number, contrato: Partial<Omit<ContratoExtended, 'id' | 'fechaCreacion'>>): void {
-    const contratos = this.contratos.value.map(c =>
-      c.id === id ? { ...c, ...contrato } : c
-    );
+    const contratos = this.contratos.value.map((c) => (c.id === id ? { ...c, ...contrato } : c));
     this.contratos.next(contratos);
     this.saveToStorage();
   }
 
-  // Devuelve el catálogo de tipos de contrato.
-  getTiposContrato(): string[] {
-    return this.tiposContrato;
+  getTiposContratoFallback(): string[] {
+    return [...this.tiposContratoFallback];
   }
 
-  getProyectos(): string[] {
-    return this.proyectos;
-  }
-
-  getContratistas(): string[] {
-    return this.contratistas;
-  }
-
-  getContratosPadre(): string[] {
-    return this.contratosPadre;
-  }
-
-  getContratantes(): string[] {
-    return this.contratantes;
-  }
-
-  getSupervisores(): string[] {
-    return this.supervisores;
-  }
-
-  // Calcula la suma total del valor inicial de todos los contratos.
   getTotalValorContratos(): number {
-    return this.contratos.value.reduce((sum, c) => sum + c.valorInicial, 0);
+    return this.contratos.value.reduce((sum, c) => sum + (Number(c.valorInicial) || 0), 0);
   }
 
-  // Cuenta cuántos contratos tienen enlace SECOP diligenciado.
   getContratosConSecop(): number {
-    return this.contratos.value.filter(c => c.urlSecop.trim().length > 0).length;
+    return this.contratos.value.filter((c) => (c.urlSecop ?? '').trim().length > 0).length;
   }
 
   private loadFromStorage(): void {
@@ -112,18 +80,13 @@ export class ContratosService {
     }
 
     try {
-      const parsed = JSON.parse(raw) as ContratoExtended[];
+      const parsed = JSON.parse(raw) as unknown[];
       if (!Array.isArray(parsed)) {
         this.contratos.next([]);
         return;
       }
 
-      const hydrated = parsed.map((contrato) => this.sanitizeRecord({
-        ...contrato,
-        fechaInicio: new Date(contrato.fechaInicio),
-        fechaFin: new Date(contrato.fechaFin),
-        fechaCreacion: new Date(contrato.fechaCreacion)
-      }));
+      const hydrated = parsed.map((item) => this.migrateRecord(item as Record<string, unknown>));
       this.contratos.next(hydrated);
       this.saveToStorage();
     } catch {
@@ -135,23 +98,68 @@ export class ContratosService {
     localStorage.setItem(this.storageKey, JSON.stringify(this.contratos.value));
   }
 
-  private sanitizeRecord<T extends Record<string, unknown>>(record: T): T {
-    const cleanedEntries = Object.entries(record).filter(([, value]) => {
-      if (value === null || value === undefined) {
-        return false;
-      }
+  private migrateRecord(raw: Record<string, unknown>): ContratoExtended {
+    const fechaCreacion = this.toDate(raw['fechaCreacion']) ?? new Date();
+    const legacyFin = raw['fechaFin'];
+    const fechaTerminacionInicial =
+      this.toDateString(raw['fechaTerminacionInicial']) ??
+      this.toDateString(legacyFin) ??
+      '';
 
-      if (typeof value === 'string') {
-        return value.trim().length > 0;
-      }
+    return {
+      id: Number(raw['id']) || 0,
+      idPactoTerritorial:
+        this.readOptionalNumber(raw['idPactoTerritorial']) ?? this.readOptionalNumber(raw['idPacto']),
+      pacto: String(raw['pacto'] ?? ''),
+      idProyecto: this.readOptionalNumber(raw['idProyecto']),
+      proyecto: String(raw['proyecto'] ?? ''),
+      idTipoContrato: this.readOptionalNumber(raw['idTipoContrato']),
+      tipoContrato: String(raw['tipoContrato'] ?? ''),
+      contratista: String(raw['contratista'] ?? ''),
+      numeroContrato: String(raw['numeroContrato'] ?? ''),
+      fechaSuscripcion:
+        this.toDateString(raw['fechaSuscripcion']) ?? this.toDateString(raw['fechaCreacion']) ?? '',
+      fechaInicio: this.toDateString(raw['fechaInicio']) ?? '',
+      fechaTerminacionInicial,
+      idEstado: this.readOptionalNumber(raw['idEstado']),
+      estado: String(raw['estado'] ?? ''),
+      idCondicion: this.readOptionalNumber(raw['idCondicion']),
+      condicion: String(raw['condicion'] ?? ''),
+      valorInicial: Number(raw['valorInicial']) || 0,
+      numeroDesembolsos: Number(raw['numeroDesembolsos']) || 0,
+      contratoPadre: String(raw['contratoPadre'] ?? '') || undefined,
+      contratante: String(raw['contratante'] ?? ''),
+      interventor: String(raw['interventor'] ?? raw['supervisor'] ?? ''),
+      objeto: String(raw['objeto'] ?? ''),
+      urlSecop: String(raw['urlSecop'] ?? '') || undefined,
+      fechaCreacion
+    };
+  }
 
-      if (Array.isArray(value)) {
-        return value.length > 0;
-      }
+  private readOptionalNumber(value: unknown): number | null {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
 
-      return true;
-    });
+  private toDate(value: unknown): Date | null {
+    if (!value) {
+      return null;
+    }
+    const d = new Date(String(value));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
 
-    return Object.fromEntries(cleanedEntries) as T;
+  private toDateString(value: unknown): string | null {
+    if (!value) {
+      return null;
+    }
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      return value.slice(0, 10);
+    }
+    const d = this.toDate(value);
+    if (!d) {
+      return null;
+    }
+    return d.toISOString().slice(0, 10);
   }
 }

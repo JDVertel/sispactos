@@ -1,14 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { AuthSessionStore } from '../../core/store/auth-session.store';
 import { AuthPromptService } from '../../core/services/auth-prompt.service';
 import { SidebarComponent, type MenuItem } from '../../shared/components/sidebar/sidebar.component';
 import { FooterComponent } from '../../shared/components/footer/footer.component';
 import { LoginComponent } from '../auth/login.component';
 import { TextScaleControlComponent } from '../../shared/components/text-scale-control/text-scale-control.component';
 import { DASHBOARD_PATHS_REQUIRING_SESSION } from '../../core/auth/route-access.policy';
+import { formatUiLabel } from '../../shared/utils/ui-label.util';
 
 const PROTECTED_ROUTES = DASHBOARD_PATHS_REQUIRING_SESSION;
 
@@ -18,13 +20,13 @@ const RESTRICTED_MENU_SUBMENUS = new Set(['administracion', 'configuracion']);
 const MENU_ITEMS: MenuItem[] = [
   // Menú principal que alimenta la navegación del panel.
   { type: 'item', label: 'Home', route: 'home', icon: 'home' },
-  { type: 'item', label: 'Pactos Territoriales', route: 'pactos-territoriales', icon: 'pin' },
+  { type: 'item', label: 'Pactos territoriales', route: 'pactos-territoriales', icon: 'pin' },
   {
     type: 'submenu',
     label: 'proyectos',
     icon: 'folder',
     children: [
-      { label: 'Proyectos Nación Territorio', route: 'proyectos-nacion-territorio' },
+      { label: 'Proyectos nación territorio', route: 'proyectos-nacion-territorio' },
       { label: 'Proyectos FRPT', route: 'proyectos-frpt' }
     ]
   },
@@ -58,7 +60,7 @@ const MENU_ITEMS: MenuItem[] = [
   { type: 'item', label: 'Tablero de mando', route: 'tablero-mando', icon: 'gauge' },
   { type: 'item', label: 'Acerca de', route: 'acerca-de', icon: 'info' },
   { type: 'item', label: 'Ayudas', route: 'ayudas', icon: 'help' },
-  { type: 'separator', label: 'Herramientas ' },
+  { type: 'separator', label: 'Herramientas' },
   {
     type: 'submenu',
     label: 'administracion',
@@ -80,8 +82,8 @@ const MENU_ITEMS: MenuItem[] = [
   },
   { type: 'separator', label: 'Sesion' },
   // Agrupado bajo “Sesión” para modo invitado.
-  { type: 'item', label: 'Iniciar sesion', route: 'home', icon: 'user', action: 'open-login-modal' },
-  { type: 'item', label: 'Cerrar sesion', route: 'home', icon: 'logout', action: 'logout' },
+  { type: 'item', label: 'Iniciar sesión', route: 'home', icon: 'user', action: 'open-login-modal' },
+  { type: 'item', label: 'Cerrar sesión', route: 'home', icon: 'logout', action: 'logout' },
   { type: 'item', label: 'Salir', route: 'home', icon: 'logout', action: 'logout' }
 ];
 
@@ -99,9 +101,10 @@ const MENU_ITEMS: MenuItem[] = [
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements OnDestroy {
+export class DashboardComponent implements OnInit, OnDestroy {
   menuItems: MenuItem[] = [];
   private authPromptSub?: Subscription;
+  private sessionSub?: Subscription;
   // Controla si el menú lateral está abierto en pantallas pequeñas.
   isSidebarOpen = false;
   // Guarda qué submenú está desplegado actualmente.
@@ -113,6 +116,7 @@ export class DashboardComponent implements OnDestroy {
   constructor(
     private readonly authService: AuthService,
     private readonly authPromptService: AuthPromptService,
+    private readonly authSessionStore: AuthSessionStore,
     private readonly router: Router
   ) {
     this.refreshMenuItems();
@@ -121,18 +125,22 @@ export class DashboardComponent implements OnDestroy {
     });
   }
 
+  ngOnInit(): void {
+    this.sessionSub = this.authSessionStore.session$.subscribe(() => {
+      this.refreshMenuItems();
+    });
+    if (this.authService.hasValidUserSession()) {
+      this.authService.ensureSessionKeepalive();
+    }
+  }
+
   ngOnDestroy(): void {
     this.authPromptSub?.unsubscribe();
+    this.sessionSub?.unsubscribe();
   }
 
   private formatMenuLabel(label: string): string {
-    return label
-      .replace(/[-_]+/g, ' ')
-      .trim()
-      .replace(/\s+/g, ' ')
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
+    return formatUiLabel(label);
   }
 
   // Nombre de usuario que aparece en la barra superior.
@@ -146,17 +154,15 @@ export class DashboardComponent implements OnDestroy {
 
   // Texto de rol o tipo de sesión del usuario actual.
   get sessionUserRole(): string {
-    const mode = this.authService.getCurrentUser()?.mode;
-
-    if (mode === 'guest') {
+    if (!this.hasAuthenticatedSession) {
       return 'Invitado';
     }
+    return this.authService.getSessionRoleLabel();
+  }
 
-    if (mode === 'local') {
-      return 'Administrador';
-    }
-
-    return 'Invitado';
+  /** Sesión con rol administrador (sombreado amarillo en navbar). */
+  get isAdministratorSession(): boolean {
+    return this.authService.isAdministratorSession();
   }
 
   // Abre o cierra el menú lateral.

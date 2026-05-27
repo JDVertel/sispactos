@@ -8,11 +8,9 @@ export interface Proyecto {
   idCondicionProyecto?: number;
   idSectorCatalogo?: number;
   idAportanteNacion?: number;
-  idMecanismoInclusion?: number;
+  sesionCDInclusion?: number;
   idSectorAdministracionNacional?: number;
   idEntidadProyecto?: string;
-  metaPaTexto?: string;
-  metaProductoPrincipal?: string;
   inversionClimatica?: boolean;
   /** Fecha plazo estimado (yyyy-MM-dd) para reabrir el formulario. */
   plazoEstimadoEjecucion?: string;
@@ -47,8 +45,31 @@ export interface Proyecto {
   avance: number;
   fechaCreacion: Date;
   productoPrincipalMga?: string;
-  /** Cantidad asociada a la meta PA (entero no negativo). */
-  cantidadMetaPa?: number;
+  /** Meta de producto principal (entero no negativo). */
+  cantidadMeta?: number;
+  /** Medido a traves de (unidad de medida). */
+  unidadMedidaMeta?: string;
+  /** Coordenada geografica del proyecto (grados decimales). */
+  latitud?: number;
+  longitud?: number;
+  /** Imagenes devueltas por la API del proyecto. */
+  imagenes?: ProyectoImagenRegistrada[];
   multimediaNombres?: string[];
   multimediaVideoUrls?: string[];
+  /** Metadatos por archivo de imagen o URL de video. */
+  multimediaMetadatos?: ProyectoMultimediaMetadato[];
+}
+
+export interface ProyectoMultimediaMetadato {
+  tipo: 'imagen' | 'video';
+  /** Nombre de archivo (imagen) o URL (video). */
+  referencia: string;
+  fecha: string;
+  detalle: string;
+}
+
+export interface ProyectoImagenRegistrada {
+  descripcionImagen: string;
+  fechaImagen: string;
+  archivoImagen: string | null;
 }

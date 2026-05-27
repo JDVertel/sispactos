@@ -1,6 +1,5 @@
 /**
- * TEMPORAL: permite guardar proyectos en localStorage con validacion minima
- * mientras se completa el desarrollo (API, sesion, campos del formulario).
- * Poner en false antes de produccion.
+ * Guardado de proyectos solo en API (base de datos).
+ * Mantener en false en produccion.
  */
-export const PROYECTO_DEV_LOCAL_SAVE = true;
+export const PROYECTO_DEV_LOCAL_SAVE = false;

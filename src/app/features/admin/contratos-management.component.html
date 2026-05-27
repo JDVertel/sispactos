@@ -1,9 +1,8 @@
 <!-- Pantalla para administrar contratos -->
 <section class="container-fluid px-0">
-  <!-- Encabezado y botón para crear contrato -->
   <div class="top-bar d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
-      <h1 class="h3 mb-1">Gestion de Contratos</h1>
+      <h1 class="h3 mb-1">Gestión de contratos</h1>
       <p class="text-secondary mb-0">Crea, administra y visualiza los contratos asociados a los proyectos del sistema.</p>
     </div>
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoContratoModal">
@@ -11,12 +10,11 @@
     </button>
   </div>
 
-  <!-- Resumen rápido de indicadores -->
   <div class="row g-2 mb-3">
     <div class="col-12 col-md-4">
       <div class="badge text-bg-light border w-100 text-start p-3">
         <div class="small text-secondary">Contratos activos</div>
-        <div class="h5 mb-0">{{ (contratos$ | async)?.length ?? 0 }}</div>
+        <div class="h5 mb-0">{{ contratos.length }}</div>
       </div>
     </div>
     <div class="col-12 col-md-4">
@@ -33,37 +31,40 @@
     </div>
   </div>
 
-  <!-- Lista de contratos registrados -->
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-body-tertiary py-3">
-      <h2 class="h5 mb-0">Contratos Registrados</h2>
+      <h2 class="h5 mb-0">Contratos registrados</h2>
     </div>
     <div class="card-body p-2 p-md-3">
-      <div class="alert alert-light border text-center mb-3" *ngIf="(contratos$ | async)?.length === 0">
-        Aun no hay contratos registrados. Usa el boton para crear el primero.
+      <div class="alert alert-light border text-center mb-3" *ngIf="contratos.length === 0">
+        Aún no hay contratos registrados. Usa el botón para crear el primero.
       </div>
 
-      <article *ngFor="let contrato of contratos$ | async" class="card mb-3 border">
+      <article *ngFor="let contrato of contratos" class="card mb-3 border">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
             <div>
               <h3 class="h5 mb-1">{{ contrato.proyecto }}</h3>
-              <span class="badge text-bg-secondary">{{ contrato.tipoContrato }}</span>
+              <span class="badge text-bg-secondary me-1">{{ contrato.tipoContrato }}</span>
+              <span class="badge text-bg-light border">{{ contrato.numeroContrato }}</span>
             </div>
             <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteContrato(contrato.id)">Eliminar</button>
           </div>
 
-          <p class="mb-3"><span class="small text-uppercase text-secondary fw-semibold">Objeto:</span> {{ contrato.objeto }}</p>
+          <p class="mb-3">
+            <span class="small text-uppercase text-secondary fw-semibold">Objeto:</span> {{ contrato.objeto }}
+          </p>
 
           <div class="row g-3">
             <div class="col-12 col-md-6"><div class="small text-secondary">Pacto</div><strong>{{ contrato.pacto }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Contrato padre</div><strong>{{ contrato.contratoPadre }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Estado / Condición</div><strong>{{ contrato.estado }} · {{ contrato.condicion }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Contratista</div><strong>{{ contrato.contratista }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Contratante</div><strong>{{ contrato.contratante }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Contratante / Interventor</div><strong>{{ contrato.contratante }} · {{ contrato.interventor }}</strong></div>
             <div class="col-12 col-md-6"><div class="small text-secondary">Valor inicial</div><strong>{{ formatCurrency(contrato.valorInicial) }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Supervisor</div><strong>{{ contrato.supervisor }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Vigencia</div><strong>{{ formatDate(contrato.fechaInicio) }} - {{ formatDate(contrato.fechaFin) }}</strong></div>
-            <div class="col-12"><div class="small text-secondary">URL SECOP</div><strong>{{ contrato.urlSecop }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Desembolsos</div><strong>{{ contrato.numeroDesembolsos }}</strong></div>
+            <div class="col-12 col-md-6" *ngIf="contrato.contratoPadre"><div class="small text-secondary">Contrato padre</div><strong>{{ contrato.contratoPadre }}</strong></div>
+            <div class="col-12 col-md-6"><div class="small text-secondary">Fechas</div><strong>Suscripción {{ formatDate(contrato.fechaSuscripcion) }} · Inicio {{ formatDate(contrato.fechaInicio) }} · Terminación {{ formatDate(contrato.fechaTerminacionInicial) }}</strong></div>
+            <div class="col-12" *ngIf="contrato.urlSecop"><div class="small text-secondary">URL SECOP</div><strong>{{ contrato.urlSecop }}</strong></div>
           </div>
 
           <p class="small text-secondary border-top pt-2 mt-3 mb-0">Registrado el {{ formatDate(contrato.fechaCreacion) }}</p>
@@ -73,103 +74,224 @@
   </div>
 </section>
 
-<!-- Modal para crear un contrato nuevo -->
 <div class="modal fade" id="nuevoContratoModal" tabindex="-1" aria-labelledby="nuevoContratoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
     <div class="modal-content">
       <form class="d-flex flex-column h-100" (ngSubmit)="addContrato()">
         <div class="modal-header">
-          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel"><i class="bi bi-file-earmark-text"></i> Nuevo Contrato</h2>
+          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel"><i class="bi bi-file-earmark-text"></i> Nuevo contrato</h2>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
         <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
+          <div *ngIf="isLoadingCatalogos" class="alert alert-light border small mb-3" role="status">
+            Cargando pactos desde la API y catálogos de contrato…
+          </div>
+          <div *ngIf="formularioError" class="alert alert-danger py-2 small mb-3" role="alert">{{ formularioError }}</div>
+
           <div class="row g-3">
             <div class="col-12 col-md-6">
-              <label class="form-label">Pacto</label>
-              <select class="form-select" name="contratoPacto" [(ngModel)]="newContrato.pacto" (ngModelChange)="onPactoChange()" required>
-                <option value="" disabled>--seleccione--</option>
-                <option *ngFor="let pacto of pactosDisponibles" [value]="pacto">{{ pacto }}</option>
+              <label class="form-label">Pacto <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                name="contratoPacto"
+                [(ngModel)]="newContrato.idPactoTerritorial"
+                (ngModelChange)="onPactoChange($event)"
+                [disabled]="isLoadingCatalogos || !pactosCatalogo.length"
+                required
+              >
+                <option [ngValue]="null" disabled>Seleccionar pacto</option>
+                <option *ngFor="let pacto of pactosCatalogo" [ngValue]="pacto.idPactoTerritorial">{{ pacto.nombre }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Proyecto</label>
-              <select class="form-select" name="contratoProyecto" [(ngModel)]="newContrato.proyecto" required>
-                <option value="" disabled>--seleccione--</option>
-                <option *ngFor="let proyecto of proyectosDisponibles" [value]="proyecto">{{ proyecto }}</option>
+              <label class="form-label">Proyecto <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                name="contratoProyecto"
+                [(ngModel)]="newContrato.idProyecto"
+                [disabled]="!newContrato.idPactoTerritorial || isLoadingCatalogos || !proyectosFiltrados.length"
+                required
+              >
+                <option [ngValue]="null" disabled>
+                  {{
+                    isLoadingCatalogos
+                      ? 'Cargando proyectos…'
+                      : newContrato.idPactoTerritorial && !proyectosFiltrados.length
+                        ? 'Sin proyectos para este pacto'
+                        : 'Seleccionar proyecto'
+                  }}
+                </option>
+                <option *ngFor="let proyecto of proyectosFiltrados" [ngValue]="proyecto.id">{{ proyecto.nombre }}</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Tipo de contrato <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                name="contratoTipo"
+                [(ngModel)]="newContrato.idTipoContrato"
+                [disabled]="isLoadingCatalogos || !tiposContratoCatalogo.length"
+                required
+              >
+                <option [ngValue]="null" disabled>Seleccionar tipo</option>
+                <option *ngFor="let tipo of tiposContratoCatalogo" [ngValue]="tipo.id">{{ tipo.texto }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Contratista</label>
+              <label class="form-label">Contratista <span class="text-danger">*</span></label>
               <select class="form-select" name="contratoContratista" [(ngModel)]="newContrato.contratista" required>
-                <option value="" disabled>--seleccione--</option>
+                <option value="" disabled>Seleccionar contratista</option>
                 <option *ngFor="let contratista of contratistasDisponibles" [value]="contratista">{{ contratista }}</option>
               </select>
             </div>
+
             <div class="col-12 col-md-6">
-              <label class="form-label">Fecha Inicio</label>
-              <input class="form-control" type="date" name="contratoFechaInicio" [(ngModel)]="newContrato.fechaInicio" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Fecha Fin</label>
-              <input class="form-control" type="date" name="contratoFechaFin" [(ngModel)]="newContrato.fechaFin" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Contrato padre</label>
+              <label class="form-label">N.º contrato <span class="text-danger">*</span></label>
               <input
                 class="form-control"
                 type="text"
-                name="contratoPadre"
-                [(ngModel)]="newContrato.contratoPadre"
+                name="numeroContrato"
+                [(ngModel)]="newContrato.numeroContrato"
                 pattern="[A-Za-z0-9-]+"
-                title="Solo se permite texto alfanumerico y guion"
-                (input)="onContratoPadreInput($event)"
+                title="Solo letras, números y guion"
+                (input)="onNumeroContratoInput($event)"
                 required
               />
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Tipo contrato</label>
-              <select class="form-select" name="contratoTipo" [(ngModel)]="newContrato.tipoContrato" required>
-                <option value="" disabled>--seleccione--</option>
-                <option *ngFor="let tipo of tiposContrato" [value]="tipo">{{ tipo }}</option>
+              <label class="form-label">Fecha de suscripción <span class="text-danger">*</span></label>
+              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="newContrato.fechaSuscripcion" required />
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label">Fecha de inicio <span class="text-danger">*</span></label>
+              <input class="form-control" type="date" name="fechaInicio" [(ngModel)]="newContrato.fechaInicio" required />
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">Fecha de terminación inicial <span class="text-danger">*</span></label>
+              <input class="form-control" type="date" name="fechaTerminacionInicial" [(ngModel)]="newContrato.fechaTerminacionInicial" required />
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="form-label">N.º desembolsos <span class="text-danger">*</span></label>
+              <input
+                class="form-control"
+                type="number"
+                name="numeroDesembolsos"
+                [(ngModel)]="newContrato.numeroDesembolsos"
+                min="1"
+                step="1"
+                inputmode="numeric"
+                required
+              />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Estado <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                name="contratoEstado"
+                [(ngModel)]="newContrato.idEstado"
+                [disabled]="isLoadingCatalogos || !estadosContratoCatalogo.length"
+                required
+              >
+                <option [ngValue]="null" disabled>Seleccionar estado</option>
+                <option *ngFor="let estado of estadosContratoCatalogo" [ngValue]="estado.id">{{ estado.texto }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Contratante</label>
+              <label class="form-label">Condición <span class="text-danger">*</span></label>
+              <select
+                class="form-select"
+                name="contratoCondicion"
+                [(ngModel)]="newContrato.idCondicion"
+                (ngModelChange)="onCondicionChange()"
+                [disabled]="isLoadingCatalogos || !condicionesContratoCatalogo.length"
+                required
+              >
+                <option [ngValue]="null" disabled>Seleccionar condición</option>
+                <option *ngFor="let condicion of condicionesContratoCatalogo" [ngValue]="condicion.id">{{ condicion.texto }}</option>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6" *ngIf="requiereContratoPadre">
+              <label class="form-label">Contrato padre <span class="text-danger">*</span></label>
+              <select
+                *ngIf="contratosPadreOpciones.length; else contratoPadreManual"
+                class="form-select"
+                name="contratoPadre"
+                [(ngModel)]="newContrato.contratoPadre"
+                required
+              >
+                <option value="" disabled>Seleccionar contrato padre</option>
+                <option *ngFor="let cp of contratosPadreOpciones" [value]="cp">{{ cp }}</option>
+              </select>
+              <ng-template #contratoPadreManual>
+                <input
+                  class="form-control"
+                  type="text"
+                  name="contratoPadre"
+                  [(ngModel)]="newContrato.contratoPadre"
+                  placeholder="Número del contrato padre"
+                  pattern="[A-Za-z0-9-]+"
+                  (input)="onContratoPadreInput($event)"
+                  required
+                />
+              </ng-template>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Valor inicial del contrato (COP) <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input
+                  class="form-control text-end"
+                  type="text"
+                  name="valorInicial"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  [(ngModel)]="valorInicialDisplay"
+                  (ngModelChange)="onValorInicialInput($event)"
+                  (focus)="onValorInicialFocus()"
+                  (blur)="onValorInicialBlur()"
+                  placeholder="0"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Contratante <span class="text-danger">*</span></label>
               <select class="form-select" name="contratoContratante" [(ngModel)]="newContrato.contratante" required>
-                <option value="" disabled>--seleccione--</option>
+                <option value="" disabled>Seleccionar contratante</option>
                 <option *ngFor="let contratante of contratantesDisponibles" [value]="contratante">{{ contratante }}</option>
               </select>
             </div>
             <div class="col-12 col-md-6">
-              <label class="form-label">Valor inicial</label>
-              <input class="form-control" type="number" name="contratoValorInicial" [(ngModel)]="newContrato.valorInicial" min="0" step="1000000" required />
-            </div>
-            <div class="col-12">
-              <label class="form-label">Supervisor</label>
-              <select class="form-select" name="contratoSupervisor" [(ngModel)]="newContrato.supervisor" required>
-                <option value="" disabled>--seleccione--</option>
-                <option *ngFor="let supervisor of supervisoresDisponibles" [value]="supervisor">{{ supervisor }}</option>
+              <label class="form-label">Interventor <span class="text-danger">*</span></label>
+              <select class="form-select" name="contratoInterventor" [(ngModel)]="newContrato.interventor" required>
+                <option value="" disabled>Seleccionar interventor</option>
+                <option *ngFor="let interventor of interventoresDisponibles" [value]="interventor">{{ interventor }}</option>
               </select>
             </div>
+
             <div class="col-12">
-              <label class="form-label">Objeto</label>
+              <label class="form-label">Objeto <span class="text-danger">*</span></label>
               <textarea class="form-control" name="contratoObjeto" [(ngModel)]="newContrato.objeto" rows="3" required></textarea>
             </div>
             <div class="col-12">
               <label class="form-label">URL SECOP</label>
-              <input class="form-control" type="text" name="contratoUrlSecop" [(ngModel)]="newContrato.urlSecop" required />
+              <input class="form-control" type="url" name="contratoUrlSecop" [(ngModel)]="newContrato.urlSecop" placeholder="Opcional" />
             </div>
           </div>
         </div>
 
         <div class="modal-footer bg-body sticky-bottom">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Guardar Contrato</button>
+          <button type="submit" class="btn btn-primary">Guardar contrato</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-
-

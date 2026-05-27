@@ -3,7 +3,7 @@
   <!-- Encabezado, botón de creación y resumen -->
   <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
-      <h1 class="h3 mb-1">Gestión de Pactos</h1>
+      <h1 class="h3 mb-1">Gestión de pactos</h1>
       <p class="text-secondary mb-0">Crea, administra y visualiza los pactos territoriales del sistema SISPACTOS.</p>
     </div>
 
@@ -13,7 +13,7 @@
         class="btn btn-primary"
         (click)="abrirModalNuevoPacto()"
       >
-        <span class="me-1">+</span> Nuevo Pacto
+        <span class="me-1">+</span> Nuevo pacto
       </button>
       <div class="badge text-bg-light border px-3 py-2 text-start">
         <div class="small text-secondary">Pactos activos: <strong>{{ (pactos$ | async)?.length ?? 0 }}</strong></div>
@@ -25,7 +25,7 @@
   <!-- Listado de pactos existentes -->
   <div class="card pactos-list-card">
     <div class="card-header pactos-list-card__head">
-      <h2 class="h5 mb-0">Listado de Pactos Territoriales</h2>
+      <h2 class="h5 mb-0">Listado de pactos territoriales</h2>
     </div>
 
     <div class="card-body pactos-list-card__body">
@@ -132,13 +132,13 @@
         </div>
 
         <div class="alert alert-light border text-center mb-0" *ngIf="!isLoadingPactos && pactos.length === 0">
-          No hay pactos registrados. Usa el botón <strong>Nuevo Pacto</strong> para crear el primero.
+          No hay pactos registrados. Usa el botón <strong>Nuevo pacto</strong> para crear el primero.
         </div>
       </ng-container>
 
       <ng-template #noPactos>
         <div class="alert alert-light border text-center mb-0">
-          No hay pactos registrados. Usa el botón <strong>Nuevo Pacto</strong> para crear el primero.
+          No hay pactos registrados. Usa el botón <strong>Nuevo pacto</strong> para crear el primero.
         </div>
       </ng-template>
     </div>
@@ -154,7 +154,7 @@
           <div>
             <h2 class="modal-title pacto-modal-title" id="pactoModalLabel">
               <i class="bi" [ngClass]="modoFormulario === 'editar' ? 'bi-pencil-square' : 'bi-handshake'"></i>
-              {{ modoFormulario === 'editar' ? 'Editar Pacto Territorial' : 'Nuevo Pacto Territorial' }}
+              {{ modoFormulario === 'editar' ? 'Editar pacto territorial' : 'Nuevo pacto territorial' }}
             </h2>
             <p class="pacto-modal-subtitle mb-0">
               {{ modoFormulario === 'editar' ? 'Actualiza los datos principales del pacto.' : 'Diligencia los datos principales para crear el pacto.' }}
@@ -168,48 +168,112 @@
             Cargando catálogos de tipo de pacto y etapa...
           </div>
 
+          <ng-template #validacionCampo let-campo>
+            <div
+              class="invalid-feedback d-block pacto-field-feedback"
+              *ngIf="mostrarErrorCampo(campo)"
+              role="alert"
+            >
+              {{ mensajeErrorCampo(campo) }}
+            </div>
+          </ng-template>
+
           <div class="row g-3">
             <div class="col-12 col-lg-4">
-              <label class="form-label">Tipo de Pacto</label>
-              <select class="form-select" name="tipoPacto" [(ngModel)]="pactoForm.tipoPacto" [disabled]="isLoadingCatalogos || !tiposPactos.length" required>
+              <label class="form-label">Tipo de pacto</label>
+              <select
+                class="form-select"
+                name="tipoPacto"
+                [(ngModel)]="pactoForm.tipoPacto"
+                [disabled]="isLoadingCatalogos || !tiposPactos.length"
+                [ngClass]="claseValidacionCampo('tipoPacto')"
+                [attr.title]="mostrarErrorCampo('tipoPacto') ? mensajeErrorCampo('tipoPacto') : null"
+                (ngModelChange)="onCampoValidacionChange('tipoPacto')"
+                (blur)="marcarCampoTocado('tipoPacto')"
+              >
                 <option value="">Seleccionar tipo</option>
                 <option *ngFor="let tipo of tiposPactos" [value]="tipo.id">{{ tipo.texto }}</option>
               </select>
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'tipoPacto' }"></ng-container>
             </div>
 
             <div class="col-12 col-lg-4">
               <label class="form-label">Nombre del pacto</label>
-              <input class="form-control" type="text" name="nombre" [(ngModel)]="pactoForm.nombre" required />
+              <input
+                class="form-control"
+                type="text"
+                name="nombre"
+                [(ngModel)]="pactoForm.nombre"
+                [ngClass]="claseValidacionCampo('nombre')"
+                [attr.title]="mostrarErrorCampo('nombre') ? mensajeErrorCampo('nombre') : null"
+                (ngModelChange)="onCampoValidacionChange('nombre')"
+                (blur)="marcarCampoTocado('nombre')"
+              />
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombre' }"></ng-container>
             </div>
 
             <div class="col-12 col-lg-4">
-              <label class="form-label">ID Etapa</label>
-              <select class="form-select" name="idEtapa" [(ngModel)]="pactoForm.idEtapa" [disabled]="isLoadingCatalogos || !etapasPacto.length">
+              <label class="form-label">Etapa</label>
+              <select
+                class="form-select"
+                name="idEtapa"
+                [(ngModel)]="pactoForm.idEtapa"
+                [disabled]="isLoadingCatalogos || !etapasPacto.length"
+                [ngClass]="claseValidacionCampo('etapa')"
+                [attr.title]="mostrarErrorCampo('etapa') ? mensajeErrorCampo('etapa') : null"
+                (ngModelChange)="onCampoValidacionChange('etapa')"
+                (blur)="marcarCampoTocado('etapa')"
+              >
                 <option value="">Seleccionar etapa</option>
                 <option *ngFor="let etapa of etapasPacto" [value]="etapa.id">{{ etapa.texto }}</option>
               </select>
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'etapa' }"></ng-container>
             </div>
 
             <div class="col-12">
               <label class="form-label">Suscribientes o integrantes</label>
-              <textarea class="form-control" name="descripcion" [(ngModel)]="pactoForm.descripcion" rows="3" required></textarea>
+              <textarea
+                class="form-control"
+                name="descripcion"
+                [(ngModel)]="pactoForm.descripcion"
+                rows="3"
+                [ngClass]="claseValidacionCampo('descripcion')"
+                [attr.title]="mostrarErrorCampo('descripcion') ? mensajeErrorCampo('descripcion') : null"
+                (ngModelChange)="onCampoValidacionChange('descripcion')"
+                (blur)="marcarCampoTocado('descripcion')"
+              ></textarea>
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'descripcion' }"></ng-container>
             </div>
 
             <div class="col-12">
               <label class="form-label">Objetivo</label>
-              <textarea class="form-control" name="objetivo" [(ngModel)]="pactoForm.objetivo" rows="3" required></textarea>
+              <textarea
+                class="form-control"
+                name="objetivo"
+                [(ngModel)]="pactoForm.objetivo"
+                rows="3"
+                [ngClass]="claseValidacionCampo('objetivo')"
+                [attr.title]="mostrarErrorCampo('objetivo') ? mensajeErrorCampo('objetivo') : null"
+                (ngModelChange)="onCampoValidacionChange('objetivo')"
+                (blur)="marcarCampoTocado('objetivo')"
+              ></textarea>
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'objetivo' }"></ng-container>
             </div>
 
             <div class="col-12 col-lg-4">
-              <label class="form-label">Líneas Temáticas</label>
+              <label class="form-label">Líneas temáticas</label>
               <input
                 class="form-control"
                 type="text"
                 name="lineaTematicaInput"
                 [(ngModel)]="lineaTematicaInput"
+                [ngClass]="claseValidacionCampo('lineasTematicas')"
+                [attr.title]="mostrarErrorCampo('lineasTematicas') ? mensajeErrorCampo('lineasTematicas') : null"
                 (keydown.enter)="$event.preventDefault(); addLineaTematicaFromInput()"
+                (blur)="marcarCampoTocado('lineasTematicas')"
                 placeholder="Escribe una línea temática y presiona Enter"
               />
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'lineasTematicas' }"></ng-container>
 
               <div class="d-flex flex-wrap gap-2 mt-2" *ngIf="pactoForm.lineasTematicas.length > 0">
                 <span *ngFor="let linea of pactoForm.lineasTematicas; let i = index" class="badge text-bg-primary d-inline-flex align-items-center gap-2 py-2 px-3">
@@ -226,17 +290,37 @@
             </div>
 
             <div class="col-12 col-lg-4">
-              <label class="form-label">Fecha de Suscripción</label>
-              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="pactoForm.fechaSuscripcion" />
+              <label class="form-label">Fecha de suscripción</label>
+              <input
+                class="form-control"
+                type="date"
+                name="fechaSuscripcion"
+                [(ngModel)]="pactoForm.fechaSuscripcion"
+                [ngClass]="claseValidacionCampo('fechaSuscripcion')"
+                [attr.title]="mostrarErrorCampo('fechaSuscripcion') ? mensajeErrorCampo('fechaSuscripcion') : null"
+                (ngModelChange)="onCampoValidacionChange('fechaSuscripcion')"
+                (blur)="marcarCampoTocado('fechaSuscripcion')"
+              />
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'fechaSuscripcion' }"></ng-container>
             </div>
 
             <div class="col-12 col-lg-4">
-              <label class="form-label">Fecha de Vencimiento</label>
-              <input class="form-control" type="date" name="fechaVencimiento" [(ngModel)]="pactoForm.fechaVencimiento" />
+              <label class="form-label">Fecha de vencimiento</label>
+              <input
+                class="form-control"
+                type="date"
+                name="fechaVencimiento"
+                [(ngModel)]="pactoForm.fechaVencimiento"
+                [ngClass]="claseValidacionCampo('fechaVencimiento')"
+                [attr.title]="mostrarErrorCampo('fechaVencimiento') ? mensajeErrorCampo('fechaVencimiento') : null"
+                (ngModelChange)="onCampoValidacionChange('fechaVencimiento')"
+                (blur)="marcarCampoTocado('fechaVencimiento')"
+              />
+              <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'fechaVencimiento' }"></ng-container>
             </div>
 
             <div class="col-12">
-              <div class="territorial-selector">
+              <div class="territorial-selector" [ngClass]="claseValidacionCampo('municipioAlcance')">
                 <div class="territorial-selector-header">
                   <div>
                     <label class="form-label mb-1">Municipio de alcance</label>
@@ -296,7 +380,9 @@
                     ></button>
                   </span>
                 </div>
-                <div class="form-text" *ngIf="!municipiosAlcance.length">Debe agregar al menos un municipio para crear el pacto.</div>
+                <ng-container *ngIf="modoFormulario === 'crear'">
+                  <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'municipioAlcance' }"></ng-container>
+                </ng-container>
               </div>
             </div>
 
@@ -365,13 +451,13 @@
             </div>
 
             <div class="col-12 col-md-6">
-              <label class="form-label">Documento Pacto</label>
+              <label class="form-label">Documento pacto</label>
               <input class="form-control" type="file" name="urlDocPacto" (change)="onFileSelected($event, 'urlDocPacto')" />
               <div class="form-text" *ngIf="pactoForm.urlDocPacto">Archivo actual: {{ pactoForm.urlDocPacto }}</div>
             </div>
 
             <div class="col-12 col-md-6">
-              <label class="form-label">Documento Minuta</label>
+              <label class="form-label">Documento minuta</label>
               <input class="form-control" type="file" name="urlDocMinuta" (change)="onFileSelected($event, 'urlDocMinuta')" />
               <div class="form-text" *ngIf="pactoForm.urlDocMinuta">Archivo actual: {{ pactoForm.urlDocMinuta }}</div>
             </div>
@@ -394,7 +480,7 @@
             class="btn btn-primary"
             [disabled]="isSubmitting || isLoadingCatalogos"
           >
-            {{ isSubmitting ? 'Guardando...' : (modoFormulario === 'editar' ? 'Actualizar Pacto' : 'Crear Pacto') }}
+            {{ isSubmitting ? 'Guardando...' : (modoFormulario === 'editar' ? 'Actualizar pacto' : 'Crear pacto') }}
           </button>
         </div>
       </form>

@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { formatUiLabel } from '../../utils/ui-label.util';
 
 export type MenuItem =
   | {
@@ -82,12 +83,7 @@ export class SidebarComponent {
 
   // Convierte etiquetas técnicas a texto legible.
   formatLabel(label: string): string {
-    return label
-      .replace(/[-_]+/g, ' ')
-      .split(' ')
-      .filter(Boolean)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    return formatUiLabel(label);
   }
 
   // Traduce nombres de icono a clases de Bootstrap Icons.

@@ -41,6 +41,8 @@ type ApiPacto = Record<string, unknown>;
 
 export interface PactoApiOption {
   id: number;
+  /** Mismo valor que `id` del pacto territorial; se usa para filtrar proyectos. */
+  idPactoTerritorial: number;
   nombre: string;
 }
 
@@ -86,6 +88,12 @@ export const CATALOGO_TIPO_APORTANTE_NACION_PROYECTO = 10;
 export const CATALOGO_TIPO_MECANISMO_INCLUSION_PROYECTO = 11;
 /** IdTipoCatalogo = 12 — sector administración nacional (confirmar en API si aplica). */
 export const CATALOGO_TIPO_SECTOR_ADMIN_NACIONAL_PROYECTO = 12;
+/** IdTipoCatalogo = 13 — tipo de contrato (confirmar en API si aplica). */
+export const CATALOGO_TIPO_TIPO_CONTRATO = 13;
+/** IdTipoCatalogo = 14 — estado de contrato (confirmar en API si aplica). */
+export const CATALOGO_TIPO_ESTADO_CONTRATO = 14;
+/** IdTipoCatalogo = 15 — condición de contrato (confirmar en API si aplica). */
+export const CATALOGO_TIPO_CONDICION_CONTRATO = 15;
 
 export interface EntidadTerritorialOption {
   idEntidadTerritorial: string;
@@ -188,10 +196,23 @@ export class PactosService {
   getPactosOptionsFromApi(): Observable<PactoApiOption[]> {
     return this.http.get<unknown>(this.pactosApiUrl).pipe(
       map((response) => this.normalizeApiPactos(response)),
-      map((rows) => rows.map((item) => ({
-        id: this.readNumber(item['id']),
-        nombre: (this.readString(item['nombre']) || '').trim()
-      })).filter((p) => p.id > 0 && !!p.nombre)),
+      map((rows) =>
+        rows
+          .map((item) => {
+            const idPactoTerritorial = this.readNumber(
+              item['idPactoTerritorial']
+                ?? item['IdPactoTerritorial']
+                ?? item['id']
+                ?? item['Id']
+            );
+            return {
+              id: idPactoTerritorial,
+              idPactoTerritorial,
+              nombre: (this.readString(item['nombre']) || '').trim()
+            };
+          })
+          .filter((p) => p.idPactoTerritorial > 0 && !!p.nombre)
+      ),
       map((rows) => rows.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' }))),
       catchError(() => of([] as PactoApiOption[]))
     );

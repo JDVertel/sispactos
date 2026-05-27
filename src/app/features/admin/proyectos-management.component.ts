@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   CreateProyectoCommand,
+  ProyectoImagenApiCommand,
   ProyectoApiResult,
   ProyectoDetalleApi,
   ProyectosService,
@@ -12,10 +13,11 @@ import {
 import { AuthPromptService } from '../../core/services/auth-prompt.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { Pacto, Proyecto } from '../../shared/models';
+import { Pacto, Proyecto, ProyectoImagenRegistrada, ProyectoMultimediaMetadato } from '../../shared/models';
 import { EMPTY, Observable, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap, take, tap } from 'rxjs/operators';
 import { PROYECTO_DEV_LOCAL_SAVE } from '../../core/config/proyecto-save.config';
+import { UbicacionMapComponent } from '../../shared/components/ubicacion-map/ubicacion-map.component';
 import {
   CATALOGO_TIPO_AREA_INFLUENCIA_PROYECTO,
   CATALOGO_TIPO_APORTANTE_NACION_PROYECTO,
@@ -55,12 +57,15 @@ interface ProyectoFormData {
   inversionClimatica: boolean;
   alcance: string;
   /** Meta de producto principal (texto asociado al producto MGA del paso 1). */
-  metaProductoPrincipal: string;
-  metaPa: string;
   productoPrincipalMga: string;
-  cantidadMetaPa: number | null;
-  idMecanismoInclusion: number | null;
+  cantidadMeta: number | null;
+  unidadMedidaMeta: string;
+  sesionCDInclusion: number | null;
+  latitud: number | null;
+  longitud: number | null;
 }
+
+type MultimediaModalTipo = 'imagen' | 'video';
 
 type MultimediaImagenAdjunta = {
   id: string;
@@ -68,6 +73,8 @@ type MultimediaImagenAdjunta = {
   url: string;
   nombre: string;
   comprimida?: boolean;
+  fecha: string;
+  detalle: string;
 };
 
 type MultimediaVideoUrl = {
@@ -76,6 +83,8 @@ type MultimediaVideoUrl = {
   thumbnailUrl: string | null;
   etiqueta: string;
   valida: boolean;
+  fecha: string;
+  detalle: string;
 };
 
 type MultimediaImagenPreview = {
@@ -84,6 +93,8 @@ type MultimediaImagenPreview = {
   nombre: string;
   comprimida?: boolean;
   tamano: string;
+  fecha?: string;
+  detalle?: string;
 };
 
 /** Campos del formulario con validacion en tiempo real. */
@@ -102,19 +113,20 @@ type ProyectoCampoValidacion =
   | 'numeroContratoEspecifico'
   | 'sesionCd'
   | 'alcance'
-  | 'cantidadMetaPa';
+  | 'cantidadMeta';
 
 @Component({
   selector: 'app-proyectos-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, UbicacionMapComponent],
   templateUrl: './proyectos-management.component.html',
   styleUrl: './proyectos-management.component.css'
 })
 export class ProyectosManagementComponent implements OnInit {
   proyectos$: Observable<Proyecto[]>;
   modoFormulario: ModoFormularioProyecto = 'crear';
-  editingProyectoLocalId: number | null = null;
+  editingProyectoApiId: number | null = null;
+  isLoadingProyectosTabla = false;
   isLoadingProyectoDetalle = false;
 
   private pactosCatalogo: Pacto[] = [];
@@ -147,12 +159,19 @@ export class ProyectosManagementComponent implements OnInit {
 
   multimediaAdjuntos: MultimediaImagenAdjunta[] = [];
   multimediaVideoUrls: MultimediaVideoUrl[] = [];
-  multimediaVideoUrlDraft = '';
   readonly tamanoMaxImagenMultimedia = 300 * 1024;
   readonly multimediaMaxLadoImagenPx = 1920;
   multimediaSeleccionError = '';
   isProcessingMultimedia = false;
   multimediaImagenPreview: MultimediaImagenPreview | null = null;
+
+  multimediaModalTipo: MultimediaModalTipo = 'imagen';
+  multimediaModalFecha = '';
+  multimediaModalDetalle = '';
+  multimediaModalUrlVideo = '';
+  multimediaModalError = '';
+  multimediaModalArchivosPendientes: File[] = [];
+  multimediaModalPreviewUrls: string[] = [];
 
   constructor(
     private proyectosService: ProyectosService,
@@ -166,21 +185,20 @@ export class ProyectosManagementComponent implements OnInit {
 
   abrirModalNuevoProyecto(): void {
     this.modoFormulario = 'crear';
-    this.editingProyectoLocalId = null;
+    this.editingProyectoApiId = null;
     this.resetForm();
     this.openProyectoModal();
   }
 
   abrirModalEditarProyecto(proyecto: Proyecto): void {
     this.modoFormulario = 'editar';
-    this.editingProyectoLocalId = proyecto.id;
+    this.editingProyectoApiId = proyecto.apiId ?? proyecto.id;
     this.closeSaveProyectoErrorModal();
     this.clearMultimediaAdjuntos();
 
-    const apiId = proyecto.apiId;
     const detalle$ =
-      apiId != null && apiId > 0
-        ? this.proyectosService.getProyectoById(apiId)
+      this.editingProyectoApiId != null && this.editingProyectoApiId > 0
+        ? this.proyectosService.getProyectoById(this.editingProyectoApiId)
         : of(null as ProyectoDetalleApi | null);
 
     this.isLoadingProyectoDetalle = true;
@@ -201,6 +219,7 @@ export class ProyectosManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCatalogosProyecto$().subscribe();
+    this.cargarProyectosDesdeApi();
 
     this.pactosService
       .syncPactosFromApi()
@@ -307,7 +326,7 @@ export class ProyectosManagementComponent implements OnInit {
       'lineaTematica',
       'alcance',
       'sesionCd',
-      'cantidadMetaPa'
+      'cantidadMeta'
     ];
     if (this.newProyecto.tieneViabilidad) {
       campos.push('fechaViabilidad');
@@ -417,17 +436,17 @@ export class ProyectosManagementComponent implements OnInit {
         return null;
       }
       case 'sesionCd':
-        if (p.idMecanismoInclusion == null) {
+        if (p.sesionCDInclusion == null) {
           return null;
         }
-        if (!Number.isInteger(p.idMecanismoInclusion) || p.idMecanismoInclusion < 1) {
+        if (!Number.isInteger(p.sesionCDInclusion) || p.sesionCDInclusion < 1) {
           return 'Debe ser un numero entero positivo.';
         }
         return null;
       case 'alcance':
         return p.alcance.trim() ? null : 'Campo obligatorio.';
-      case 'cantidadMetaPa': {
-        const cantidad = p.cantidadMetaPa;
+      case 'cantidadMeta': {
+        const cantidad = p.cantidadMeta;
         if (cantidad === null || cantidad === undefined || Number.isNaN(Number(cantidad))) {
           return null;
         }
@@ -467,14 +486,14 @@ export class ProyectosManagementComponent implements OnInit {
     }, 0);
   }
 
-  guardarProyecto(): void {
+  async guardarProyecto(): Promise<void> {
     if (this.isSavingProyecto || this.isLoadingProyectoDetalle) return;
     this.closeSaveProyectoErrorModal();
     // Multimedia es opcional: no se valida ni se exige al guardar.
     this.multimediaSeleccionError = '';
 
     const isEditMode = this.modoFormulario === 'editar';
-    if (isEditMode && this.editingProyectoLocalId == null) {
+    if (isEditMode && this.editingProyectoApiId == null) {
       this.presentSaveProyectoErrores(['No fue posible identificar el proyecto a editar.']);
       return;
     }
@@ -500,11 +519,10 @@ export class ProyectosManagementComponent implements OnInit {
       idEstadoProyecto,
       idAreaInfluencia,
       idCondicionProyecto,
-      idMecanismoInclusion,
+      sesionCDInclusion,
       alcance,
-      metaProductoPrincipal,
-      metaPa,
-      cantidadMetaPa
+      cantidadMeta,
+      unidadMedidaMeta
     } = this.newProyecto;
 
     const lineasDisp = this.lineasTematicasDisponibles;
@@ -538,16 +556,13 @@ export class ProyectosManagementComponent implements OnInit {
       return;
     }
 
-    const metaProductoPrincipalTexto = (metaProductoPrincipal || '').trim();
-    const metaPaTexto = (metaPa || '').trim();
     const productoMgaTexto = (this.newProyecto.productoPrincipalMga || '').trim();
+    const unidadMedidaMetaTexto = (unidadMedidaMeta || '').trim();
+    const cantidadMetaVal = this.resolveCantidadMeta(cantidadMeta);
     const alcanceTexto = (alcance || nombreBpin || nombre).trim() || 'Pendiente';
-    const alcanceApi = this.buildAlcanceParaApi(
-      alcanceTexto,
-      '',
-      '',
-      idMecanismoInclusion
-    );
+    const alcanceApi = this.buildAlcanceParaApi(alcanceTexto);
+    const sesionCDInclusionVal =
+      sesionCDInclusion != null && sesionCDInclusion >= 1 ? sesionCDInclusion : null;
 
     const idEstado = idEstadoProyecto ?? this.primerIdCatalogo(this.estadosProyectoCatalogo);
     const idCondicion = idCondicionProyecto ?? this.primerIdCatalogo(this.condicionesProyectoCatalogo);
@@ -583,9 +598,10 @@ export class ProyectosManagementComponent implements OnInit {
       aporteIndicativoNacion: 0,
       aporteIndicativoTerritorio: 0,
       aporteIndicativoOtros: 0,
-      productoMGA: productoMgaTexto,
-      metaPa: metaPaTexto,
-      idMecanismoInclusion: null,
+      productoPrincipalMGA: productoMgaTexto,
+      cantidadMeta: cantidadMetaVal ?? 0,
+      unidadMedidaMeta: unidadMedidaMetaTexto,
+      sesionCDInclusion: sesionCDInclusionVal,
       idSectorAdministracionNacional: null,
       fechaReporte: nowIso,
       numeroEmpleosDirectos: Number(numeroEmpleosDirectos) || 0,
@@ -597,7 +613,10 @@ export class ProyectosManagementComponent implements OnInit {
         : nowIso,
       numeroContratoEspecifico: frpt
         ? this.normalizarNumeroContratoEspecifico(String(numeroContratoEspecifico ?? ''))
-        : ''
+        : '',
+      latitudProyecto,
+      longitudProyecto,
+      imagenes: []
     });
 
     const persistedApiFields = {
@@ -609,21 +628,22 @@ export class ProyectosManagementComponent implements OnInit {
       idSectorCatalogo: idSectorVal!,
       idAportanteNacion:
         idAportanteNacion != null && idAportanteNacion >= 1 ? idAportanteNacion : undefined,
-      idMecanismoInclusion:
-        idMecanismoInclusion != null && idMecanismoInclusion >= 1 ? idMecanismoInclusion : undefined,
+      sesionCDInclusion: sesionCDInclusionVal ?? undefined,
       idEntidadProyecto: idEntidadTerritorial,
-      metaPaTexto: metaPaTexto,
-      metaProductoPrincipal: metaProductoPrincipalTexto,
+      unidadMedidaMeta: unidadMedidaMetaTexto,
       nombreBpin: nombreBpin.trim(),
       inversionClimatica: !!this.newProyecto.inversionClimatica,
       actaCdNumero: actaCd,
       actaCdFecha: actaFechaYmd
     };
 
-    const productoMga = (this.newProyecto.productoPrincipalMga || '').trim();
-    const cantidadMeta = this.resolveCantidadMetaPa(cantidadMetaPa);
+    const productoMga = productoMgaTexto;
+    const cantidadMetaGuardado = cantidadMetaVal;
     const nombresMultimedia = this.multimediaAdjuntos.map((a) => a.nombre).filter(Boolean);
     const urlsVideoMultimedia = this.multimediaVideoUrls.map((v) => v.url).filter(Boolean);
+    const metadatosMultimedia = this.buildMultimediaMetadatosParaGuardado();
+    const latitud = this.parseCoordenada(this.newProyecto.latitud);
+    const longitud = this.parseCoordenada(this.newProyecto.longitud);
 
     const proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion' | 'codigo'> = {
       nombre: nombre.trim(),
@@ -650,12 +670,31 @@ export class ProyectosManagementComponent implements OnInit {
       fechaFin: new Date(nowIso),
       avance: 0,
       ...(productoMga ? { productoPrincipalMga: productoMga } : {}),
-      ...(cantidadMeta != null ? { cantidadMetaPa: cantidadMeta } : {}),
+      ...(cantidadMetaGuardado != null ? { cantidadMeta: cantidadMetaGuardado } : {}),
+      ...(unidadMedidaMetaTexto ? { unidadMedidaMeta: unidadMedidaMetaTexto } : {}),
+      ...(latitud != null ? { latitud } : {}),
+      ...(longitud != null ? { longitud } : {}),
       ...(nombresMultimedia.length ? { multimediaNombres: nombresMultimedia } : {}),
-      ...(urlsVideoMultimedia.length ? { multimediaVideoUrls: urlsVideoMultimedia } : {})
+      ...(urlsVideoMultimedia.length ? { multimediaVideoUrls: urlsVideoMultimedia } : {}),
+      ...(metadatosMultimedia.length ? { multimediaMetadatos: metadatosMultimedia } : {})
     };
 
     this.isSavingProyecto = true;
+
+    if (!isEditMode) {
+      this.editingProyectoApiId = null;
+    }
+
+    const imagenesApi = this.buildImagenesApiPayload();
+
+    const latitudProyecto = this.formatCoordenadaParaApi(this.newProyecto.latitud);
+    const longitudProyecto = this.formatCoordenadaParaApi(this.newProyecto.longitud);
+
+    console.info('[SISPACTOS Proyecto guardar]', {
+      modoFormulario: this.modoFormulario,
+      metodoHttp: isEditMode ? 'PUT /api/Proyecto' : 'POST /api/Proyecto',
+      editingProyectoApiId: this.editingProyectoApiId
+    });
 
     const persistir$ = isEditMode
       ? this.persistirProyectoEdicionEnApi$(buildCommand, proyectoBase, persistedApiFields)
@@ -700,25 +739,12 @@ export class ProyectosManagementComponent implements OnInit {
   /** Renueva token y persiste edicion en API + almacen local. */
   private persistirProyectoEdicionEnApi$(
     buildCommand: (codigo: string) => CreateProyectoCommand,
-    proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion' | 'codigo'>,
-    persistedApiFields: Record<string, unknown>
+    _proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion' | 'codigo'>,
+    _persistedApiFields: Record<string, unknown>
   ): Observable<void> {
-    const local = this.proyectosService
-      .getProyectosSnapshot()
-      .find((p) => p.id === this.editingProyectoLocalId);
-    const apiId = local?.apiId;
+    const apiId = this.editingProyectoApiId;
     if (apiId == null || apiId < 1) {
-      if (PROYECTO_DEV_LOCAL_SAVE) {
-        return this.persistirProyectoSoloLocal$(
-          proyectoBase,
-          persistedApiFields,
-          true,
-          'Proyecto sin id en la API: guardado solo en este navegador.'
-        );
-      }
-      this.presentSaveProyectoErrores([
-        'Este proyecto no tiene id en la API. Solo se pueden editar proyectos guardados en el servidor.'
-      ]);
+      this.presentSaveProyectoErrores(['No se identifico el proyecto en la API para actualizar.']);
       return EMPTY;
     }
 
@@ -730,24 +756,20 @@ export class ProyectosManagementComponent implements OnInit {
         if (!result.success) {
           if (PROYECTO_DEV_LOCAL_SAVE) {
             return this.persistirProyectoSoloLocal$(
-              proyectoBase,
-              persistedApiFields,
+              _proyectoBase,
+              _persistedApiFields,
               true,
-              `API no disponible: ${result.message || 'actualizacion rechazada'}. Cambios guardados en este navegador.`
+              `API no disponible: ${result.message || 'actualizacion rechazada'}.`
             );
           }
           this.handleProyectoApiError(result, 'No fue posible actualizar el proyecto en la API.');
           return EMPTY;
         }
-        this.proyectosService.updateProyecto(this.editingProyectoLocalId!, {
-          ...proyectoBase,
-          ...persistedApiFields,
-          codigo,
-          apiId
-        } as Proyecto);
+        return this.proyectosService.refreshProyectosFromApi();
+      }),
+      tap(() => {
         this.resetForm();
         this.tryCloseProyectoModal();
-        return of(undefined);
       }),
       map(() => undefined)
     );
@@ -774,41 +796,13 @@ export class ProyectosManagementComponent implements OnInit {
           return EMPTY;
         }
 
-        const apiId = result.id;
-        const codigo = this.codigoDesdeIdProyecto(apiId);
-        if (result.nombre) {
-          proyectoBase.nombre = result.nombre;
-        }
-
-        const guardarLocal = () => {
-          this.proyectosService.addProyecto({
-            ...proyectoBase,
-            ...persistedApiFields,
-            codigo,
-            apiId
-          } as Proyecto);
-          this.resetForm();
-          this.tryCloseProyectoModal();
-        };
-
-        if (apiId != null && apiId >= 1 && codigo) {
-          return this.proyectosService.updateProyectoInApi({ ...buildCommand(codigo), id: apiId }).pipe(
-            switchMap((sync) => {
-              if (!sync.success) {
-                this.handleProyectoApiError(
-                  sync,
-                  'Proyecto creado en la API, pero no fue posible asignar el codigo interno.'
-                );
-                return EMPTY;
-              }
-              guardarLocal();
-              return of(undefined);
-            })
-          );
-        }
-
-        guardarLocal();
-        return of(undefined);
+        return this.proyectosService.refreshProyectosFromApi().pipe(
+          tap(() => {
+            this.resetForm();
+            this.tryCloseProyectoModal();
+          }),
+          map(() => undefined)
+        );
       }),
       map(() => undefined)
     );
@@ -825,28 +819,16 @@ export class ProyectosManagementComponent implements OnInit {
     isEditMode: boolean,
     aviso: string
   ): Observable<void> {
-    if (isEditMode && this.editingProyectoLocalId != null) {
-      const local = this.proyectosService.getProyectosSnapshot().find((p) => p.id === this.editingProyectoLocalId);
-      const codigo = local?.codigo || `local-${this.editingProyectoLocalId}`;
-      this.proyectosService.updateProyecto(this.editingProyectoLocalId, {
-        ...proyectoBase,
-        ...persistedApiFields,
-        codigo,
-        apiId: local?.apiId
-      } as Proyecto);
-    } else {
-      const codigo = `local-${Date.now()}`;
-      this.proyectosService.addProyecto({
-        ...proyectoBase,
-        ...persistedApiFields,
-        codigo
-      } as Proyecto);
-    }
+    this.presentSaveProyectoErrores([aviso, 'El guardado local esta deshabilitado. Use la API.']);
+    return EMPTY;
+  }
 
-    this.presentSaveProyectoAviso([aviso]);
-    this.resetForm();
-    this.tryCloseProyectoModal();
-    return of(undefined);
+  private cargarProyectosDesdeApi(): void {
+    this.isLoadingProyectosTabla = true;
+    this.proyectosService
+      .refreshProyectosFromApi()
+      .pipe(finalize(() => (this.isLoadingProyectosTabla = false)))
+      .subscribe();
   }
 
   private aplicarDefaultsFormularioProyectoDev(): void {
@@ -898,29 +880,113 @@ export class ProyectosManagementComponent implements OnInit {
     this.newProyecto = this.getInitialFormData();
     this.isSavingProyecto = false;
     this.modoFormulario = 'crear';
-    this.editingProyectoLocalId = null;
+    this.editingProyectoApiId = null;
     setTimeout(() => this.cleanupModalUiState(), 300);
   }
 
-  async onMultimediaChange(event: Event): Promise<void> {
+  abrirModalMultimediaImagen(): void {
+    this.prepararModalMultimedia('imagen');
+    this.showBootstrapModal('multimediaCargaModal');
+  }
+
+  abrirModalMultimediaVideo(): void {
+    this.prepararModalMultimedia('video');
+    this.showBootstrapModal('multimediaCargaModal');
+  }
+
+  cerrarModalMultimediaCarga(): void {
+    this.limpiarModalMultimediaCarga();
+    this.hideBootstrapModal('multimediaCargaModal');
+  }
+
+  private prepararModalMultimedia(tipo: MultimediaModalTipo): void {
+    this.limpiarModalMultimediaCarga();
+    this.multimediaModalTipo = tipo;
+    this.multimediaModalFecha = this.isoToYmd(new Date().toISOString());
+  }
+
+  private limpiarModalMultimediaCarga(): void {
+    this.revocarUrlsPreviewModalMultimedia();
+    this.multimediaModalError = '';
+    this.multimediaModalDetalle = '';
+    this.multimediaModalUrlVideo = '';
+    this.multimediaModalArchivosPendientes = [];
+    this.multimediaModalPreviewUrls = [];
+  }
+
+  onMultimediaModalArchivoChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = input.files;
     if (!files?.length) {
       return;
     }
+    this.revocarUrlsPreviewModalMultimedia();
+    this.multimediaModalArchivosPendientes = Array.from(files);
+    this.multimediaModalPreviewUrls = this.multimediaModalArchivosPendientes.map((f) =>
+      URL.createObjectURL(f)
+    );
+    this.multimediaModalError = '';
+    input.value = '';
+  }
+
+  async confirmarMultimediaModal(): Promise<void> {
+    const fecha = this.multimediaModalFecha.trim();
+    const detalle = this.multimediaModalDetalle.trim();
+    if (!fecha) {
+      this.multimediaModalError = 'Indique la fecha del registro multimedia.';
+      return;
+    }
+    if (!detalle) {
+      this.multimediaModalError = 'Indique el detalle del registro multimedia.';
+      return;
+    }
+
+    if (this.multimediaModalTipo === 'video') {
+      await this.confirmarMultimediaVideoModal(fecha, detalle);
+      return;
+    }
+    await this.confirmarMultimediaImagenModal(fecha, detalle);
+  }
+
+  private async confirmarMultimediaVideoModal(fecha: string, detalle: string): Promise<void> {
+    const url = this.multimediaModalUrlVideo.trim();
+    if (!url) {
+      this.multimediaModalError = 'Ingrese la URL del video.';
+      return;
+    }
+    if (!this.esUrlVideoValida(url)) {
+      this.multimediaModalError = 'URL de video no valida.';
+      return;
+    }
+    if (this.multimediaVideoUrls.some((v) => v.url === url)) {
+      this.multimediaModalError = 'Esa URL de video ya fue agregada.';
+      return;
+    }
+
+    this.multimediaSeleccionError = '';
+    this.multimediaVideoUrls = [
+      ...this.multimediaVideoUrls,
+      { ...this.buildVideoUrlEntry(url), fecha, detalle }
+    ];
+    this.cerrarModalMultimediaCarga();
+  }
+
+  private async confirmarMultimediaImagenModal(fecha: string, detalle: string): Promise<void> {
+    if (!this.multimediaModalArchivosPendientes.length) {
+      this.multimediaModalError = 'Seleccione al menos una imagen.';
+      return;
+    }
 
     this.isProcessingMultimedia = true;
+    this.multimediaModalError = '';
     const errores: string[] = [];
     const avisos: string[] = [];
     const nuevos: MultimediaImagenAdjunta[] = [];
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files.item(i);
-        if (!file) continue;
-
+      for (const file of this.multimediaModalArchivosPendientes) {
         if (!file.type.startsWith('image/')) {
-          errores.push(`"${file.name}": solo se permiten imagenes. Use URL para videos.`);
+          errores.push(`"${file.name}": solo se permiten imagenes. Use el modal de video para URLs.`);
           continue;
         }
 
@@ -928,7 +994,7 @@ export class ProyectosManagementComponent implements OnInit {
           if (file.size > this.tamanoMaxImagenMultimedia) {
             errores.push(`"${file.name}": GIF mayor a 300 KB (no se comprime automaticamente).`);
           } else {
-            nuevos.push(this.crearAdjuntoImagen(file, file.name, false));
+            nuevos.push(this.crearAdjuntoImagen(file, file.name, false, fecha, detalle));
           }
           continue;
         }
@@ -952,26 +1018,86 @@ export class ProyectosManagementComponent implements OnInit {
           }
         }
 
-        nuevos.push(this.crearAdjuntoImagen(fileFinal, file.name, comprimida));
+        nuevos.push(this.crearAdjuntoImagen(fileFinal, file.name, comprimida, fecha, detalle));
+      }
+
+      if (!nuevos.length && !errores.length) {
+        this.multimediaModalError = 'No se pudo agregar ninguna imagen.';
+        return;
       }
 
       const mensajes = [...errores, ...avisos].filter(Boolean);
       this.multimediaSeleccionError = mensajes.length ? mensajes.join(' ') : '';
       this.multimediaAdjuntos = [...this.multimediaAdjuntos, ...nuevos];
+      this.cerrarModalMultimediaCarga();
     } finally {
       this.isProcessingMultimedia = false;
-      input.value = '';
     }
   }
 
-  private crearAdjuntoImagen(file: File, nombreVisible: string, comprimida: boolean): MultimediaImagenAdjunta {
+  private crearAdjuntoImagen(
+    file: File,
+    nombreVisible: string,
+    comprimida: boolean,
+    fecha: string,
+    detalle: string
+  ): MultimediaImagenAdjunta {
     return {
       id: this.nuevoIdMultimedia(),
       file,
       url: URL.createObjectURL(file),
       nombre: nombreVisible,
-      comprimida
+      comprimida,
+      fecha,
+      detalle
     };
+  }
+
+  private buildMultimediaMetadatosParaGuardado(): ProyectoMultimediaMetadato[] {
+    const imagenes: ProyectoMultimediaMetadato[] = this.multimediaAdjuntos.map((a) => ({
+      tipo: 'imagen',
+      referencia: a.nombre,
+      fecha: a.fecha,
+      detalle: a.detalle
+    }));
+    const videos: ProyectoMultimediaMetadato[] = this.multimediaVideoUrls.map((v) => ({
+      tipo: 'video',
+      referencia: v.url,
+      fecha: v.fecha,
+      detalle: v.detalle
+    }));
+    return [...imagenes, ...videos];
+  }
+
+  private buildImagenesApiPayload(): ProyectoImagenApiCommand[] {
+    if (!this.multimediaAdjuntos.length) {
+      return [];
+    }
+
+    return this.multimediaAdjuntos.map((adjunto) => ({
+      descripcionImagen: adjunto.detalle.trim() || adjunto.nombre,
+      fechaImagen: this.fechaYmdToIso(adjunto.fecha) ?? adjunto.fecha,
+      archivoImagen: null
+    }));
+  }
+
+  private formatCoordenadaParaApi(value: number | string | null | undefined): string {
+    const parsed = this.parseCoordenada(value);
+    return parsed == null ? '' : String(parsed);
+  }
+
+  private parseCoordenada(value: number | string | null | undefined): number | undefined {
+    if (value == null || value === '') {
+      return undefined;
+    }
+    const numeric = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+
+  private revocarUrlsPreviewModalMultimedia(): void {
+    for (const url of this.multimediaModalPreviewUrls) {
+      URL.revokeObjectURL(url);
+    }
   }
 
   private formatTamanoArchivo(bytes: number): string {
@@ -1065,7 +1191,9 @@ export class ProyectosManagementComponent implements OnInit {
       alt: adjunto.nombre,
       nombre: adjunto.nombre,
       comprimida: adjunto.comprimida,
-      tamano: this.formatTamanoArchivo(adjunto.file.size)
+      tamano: this.formatTamanoArchivo(adjunto.file.size),
+      fecha: adjunto.fecha,
+      detalle: adjunto.detalle
     };
   }
 
@@ -1079,28 +1207,11 @@ export class ProyectosManagementComponent implements OnInit {
       if (this.multimediaImagenPreview?.src === adj.url) {
         this.cerrarVistaImagenMultimedia();
       }
-      URL.revokeObjectURL(adj.url);
+      if (adj.url.startsWith('blob:')) {
+        URL.revokeObjectURL(adj.url);
+      }
     }
     this.multimediaAdjuntos = this.multimediaAdjuntos.filter((_, i) => i !== index);
-  }
-
-  agregarMultimediaVideoUrl(): void {
-    const url = this.multimediaVideoUrlDraft.trim();
-    if (!url) {
-      this.multimediaSeleccionError = 'Ingrese la URL del video.';
-      return;
-    }
-    if (!this.esUrlVideoValida(url)) {
-      this.multimediaSeleccionError = 'URL de video no valida.';
-      return;
-    }
-    if (this.multimediaVideoUrls.some((v) => v.url === url)) {
-      this.multimediaSeleccionError = 'Esa URL de video ya fue agregada.';
-      return;
-    }
-    this.multimediaSeleccionError = '';
-    this.multimediaVideoUrls = [...this.multimediaVideoUrls, this.buildVideoUrlEntry(url)];
-    this.multimediaVideoUrlDraft = '';
   }
 
   removeMultimediaVideoUrl(index: number): void {
@@ -1111,14 +1222,20 @@ export class ProyectosManagementComponent implements OnInit {
     video.thumbnailUrl = null;
   }
 
-  private buildVideoUrlEntry(url: string): MultimediaVideoUrl {
+  private buildVideoUrlEntry(
+    url: string,
+    fecha = '',
+    detalle = ''
+  ): MultimediaVideoUrl {
     const meta = this.parseVideoUrlMetadata(url);
     return {
       id: this.nuevoIdMultimedia(),
       url,
       thumbnailUrl: meta.thumbnailUrl,
       etiqueta: meta.etiqueta,
-      valida: true
+      valida: true,
+      fecha,
+      detalle
     };
   }
 
@@ -1199,10 +1316,12 @@ export class ProyectosManagementComponent implements OnInit {
 
   private clearMultimediaAdjuntos(): void {
     this.cerrarVistaImagenMultimedia();
+    this.cerrarModalMultimediaCarga();
     this.multimediaSeleccionError = '';
-    this.multimediaVideoUrlDraft = '';
     for (const a of this.multimediaAdjuntos) {
-      URL.revokeObjectURL(a.url);
+      if (a.url.startsWith('blob:')) {
+        URL.revokeObjectURL(a.url);
+      }
     }
     this.multimediaAdjuntos = [];
     this.multimediaVideoUrls = [];
@@ -1210,8 +1329,97 @@ export class ProyectosManagementComponent implements OnInit {
 
   private cargarMultimediaDesdeProyecto(proyecto: Proyecto): void {
     this.clearMultimediaAdjuntos();
+    const imagenesApi = (proyecto.imagenes ?? []).filter((imagen) => !!imagen?.archivoImagen);
+    if (imagenesApi.length) {
+      this.multimediaAdjuntos = imagenesApi.map((imagen, index) =>
+        this.mapImagenApiToAdjunto(imagen, index)
+      );
+    }
+
+    const metadatos = proyecto.multimediaMetadatos ?? [];
+    const metaPorReferencia = new Map(
+      metadatos.map((m) => [m.referencia, m] as const)
+    );
+
     const urls = (proyecto.multimediaVideoUrls ?? []).filter(Boolean);
-    this.multimediaVideoUrls = urls.map((url) => this.buildVideoUrlEntry(url));
+    this.multimediaVideoUrls = urls.map((url) => {
+      const meta = metaPorReferencia.get(url);
+      return this.buildVideoUrlEntry(url, meta?.fecha ?? '', meta?.detalle ?? '');
+    });
+
+    const nombres = (proyecto.multimediaNombres ?? []).filter(Boolean);
+    for (const nombre of nombres) {
+      if (this.multimediaAdjuntos.some((adj) => adj.nombre === nombre)) {
+        continue;
+      }
+      const meta = metaPorReferencia.get(nombre);
+      this.multimediaAdjuntos.push({
+        id: this.nuevoIdMultimedia(),
+        file: new File([], nombre, { type: 'image/jpeg' }),
+        url: '',
+        nombre,
+        fecha: meta?.fecha ?? '',
+        detalle: meta?.detalle ?? ''
+      });
+    }
+  }
+
+  private cargarMultimediaDesdeDetalleApi(detalle: ProyectoDetalleApi, fallback: Proyecto): void {
+    const imagenesApi = Array.isArray(detalle.imagenes)
+      ? detalle.imagenes.filter((imagen) => !!imagen?.archivoImagen)
+      : [];
+
+    if (!imagenesApi.length) {
+      this.cargarMultimediaDesdeProyecto(fallback);
+      return;
+    }
+
+    this.clearMultimediaAdjuntos();
+    this.multimediaAdjuntos = imagenesApi.map((imagen, index) => this.mapImagenApiToAdjunto(imagen, index));
+  }
+
+  private mapImagenApiToAdjunto(
+    imagen: ProyectoImagenApiCommand | ProyectoImagenRegistrada,
+    index: number
+  ): MultimediaImagenAdjunta {
+    const nombre = this.buildNombreImagenApi(imagen, index);
+    return {
+      id: this.nuevoIdMultimedia(),
+      file: new File([], nombre, { type: this.detectMimeTypeFromArchivoImagen(imagen.archivoImagen) }),
+      url: this.resolveArchivoImagenPreviewUrl(imagen.archivoImagen),
+      nombre,
+      fecha: this.isoToYmd(imagen.fechaImagen) || imagen.fechaImagen || '',
+      detalle: (imagen.descripcionImagen || '').trim()
+    };
+  }
+
+  private buildNombreImagenApi(imagen: ProyectoImagenApiCommand, index: number): string {
+    const descripcion = (imagen.descripcionImagen || '').trim();
+    if (!descripcion) {
+      return `Imagen ${index + 1}`;
+    }
+    return descripcion.length <= 48 ? descripcion : `${descripcion.slice(0, 48).trim()}...`;
+  }
+
+  private resolveArchivoImagenPreviewUrl(archivoImagen: string | null | undefined): string {
+    const raw = (archivoImagen || '').trim();
+    if (!raw) {
+      return '';
+    }
+    if (/^data:image\//i.test(raw) || /^https?:\/\//i.test(raw)) {
+      return raw;
+    }
+    const compact = raw.replace(/\s+/g, '');
+    if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.length > 64) {
+      return `data:image/jpeg;base64,${compact}`;
+    }
+    return '';
+  }
+
+  private detectMimeTypeFromArchivoImagen(archivoImagen: string | null | undefined): string {
+    const raw = (archivoImagen || '').trim();
+    const match = raw.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/i);
+    return match?.[1] ?? 'image/jpeg';
   }
 
   private nuevoIdMultimedia(): string {
@@ -1262,11 +1470,12 @@ export class ProyectosManagementComponent implements OnInit {
       municipioEntidad: '',
       inversionClimatica: false,
       alcance: '',
-      metaProductoPrincipal: '',
-      metaPa: '',
       productoPrincipalMga: '',
-      cantidadMetaPa: null,
-      idMecanismoInclusion: null
+      cantidadMeta: null,
+      unidadMedidaMeta: '',
+      sesionCDInclusion: null,
+      latitud: null,
+      longitud: null
     };
   }
 
@@ -1276,6 +1485,15 @@ export class ProyectosManagementComponent implements OnInit {
 
   formatDate(date: Date): string {
     return this.dashboardService.formatDate(date);
+  }
+
+  formatCoordenadaResumen(value: number | null | undefined): string {
+    const parsed = this.parseCoordenada(value);
+    return parsed == null ? '—' : parsed.toFixed(5);
+  }
+
+  getProyectoImagenesCount(proyecto: Proyecto): number {
+    return proyecto.imagenes?.length ?? proyecto.multimediaNombres?.length ?? 0;
   }
 
   getTotalPresupuesto(): number {
@@ -1317,12 +1535,12 @@ export class ProyectosManagementComponent implements OnInit {
 
   onSesionCdInclusionPeiChange(value: number | string | null): void {
     if (value === '' || value === null || value === undefined) {
-      this.newProyecto.idMecanismoInclusion = null;
+      this.newProyecto.sesionCDInclusion = null;
       delete this.fieldErrors['sesionCd'];
       return;
     }
     const n = Number(value);
-    this.newProyecto.idMecanismoInclusion =
+    this.newProyecto.sesionCDInclusion =
       Number.isFinite(n) && Number.isInteger(n) && n >= 1 ? n : null;
     this.onCampoValidacionChange('sesionCd');
   }
@@ -1437,41 +1655,19 @@ export class ProyectosManagementComponent implements OnInit {
     return Math.round((fin.getTime() - inicio.getTime()) / 86400000);
   }
 
-  /** Une alcance + MGA + meta PA + sesion CD en un solo campo que la BD si tiene. */
-  private buildAlcanceParaApi(
-    alcanceBase: string,
-    productoMga: string,
-    metaPaApi: string,
-    sesionCdPei: number | null
-  ): string {
-    const partes: string[] = [];
-    const base = (alcanceBase || '').trim();
-    if (base) {
-      partes.push(base);
-    }
-    const prod = (productoMga || '').trim();
-    if (prod) {
-      partes.push(`Producto principal MGA: ${prod}`);
-    }
-    const meta = (metaPaApi || '').trim();
-    if (meta) {
-      partes.push(meta);
-    }
-    if (sesionCdPei != null && sesionCdPei >= 1) {
-      partes.push(`Sesion CD inclusion PEI: ${sesionCdPei}`);
-    }
-    return partes.join(' | ');
+  /** Alcance del proyecto (sesion CD y MGA van en campos dedicados de la API). */
+  private buildAlcanceParaApi(alcanceBase: string): string {
+    return (alcanceBase || '').trim();
   }
 
   private parseCamposDesdeAlcanceApi(raw?: string | null): {
-    metaProductoPrincipal: string;
-    metaPa: string;
-    cantidad: number | null;
+    productoPrincipalMga: string;
+    cantidadMeta: number | null;
+    unidadMedidaMeta: string;
     sesionCdPei: number | null;
     alcanceLimpio: string;
   } {
     const texto = (raw || '').trim();
-    const meta = this.parseMetaPaApi(texto);
     let sesionCdPei: number | null = null;
     const sesionMatch = texto.match(/Sesion CD inclusion PEI:\s*(\d+)/i);
     if (sesionMatch?.[1]) {
@@ -1479,10 +1675,22 @@ export class ProyectosManagementComponent implements OnInit {
       sesionCdPei = Number.isInteger(n) && n >= 1 ? n : null;
     }
 
-    let metaProductoPrincipal = meta.metaProductoPrincipal;
+    let productoPrincipalMga = '';
     const prodMatch = texto.match(/Producto principal MGA:\s*([^|]+)/i);
     if (prodMatch?.[1]) {
-      metaProductoPrincipal = prodMatch[1].trim();
+      productoPrincipalMga = prodMatch[1].trim();
+    }
+
+    let cantidadMeta: number | null = null;
+    const cantidadMatch = texto.match(/Cantidad:\s*(\d+)/i);
+    if (cantidadMatch?.[1]) {
+      cantidadMeta = this.resolveCantidadMeta(Number(cantidadMatch[1]));
+    }
+
+    let unidadMedidaMeta = '';
+    const unidadMatch = texto.match(/(?:Meta PA|Unidad medida meta):\s*([^|]+)/i);
+    if (unidadMatch?.[1]) {
+      unidadMedidaMeta = unidadMatch[1].trim();
     }
 
     let alcanceLimpio = texto;
@@ -1490,6 +1698,7 @@ export class ProyectosManagementComponent implements OnInit {
       /Producto principal MGA:\s*[^|]+/gi,
       /Meta producto principal:\s*[^|]+/gi,
       /Meta PA:\s*[^|]+/gi,
+      /Unidad medida meta:\s*[^|]+/gi,
       /Cantidad:\s*\d+/gi,
       /Sesion CD inclusion PEI:\s*\d+/gi
     ]) {
@@ -1498,81 +1707,15 @@ export class ProyectosManagementComponent implements OnInit {
     alcanceLimpio = alcanceLimpio.replace(/\|\s*\|/g, '|').replace(/^\|\s*|\s*\|$/g, '').trim();
 
     return {
-      metaProductoPrincipal,
-      metaPa: meta.metaPa,
-      cantidad: meta.cantidad,
+      productoPrincipalMga,
+      cantidadMeta,
+      unidadMedidaMeta,
       sesionCdPei,
       alcanceLimpio
     };
   }
 
-  private buildMetaPaApi(
-    metaProductoPrincipal: string,
-    metaPa: string,
-    cantidad: number | null | undefined
-  ): string {
-    const partes: string[] = [];
-    const metaProd = (metaProductoPrincipal || '').trim();
-    const metaPaTexto = (metaPa || '').trim();
-    const cantidadMeta = this.resolveCantidadMetaPa(cantidad);
-
-    if (metaProd) {
-      partes.push(`Meta producto principal: ${metaProd}`);
-    }
-    if (metaPaTexto) {
-      partes.push(`Meta PA: ${metaPaTexto}`);
-    }
-    if (cantidadMeta != null) {
-      partes.push(`Cantidad: ${cantidadMeta}`);
-    }
-    return partes.join(' | ');
-  }
-
-  private parseMetaPaApi(raw?: string): {
-    metaProductoPrincipal: string;
-    metaPa: string;
-    cantidad: number | null;
-  } {
-    const texto = (raw || '').trim();
-    if (!texto) {
-      return { metaProductoPrincipal: '', metaPa: '', cantidad: null };
-    }
-
-    const partes = texto.split('|').map((p) => p.trim()).filter(Boolean);
-    let metaProductoPrincipal = '';
-    let metaPa = '';
-    let cantidad: number | null = null;
-    const otros: string[] = [];
-
-    for (const parte of partes) {
-      const metaProdMatch = parte.match(/^Meta producto principal:\s*(.+)$/i);
-      if (metaProdMatch) {
-        metaProductoPrincipal = metaProdMatch[1].trim();
-        continue;
-      }
-      const metaPaMatch = parte.match(/^Meta PA:\s*(.+)$/i);
-      if (metaPaMatch) {
-        metaPa = metaPaMatch[1].trim();
-        continue;
-      }
-      const cantidadMatch = parte.match(/^Cantidad:\s*(\d+)$/i);
-      if (cantidadMatch) {
-        cantidad = Number(cantidadMatch[1]);
-        continue;
-      }
-      otros.push(parte);
-    }
-
-    if (!metaPa && otros.length) {
-      metaPa = otros.join(' | ');
-    } else if (!metaPa && !metaProductoPrincipal && texto && cantidad == null) {
-      metaPa = texto;
-    }
-
-    return { metaProductoPrincipal, metaPa, cantidad };
-  }
-
-  private resolveCantidadMetaPa(cantidad: number | null | undefined): number | null {
+  private resolveCantidadMeta(cantidad: number | null | undefined): number | null {
     if (cantidad === null || cantidad === undefined || Number.isNaN(Number(cantidad))) {
       return null;
     }
@@ -1710,7 +1853,6 @@ export class ProyectosManagementComponent implements OnInit {
 
   private cargarFormularioDesdeProyectoLocal(proyecto: Proyecto): void {
     const desdeAlcance = this.parseCamposDesdeAlcanceApi(proyecto.descripcion);
-    const meta = this.parseMetaPaApi(proyecto.metaPaTexto ?? '');
     let actaNumero = proyecto.actaCdNumero ?? '';
     let actaFecha = proyecto.actaCdFecha ?? '';
     if ((!actaNumero || !actaFecha) && proyecto.actaCd) {
@@ -1758,15 +1900,27 @@ export class ProyectosManagementComponent implements OnInit {
       ),
       inversionClimatica: !!proyecto.inversionClimatica,
       alcance: desdeAlcance.alcanceLimpio || proyecto.descripcion || '',
-      metaProductoPrincipal:
-        meta.metaProductoPrincipal || desdeAlcance.metaProductoPrincipal || proyecto.metaProductoPrincipal || '',
-      metaPa: meta.metaPa || desdeAlcance.metaPa,
       productoPrincipalMga:
-        (proyecto.productoPrincipalMga ?? desdeAlcance.metaProductoPrincipal) || '',
-      cantidadMetaPa: meta.cantidad ?? desdeAlcance.cantidad ?? proyecto.cantidadMetaPa ?? null,
-      idMecanismoInclusion: this.coerceOptionalPositiveInt(
-        proyecto.idMecanismoInclusion ?? desdeAlcance.sesionCdPei
-      )
+        proyecto.productoPrincipalMga?.trim()
+        || desdeAlcance.productoPrincipalMga
+        || '',
+      cantidadMeta:
+        proyecto.cantidadMeta
+        ?? (proyecto as Proyecto & { cantidadMetaPa?: number }).cantidadMetaPa
+        ?? desdeAlcance.cantidadMeta
+        ?? null,
+      unidadMedidaMeta:
+        proyecto.unidadMedidaMeta?.trim()
+        || (proyecto as Proyecto & { metaPaTexto?: string }).metaPaTexto?.trim()
+        || desdeAlcance.unidadMedidaMeta
+        || '',
+      sesionCDInclusion: this.coerceOptionalPositiveInt(
+        proyecto.sesionCDInclusion
+        ?? (proyecto as Proyecto & { idMecanismoInclusion?: number }).idMecanismoInclusion
+        ?? desdeAlcance.sesionCdPei
+      ),
+      latitud: proyecto.latitud ?? null,
+      longitud: proyecto.longitud ?? null
     };
     this.cargarMultimediaDesdeProyecto(proyecto);
     this.onPactoAsociadoChange(true);
@@ -1774,7 +1928,10 @@ export class ProyectosManagementComponent implements OnInit {
 
   private cargarFormularioDesdeDetalle(detalle: ProyectoDetalleApi, fallback: Proyecto): void {
     const desdeAlcance = this.parseCamposDesdeAlcanceApi(detalle.alcance ?? fallback.descripcion);
-    const meta = this.parseMetaPaApi(detalle.metaPa ?? fallback.metaPaTexto ?? detalle.alcance);
+    const detalleLegacy = detalle as ProyectoDetalleApi & {
+      productoMGA?: string;
+      metaPa?: string;
+    };
     this.newProyecto = {
       ...this.getInitialFormData(),
       pactoAsociado:
@@ -1822,25 +1979,36 @@ export class ProyectosManagementComponent implements OnInit {
       ),
       inversionClimatica: detalle.esInversionClimatica ?? !!fallback.inversionClimatica,
       alcance: desdeAlcance.alcanceLimpio || detalle.alcance || fallback.descripcion || '',
-      metaProductoPrincipal:
-        meta.metaProductoPrincipal ||
-        desdeAlcance.metaProductoPrincipal ||
-        fallback.metaProductoPrincipal ||
-        '',
-      metaPa:
-        (detalle.metaPa?.trim() || fallback.metaPaTexto?.trim() || meta.metaPa || desdeAlcance.metaPa || ''),
       productoPrincipalMga:
-        (detalle.productoMGA?.trim()
-          || fallback.productoPrincipalMga?.trim()
-          || desdeAlcance.metaProductoPrincipal
-          || '')
+        detalle.productoPrincipalMGA?.trim()
+        || detalleLegacy.productoMGA?.trim()
+        || fallback.productoPrincipalMga?.trim()
+        || desdeAlcance.productoPrincipalMga
         || '',
-      cantidadMetaPa: meta.cantidad ?? desdeAlcance.cantidad ?? fallback.cantidadMetaPa ?? null,
-      idMecanismoInclusion: this.coerceOptionalPositiveInt(
-        detalle.idMecanismoInclusion ?? fallback.idMecanismoInclusion ?? desdeAlcance.sesionCdPei
-      )
+      cantidadMeta:
+        detalle.cantidadMeta
+        ?? fallback.cantidadMeta
+        ?? (fallback as Proyecto & { cantidadMetaPa?: number }).cantidadMetaPa
+        ?? desdeAlcance.cantidadMeta
+        ?? null,
+      unidadMedidaMeta:
+        detalle.unidadMedidaMeta?.trim()
+        || detalleLegacy.metaPa?.trim()
+        || fallback.unidadMedidaMeta?.trim()
+        || (fallback as Proyecto & { metaPaTexto?: string }).metaPaTexto?.trim()
+        || desdeAlcance.unidadMedidaMeta
+        || '',
+      sesionCDInclusion: this.coerceOptionalPositiveInt(
+        detalle.sesionCDInclusion
+        ?? (detalle as ProyectoDetalleApi & { idMecanismoInclusion?: number }).idMecanismoInclusion
+        ?? fallback.sesionCDInclusion
+        ?? (fallback as Proyecto & { idMecanismoInclusion?: number }).idMecanismoInclusion
+        ?? desdeAlcance.sesionCdPei
+      ),
+      latitud: this.parseCoordenada(detalle.latitudProyecto) ?? fallback.latitud ?? null,
+      longitud: this.parseCoordenada(detalle.longitudProyecto) ?? fallback.longitud ?? null
     };
-    this.cargarMultimediaDesdeProyecto(fallback);
+    this.cargarMultimediaDesdeDetalleApi(detalle, fallback);
     this.onPactoAsociadoChange(true);
   }
 

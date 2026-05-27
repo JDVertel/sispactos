@@ -1,16 +1,26 @@
 ﻿import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { ContratosService } from '../../core/services/contratos.service';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { Contrato, Pacto, Proyecto } from '../../shared/models';
-import { Observable } from 'rxjs';
-import { PactosService } from '../../core/services/pactos.service';
-import { ProyectosService } from '../../core/services/proyectos.service';
+import { ActoresMaestroService } from '../../core/services/actores-maestro.service';
+import {
+  CATALOGO_TIPO_CONDICION_CONTRATO,
+  CATALOGO_TIPO_ESTADO_CONTRATO,
+  CATALOGO_TIPO_TIPO_CONTRATO,
+  CatalogoOption,
+  PactoApiOption,
+  PactosService
+} from '../../core/services/pactos.service';
+import { ProyectoApiOption, ProyectosService } from '../../core/services/proyectos.service';
+import { Contrato } from '../../shared/models';
 
 interface ContratoExtended extends Contrato {
   fechaCreacion: Date;
 }
+
+type ContratoForm = Omit<ContratoExtended, 'id' | 'fechaCreacion'>;
 
 @Component({
   selector: 'app-contratos-management',
@@ -20,144 +30,140 @@ interface ContratoExtended extends Contrato {
   styleUrl: './contratos-management.component.css'
 })
 export class ContratosManagementComponent implements OnInit {
-  // Lista observable de contratos para pintar en pantalla.
-  contratos$: Observable<ContratoExtended[]>;
+  contratos: ContratoExtended[] = [];
 
-  // Datos del formulario de nuevo contrato.
-  newContrato: Omit<ContratoExtended, 'id' | 'fechaCreacion'> = {
-    pacto: '',
-    proyecto: '',
-    contratista: '',
-    fechaInicio: new Date(),
-    fechaFin: new Date(),
-    contratoPadre: '',
-    tipoContrato: '',
-    contratante: '',
-    valorInicial: 0,
-    supervisor: '',
-    objeto: '',
-    urlSecop: ''
-  };
+  newContrato: ContratoForm = this.createEmptyContrato();
 
-  tiposContrato: string[] = [];
-  pactosDisponibles: string[] = [];
-  proyectosPorPacto: Record<string, string[]> = {};
-  proyectosDisponibles: string[] = [];
+  pactosCatalogo: PactoApiOption[] = [];
+  /** Todos los proyectos desde GET `/api/Proyecto`. */
+  proyectosApiCatalogo: ProyectoApiOption[] = [];
+  proyectosFiltrados: ProyectoApiOption[] = [];
+
+  tiposContratoCatalogo: CatalogoOption[] = [];
+  estadosContratoCatalogo: CatalogoOption[] = [];
+  condicionesContratoCatalogo: CatalogoOption[] = [];
+
   contratistasDisponibles: string[] = [];
-  contratosPadreDisponibles: string[] = [];
   contratantesDisponibles: string[] = [];
-  supervisoresDisponibles: string[] = [];
+  interventoresDisponibles: string[] = [];
+  contratosPadreOpciones: string[] = [];
+
+  isLoadingCatalogos = false;
+  valorInicialDisplay = '';
+  formularioError = '';
 
   constructor(
-    private contratosService: ContratosService,
-    private dashboardService: DashboardService,
-    private pactosService: PactosService,
-    private proyectosService: ProyectosService
-  ) {
-    this.contratos$ = this.contratosService.getContratos();
-  }
+    private readonly contratosService: ContratosService,
+    private readonly dashboardService: DashboardService,
+    private readonly pactosService: PactosService,
+    private readonly proyectosService: ProyectosService,
+    private readonly actoresMaestro: ActoresMaestroService
+  ) {}
 
   ngOnInit(): void {
-    // Carga catálogos y opciones iniciales para el formulario.
-    this.tiposContrato = this.contratosService.getTiposContrato();
-    this.contratistasDisponibles = this.contratosService.getContratistas();
-    this.contratosPadreDisponibles = this.contratosService.getContratosPadre();
-    this.contratantesDisponibles = this.contratosService.getContratantes();
-    this.supervisoresDisponibles = this.contratosService.getSupervisores();
-
-    this.pactosService.getPactos().subscribe((pactos: Pacto[]) => {
-      this.pactosDisponibles = pactos.map((pacto) => pacto.nombre).filter(Boolean);
-      this.ensureDefaultPactoProyecto();
+    this.contratosService.getContratos().subscribe((rows) => {
+      this.contratos = rows;
+      this.actualizarContratosPadreOpciones();
     });
 
-    this.proyectosService.getProyectos().subscribe((proyectos: Proyecto[]) => {
-      const agrupados: Record<string, string[]> = {};
-      proyectos.forEach((proyecto) => {
-        const pactoNombre = proyecto.pactoAsociado?.trim();
-        if (!pactoNombre) {
-          return;
-        }
-        if (!agrupados[pactoNombre]) {
-          agrupados[pactoNombre] = [];
-        }
-        agrupados[pactoNombre].push(proyecto.nombre);
-      });
+    this.contratistasDisponibles = this.actoresMaestro.getContratistas();
+    this.contratantesDisponibles = this.actoresMaestro.getContratantes();
+    this.interventoresDisponibles = this.actoresMaestro.getInterventores();
 
-      this.proyectosPorPacto = agrupados;
-      this.ensureDefaultPactoProyecto();
+    this.isLoadingCatalogos = true;
+    forkJoin({
+      pactos: this.pactosService.getPactosOptionsFromApi(),
+      proyectos: this.proyectosService.getProyectosFromApi(),
+      tiposContrato: this.pactosService.getCatalogoByTipo(CATALOGO_TIPO_TIPO_CONTRATO),
+      estadosContrato: this.pactosService.getCatalogoByTipo(CATALOGO_TIPO_ESTADO_CONTRATO),
+      condicionesContrato: this.pactosService.getCatalogoByTipo(CATALOGO_TIPO_CONDICION_CONTRATO)
+    }).subscribe({
+      next: ({ pactos, proyectos, tiposContrato, estadosContrato, condicionesContrato }) => {
+        this.pactosCatalogo = pactos;
+        this.proyectosApiCatalogo = proyectos;
+        this.tiposContratoCatalogo = this.sortCatalog(tiposContrato);
+        this.estadosContratoCatalogo = this.sortCatalog(estadosContrato);
+        this.condicionesContratoCatalogo = this.sortCatalog(condicionesContrato);
+        this.aplicarFallbackCatalogos();
+        this.isLoadingCatalogos = false;
+      },
+      error: () => {
+        this.pactosCatalogo = [];
+        this.proyectosApiCatalogo = [];
+        this.aplicarFallbackCatalogos();
+        this.isLoadingCatalogos = false;
+      }
     });
-
-    this.newContrato.contratista = this.contratistasDisponibles[0] ?? '';
-    this.newContrato.contratoPadre = this.contratosPadreDisponibles[0] ?? '';
-    this.newContrato.tipoContrato = this.tiposContrato[0] ?? '';
-    this.newContrato.contratante = this.contratantesDisponibles[0] ?? '';
-    this.newContrato.supervisor = this.supervisoresDisponibles[0] ?? '';
   }
 
-  // Crea un contrato nuevo si el formulario cumple validaciones básicas.
-  addContrato(): void {
-    const { pacto, proyecto, contratista, fechaInicio, fechaFin, contratoPadre, tipoContrato, contratante, valorInicial, supervisor, objeto, urlSecop } = this.newContrato;
-    const contratoPadreValido = /^[a-zA-Z0-9-]+$/.test(contratoPadre.trim());
+  get requiereContratoPadre(): boolean {
+    const texto = this.condicionSeleccionadaTexto().toLowerCase();
+    return /adici[oó]n|modificaci[oó]n|pr[oó]rroga|complementar|otros[ií]/i.test(texto);
+  }
 
-    if (
-      !pacto ||
-      !proyecto ||
-      !contratista ||
-      !fechaInicio ||
-      !fechaFin ||
-      !contratoPadreValido ||
-      !tipoContrato ||
-      !contratante ||
-      valorInicial <= 0 ||
-      !supervisor ||
-      !objeto.trim() ||
-      !urlSecop.trim()
-    ) {
-      console.warn('[SISPACTOS] No se guarda contrato: validacion fallida.');
+  addContrato(): void {
+    this.formularioError = '';
+    const err = this.validarFormulario();
+    if (err) {
+      this.formularioError = err;
       return;
     }
 
-    const payload = {
+    const payload: ContratoForm = {
       ...this.newContrato,
-      contratoPadre: contratoPadre.trim(),
-      objeto: objeto.trim(),
-      urlSecop: urlSecop.trim()
+      pacto: this.textoPacto(this.newContrato.idPactoTerritorial),
+      proyecto: this.textoProyecto(this.newContrato.idProyecto),
+      tipoContrato: this.textoCatalogo(this.tiposContratoCatalogo, this.newContrato.idTipoContrato),
+      estado: this.textoCatalogo(this.estadosContratoCatalogo, this.newContrato.idEstado),
+      condicion: this.textoCatalogo(this.condicionesContratoCatalogo, this.newContrato.idCondicion),
+      numeroContrato: this.newContrato.numeroContrato.trim(),
+      contratoPadre: this.requiereContratoPadre ? (this.newContrato.contratoPadre ?? '').trim() : undefined,
+      objeto: this.newContrato.objeto.trim(),
+      urlSecop: this.newContrato.urlSecop?.trim() || undefined,
+      valorInicial: Number(this.newContrato.valorInicial) || 0,
+      numeroDesembolsos: Number(this.newContrato.numeroDesembolsos) || 0
     };
 
-    console.log('[SISPACTOS] Nuevo contrato (local):', payload);
     this.contratosService.addContrato(payload);
     this.resetForm();
   }
 
-  // Elimina un contrato del listado.
   deleteContrato(id: number): void {
     this.contratosService.removeContrato(id);
   }
 
-  // Reinicia el formulario con valores por defecto.
   resetForm(): void {
-    const pacto = this.pactosDisponibles[0] ?? '';
-    this.newContrato = {
-      pacto,
-      proyecto: this.getProyectosPorPacto(pacto)[0] ?? '',
-      contratista: this.contratistasDisponibles[0] ?? '',
-      fechaInicio: new Date(),
-      fechaFin: new Date(),
-      contratoPadre: this.contratosPadreDisponibles[0] ?? '',
-      tipoContrato: this.tiposContrato[0] ?? '',
-      contratante: this.contratantesDisponibles[0] ?? '',
-      valorInicial: 0,
-      supervisor: this.supervisoresDisponibles[0] ?? '',
-      objeto: '',
-      urlSecop: ''
-    };
-    this.proyectosDisponibles = this.getProyectosPorPacto(this.newContrato.pacto);
+    this.newContrato = this.createEmptyContrato();
+    this.valorInicialDisplay = '';
+    this.formularioError = '';
+    this.proyectosFiltrados = [];
   }
 
-  // Al cambiar el pacto, actualiza los proyectos disponibles.
-  onPactoChange(): void {
-    this.proyectosDisponibles = this.getProyectosPorPacto(this.newContrato.pacto);
-    this.newContrato.proyecto = this.proyectosDisponibles[0] ?? '';
+  /** Al elegir pacto: filtra proyectos donde `idPactoTerritorial` = id del pacto seleccionado. */
+  onPactoChange(idPactoTerritorialSeleccionado: number | null): void {
+    this.newContrato.idProyecto = null;
+    this.proyectosFiltrados = [];
+
+    const idPacto = this.normalizarId(idPactoTerritorialSeleccionado);
+    if (!idPacto) {
+      return;
+    }
+
+    this.proyectosFiltrados = this.proyectosApiCatalogo.filter((proyecto) =>
+      this.normalizarId(proyecto.idPactoTerritorial) === idPacto
+    );
+    this.newContrato.idProyecto = this.proyectosFiltrados[0]?.id ?? null;
+  }
+
+  onCondicionChange(): void {
+    if (!this.requiereContratoPadre) {
+      this.newContrato.contratoPadre = '';
+    }
+  }
+
+  onNumeroContratoInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.newContrato.numeroContrato = input.value.replace(/[^a-zA-Z0-9-]/g, '');
   }
 
   onContratoPadreInput(event: Event): void {
@@ -165,26 +171,32 @@ export class ContratosManagementComponent implements OnInit {
     this.newContrato.contratoPadre = input.value.replace(/[^a-zA-Z0-9-]/g, '');
   }
 
-  private getProyectosPorPacto(pacto: string): string[] {
-    return this.proyectosPorPacto[pacto] ?? [];
+  onValorInicialFocus(): void {
+    const v = this.newContrato.valorInicial;
+    this.valorInicialDisplay = v != null && Number.isFinite(v) ? String(Math.trunc(v)) : '';
   }
 
-  private ensureDefaultPactoProyecto(): void {
-    if (!this.newContrato.pacto) {
-      this.newContrato.pacto = this.pactosDisponibles[0] ?? '';
-    }
-    this.proyectosDisponibles = this.getProyectosPorPacto(this.newContrato.pacto);
-    if (!this.newContrato.proyecto) {
-      this.newContrato.proyecto = this.proyectosDisponibles[0] ?? '';
-    }
+  onValorInicialInput(raw: string): void {
+    this.valorInicialDisplay = raw;
+    this.newContrato.valorInicial = this.parseCurrencyInput(raw) ?? 0;
+  }
+
+  onValorInicialBlur(): void {
+    const v = this.newContrato.valorInicial;
+    this.valorInicialDisplay =
+      v != null && Number.isFinite(v) && v > 0 ? this.formatCurrencyInput(v) : '';
   }
 
   formatCurrency(value: number): string {
     return this.dashboardService.formatCurrency(value);
   }
 
-  formatDate(date: Date): string {
-    return this.dashboardService.formatDate(date);
+  formatDate(value: string | Date): string {
+    if (!value) {
+      return '—';
+    }
+    const d = typeof value === 'string' ? new Date(`${value}T12:00:00`) : value;
+    return this.dashboardService.formatDate(d);
   }
 
   getTotalValorContratos(): number {
@@ -193,5 +205,141 @@ export class ContratosManagementComponent implements OnInit {
 
   getContratosConSecop(): number {
     return this.contratosService.getContratosConSecop();
+  }
+
+  private createEmptyContrato(): ContratoForm {
+    const hoy = new Date().toISOString().slice(0, 10);
+    return {
+      idPactoTerritorial: null,
+      pacto: '',
+      idProyecto: null,
+      proyecto: '',
+      idTipoContrato: null,
+      tipoContrato: '',
+      contratista: '',
+      numeroContrato: '',
+      fechaSuscripcion: hoy,
+      fechaInicio: hoy,
+      fechaTerminacionInicial: hoy,
+      idEstado: null,
+      estado: '',
+      idCondicion: null,
+      condicion: '',
+      valorInicial: 0,
+      numeroDesembolsos: 0,
+      contratoPadre: '',
+      contratante: '',
+      interventor: '',
+      objeto: '',
+      urlSecop: ''
+    };
+  }
+
+  private validarFormulario(): string | null {
+    const c = this.newContrato;
+    if (!c.idPactoTerritorial) return 'Seleccione un pacto.';
+    if (!c.idProyecto) return 'Seleccione un proyecto.';
+    if (!c.idTipoContrato) return 'Seleccione el tipo de contrato.';
+    if (!c.contratista.trim()) return 'Seleccione un contratista.';
+    if (!c.numeroContrato.trim()) return 'Ingrese el número de contrato.';
+    if (!/^[a-zA-Z0-9-]+$/.test(c.numeroContrato.trim())) {
+      return 'El número de contrato solo permite letras, números y guion.';
+    }
+    if (!c.fechaSuscripcion) return 'Ingrese la fecha de suscripción.';
+    if (!c.fechaInicio) return 'Ingrese la fecha de inicio.';
+    if (!c.fechaTerminacionInicial) return 'Ingrese la fecha de terminación inicial.';
+    if (c.fechaTerminacionInicial < c.fechaInicio) {
+      return 'La fecha de terminación inicial no puede ser anterior a la fecha de inicio.';
+    }
+    if (!c.idEstado) return 'Seleccione el estado del contrato.';
+    if (!c.idCondicion) return 'Seleccione la condición del contrato.';
+    if (!c.valorInicial || c.valorInicial <= 0) return 'Ingrese el valor inicial del contrato.';
+    if (!Number.isFinite(c.numeroDesembolsos) || c.numeroDesembolsos < 1) {
+      return 'Ingrese el número de desembolsos (mínimo 1).';
+    }
+    if (this.requiereContratoPadre && !(c.contratoPadre ?? '').trim()) {
+      return 'Seleccione o ingrese el contrato padre para la condición indicada.';
+    }
+    if (!c.contratante.trim()) return 'Seleccione un contratante.';
+    if (!c.interventor.trim()) return 'Seleccione un interventor.';
+    if (!c.objeto.trim()) return 'Ingrese el objeto del contrato.';
+    return null;
+  }
+
+  private condicionSeleccionadaTexto(): string {
+    return this.textoCatalogo(this.condicionesContratoCatalogo, this.newContrato.idCondicion);
+  }
+
+  private textoPacto(idPactoTerritorial: number | null | undefined): string {
+    const id = this.normalizarId(idPactoTerritorial);
+    if (!id) return '';
+    return (
+      this.pactosCatalogo.find((p) => this.normalizarId(p.idPactoTerritorial) === id)?.nombre ?? ''
+    );
+  }
+
+  private normalizarId(value: number | null | undefined): number | null {
+    const n = Math.trunc(Number(value));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  private textoProyecto(idProyecto: number | null | undefined): string {
+    if (!idProyecto) return '';
+    return (
+      this.proyectosFiltrados.find((p) => p.id === idProyecto)?.nombre ??
+      ''
+    );
+  }
+
+  private textoCatalogo(items: CatalogoOption[], id: number | null | undefined): string {
+    if (!id) return '';
+    return items.find((o) => o.id === id)?.texto ?? '';
+  }
+
+  private actualizarContratosPadreOpciones(): void {
+    const numeros = this.contratos
+      .map((c) => c.numeroContrato.trim())
+      .filter((n) => n.length > 0);
+    this.contratosPadreOpciones = [...new Set(numeros)];
+  }
+
+  private aplicarFallbackCatalogos(): void {
+    if (!this.tiposContratoCatalogo.length) {
+      this.tiposContratoCatalogo = this.contratosService
+        .getTiposContratoFallback()
+        .map((texto, index) => ({ id: index + 1, codigo: String(index + 1), texto }));
+    }
+    if (!this.estadosContratoCatalogo.length) {
+      this.estadosContratoCatalogo = [
+        { id: 1, codigo: '1', texto: 'Activo' },
+        { id: 2, codigo: '2', texto: 'Liquidado' },
+        { id: 3, codigo: '3', texto: 'Suspendido' }
+      ];
+    }
+    if (!this.condicionesContratoCatalogo.length) {
+      this.condicionesContratoCatalogo = [
+        { id: 1, codigo: '1', texto: 'Nuevo' },
+        { id: 2, codigo: '2', texto: 'Adición' },
+        { id: 3, codigo: '3', texto: 'Modificación' }
+      ];
+    }
+  }
+
+  private sortCatalog(items: CatalogoOption[]): CatalogoOption[] {
+    return [...items].sort((a, b) => a.texto.localeCompare(b.texto, 'es'));
+  }
+
+  private parseCurrencyInput(value: string): number | null {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return null;
+    const n = Number(digits);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private formatCurrencyInput(value: number): string {
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   }
 }

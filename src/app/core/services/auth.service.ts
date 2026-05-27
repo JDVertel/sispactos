@@ -1,5 +1,5 @@
 import { Injectable, Injector } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, shareReplay, finalize } from 'rxjs/operators';
 import { AuthSessionStore } from '../store/auth-session.store';
@@ -8,10 +8,16 @@ import {
   extractAccessToken,
   extractAuthErrorMessage,
   extractRefreshResponseToken,
+  extractSessionRoleIdFromToken,
+  isAdministratorRoleId,
   isAuthFailurePayload,
   isOAuthLoginSuccessPayload,
   isValidSessionToken,
   loginRejectionMessage,
+  isJwtExpired,
+  normalizeBearerToken,
+  sessionRoleDisplayLabel,
+  tokenExpiresWithin,
   validateLoginSessionToken
 } from '../auth/auth-token.util';
 
@@ -71,6 +77,10 @@ export class AuthService {
     if (!this.hasValidUserSession()) {
       return of(false);
     }
+    const token = normalizeBearerToken(this.authSessionStore.getToken());
+    if (!tokenExpiresWithin(token, 120)) {
+      return of(true);
+    }
     return this.refreshToken();
   }
 
@@ -92,9 +102,10 @@ export class AuthService {
       return of(false);
     }
 
-    const body = this.buildRefreshTokenBody(token);
+    const refreshBody = this.buildRefreshTokenRequestBody(token);
 
-    this.refreshInFlight$ = this.http.post(AUTH_REFRESH_TOKEN_URL, body, {
+    this.refreshInFlight$ = this.http.post(AUTH_REFRESH_TOKEN_URL, refreshBody, {
+      headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
       observe: 'response',
       responseType: 'text'
     }).pipe(
@@ -105,12 +116,13 @@ export class AuthService {
         return this.handleRefreshSuccess(response.body ?? '', token, session.username);
       }),
       catchError((error: HttpErrorResponse) => {
-        console.error('[API ERROR] POST /api/Auth/RefreshToken', error);
-        if (error.status === 401 || error.status === 403) {
+        const errBody = typeof error.error === 'string' ? error.error : JSON.stringify(error.error ?? '');
+        console.warn('[API WARN] POST /api/Auth/RefreshToken', error.status, errBody);
+        if (this.shouldLogoutAfterRefreshFailure()) {
           this.logout();
           return of(false);
         }
-        return of(this.hasValidUserSession());
+        return of(true);
       }),
       finalize(() => {
         this.refreshInFlight$ = null;
@@ -150,7 +162,7 @@ export class AuthService {
     return check.valid;
   }
 
-  getCurrentUser(): { username: string; mode: 'local' | 'guest' } | null {
+  getCurrentUser(): { username: string; mode: 'local' | 'guest'; role?: string } | null {
     const session = this.authSessionStore.getSession();
 
     if (!session || !this.hasValidUserSession()) {
@@ -159,8 +171,21 @@ export class AuthService {
 
     return {
       username: session.username,
-      mode: session.mode
+      mode: session.mode,
+      role: session.role
     };
+  }
+
+  getSessionRoleId(): string | null {
+    return this.authSessionStore.getSession()?.role?.trim() || null;
+  }
+
+  getSessionRoleLabel(): string {
+    return sessionRoleDisplayLabel(this.getSessionRoleId());
+  }
+
+  isAdministratorSession(): boolean {
+    return this.hasValidUserSession() && isAdministratorRoleId(this.getSessionRoleId());
   }
 
   private handleLoginHttpResponse(
@@ -212,7 +237,8 @@ export class AuthService {
     this.authSessionStore.setSession({
       username,
       mode: 'local',
-      token
+      token,
+      role: extractSessionRoleIdFromToken(token) ?? 'admin'
     });
 
     this.startSessionKeepalive();
@@ -251,8 +277,8 @@ export class AuthService {
     return this.handleLoginHttpFailure(error.status, raw || JSON.stringify(error.error ?? ''));
   }
 
-  private handleRefreshHttpFailure(status: number, raw: string): boolean {
-    if (status === 401 || status === 403) {
+  private handleRefreshHttpFailure(status: number, _raw: string): boolean {
+    if ((status === 401 || status === 403) && this.shouldLogoutAfterRefreshFailure()) {
       this.logout();
       return false;
     }
@@ -263,6 +289,9 @@ export class AuthService {
     const payload = this.parseJsonPayload(raw);
 
     if (isAuthFailurePayload(payload)) {
+      if (validateLoginSessionToken(previousToken, username).valid) {
+        return true;
+      }
       this.logout();
       return false;
     }
@@ -271,6 +300,9 @@ export class AuthService {
     const sessionCheck = validateLoginSessionToken(refreshedToken, username);
 
     if (!sessionCheck.valid) {
+      if (validateLoginSessionToken(previousToken, username).valid) {
+        return true;
+      }
       this.logout();
       return false;
     }
@@ -282,7 +314,8 @@ export class AuthService {
 
     this.authSessionStore.setSession({
       ...current,
-      token: refreshedToken
+      token: refreshedToken,
+      role: extractSessionRoleIdFromToken(refreshedToken) ?? current.role ?? 'admin'
     });
 
     return true;
@@ -306,10 +339,22 @@ export class AuthService {
     }
   }
 
-  private buildRefreshTokenBody(token: string): { refreshToken: string } {
-    return {
-      refreshToken: token.replace(/^Bearer\s+/i, '').trim()
-    };
+  /**
+   * La API espera el JWT como JSON string en el cuerpo (no un objeto `{ refreshToken }`).
+   * Ejemplo valido: "eyJhbGciOiJIUzI1NiIs..."
+   */
+  private buildRefreshTokenRequestBody(token: string): string {
+    const normalized = normalizeBearerToken(token);
+    return JSON.stringify(normalized);
+  }
+
+  /** Solo cerrar sesion si el JWT actual ya no sirve (evita perder acceso por fallo de refresh). */
+  private shouldLogoutAfterRefreshFailure(): boolean {
+    const token = normalizeBearerToken(this.authSessionStore.getToken());
+    if (!token) {
+      return true;
+    }
+    return isJwtExpired(token);
   }
 
   private parseJsonPayload(raw: string | null): unknown {

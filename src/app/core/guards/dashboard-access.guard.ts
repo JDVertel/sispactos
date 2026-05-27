@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { dashboardPathRequiresSession } from '../auth/route-access.policy';
+import { AuthPromptService } from '../services/auth-prompt.service';
 import { AuthService } from '../services/auth.service';
 
 function resolveDashboardSegment(route: ActivatedRouteSnapshot): string {
@@ -9,10 +10,10 @@ function resolveDashboardSegment(route: ActivatedRouteSnapshot): string {
     return page;
   }
   const path = route.routeConfig?.path ?? '';
-  if (path.startsWith(':')) {
+  if (!path || path.startsWith(':')) {
     return '';
   }
-  return path;
+  return path.split('/')[0];
 }
 
 /**
@@ -21,6 +22,7 @@ function resolveDashboardSegment(route: ActivatedRouteSnapshot): string {
  */
 export const dashboardAccessGuard: CanActivateFn = (route) => {
   const authService = inject(AuthService);
+  const authPromptService = inject(AuthPromptService);
   const router = inject(Router);
   const segment = resolveDashboardSegment(route);
 
@@ -32,5 +34,6 @@ export const dashboardAccessGuard: CanActivateFn = (route) => {
     return true;
   }
 
+  authPromptService.requestLogin();
   return router.parseUrl('/dashboard/home');
 };

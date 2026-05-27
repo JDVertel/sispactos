@@ -6,6 +6,8 @@ export interface AuthSession {
   username: string;
   mode: 'local';
   token?: string;
+  /** Id de rol (`admin`, etc.) para UI y permisos visuales. */
+  role?: string;
 }
 
 const AUTH_SESSION_STORAGE_KEY = 'sispactos.auth.session';
@@ -60,10 +62,13 @@ export class AuthSessionStore {
         return null;
       }
 
+      const role = typeof parsed.role === 'string' && parsed.role.trim() ? parsed.role.trim() : 'admin';
+
       return {
         username: parsed.username,
         mode: 'local',
-        token
+        token,
+        role
       };
     } catch {
       return null;

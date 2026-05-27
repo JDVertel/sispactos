@@ -2,20 +2,20 @@
 <section class="container-fluid px-0">
   <!-- Encabezado principal -->
   <header class="mb-4">
-    <h1 class="h3 mb-1">Gestion de usuarios y roles</h1>
+    <h1 class="h3 mb-1">Gestión de usuarios y roles</h1>
     <p class="text-secondary mb-0">Administra roles, usuarios locales y usuarios externos para Sispactos.</p>
   </header>
 
   <!-- Pestañas para cambiar de vista -->
   <ul class="nav nav-pills mb-3">
     <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'roles'" (click)="setActiveTab('roles')" type="button">Gestion de Roles</button>
+      <button class="nav-link" [class.active]="activeTab === 'roles'" (click)="setActiveTab('roles')" type="button">Gestión de roles</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'local'" (click)="setActiveTab('local')" type="button">Usuarios Locales</button>
+      <button class="nav-link" [class.active]="activeTab === 'local'" (click)="setActiveTab('local')" type="button">Usuarios locales</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'external'" (click)="setActiveTab('external')" type="button">Usuarios Externos</button>
+      <button class="nav-link" [class.active]="activeTab === 'external'" (click)="setActiveTab('external')" type="button">Usuarios externos</button>
     </li>
   </ul>
 
@@ -31,7 +31,7 @@
               <input class="form-control" type="text" name="roleName" [(ngModel)]="newRoleName" required />
             </div>
             <div>
-              <label class="form-label">Descripcion</label>
+              <label class="form-label">Descripción</label>
               <textarea class="form-control" name="roleDescription" [(ngModel)]="newRoleDescription" rows="3" required></textarea>
             </div>
             <div>
@@ -64,7 +64,7 @@
               <thead>
                 <tr>
                   <th>Nombre</th>
-                  <th>Descripcion</th>
+                  <th>Descripción</th>
                   <th>Permisos</th>
                   <th>Acciones</th>
                 </tr>

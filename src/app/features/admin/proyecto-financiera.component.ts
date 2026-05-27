@@ -40,6 +40,7 @@ export class ProyectoFinancieraComponent implements OnInit {
   financiera: ProyectoFinancieraData = createEmptyProyectoFinancieraData(0);
   activeTab: FinancieraTab = 'indicativos';
   guardadoOk = false;
+  vigenciaValorDisplay: string[] = [];
 
   readonly camposDetalleIndicativos: FinancieraCampoDetalle[] = [
     { key: 'aporteIndicativoDnpFrpt', label: 'Aporte indicativo DNP FRPT', group: 'indicativos' },
@@ -68,7 +69,7 @@ export class ProyectoFinancieraComponent implements OnInit {
     },
     { key: 'aporteIndicativoOcadPaz', label: 'Aporte indicativo OCAD PAZ', group: 'indicativos' },
     { key: 'aporteIndicativoOtrosTerritorio', label: 'Aporte indicativo otros territorio', group: 'indicativos' },
-    { key: 'aporteIndicativoOtros', label: 'Aporte indicativo Otros', group: 'indicativos' }
+    { key: 'aporteIndicativoOtros', label: 'Aporte indicativo otros', group: 'indicativos' }
   ];
 
   readonly camposDetalleComprometido: FinancieraCampoDetalle[] = [
@@ -125,7 +126,8 @@ export class ProyectoFinancieraComponent implements OnInit {
       return;
     }
 
-    this.proyecto = this.proyectosService.getProyectosSnapshot().find((p) => p.id === proyectoId) ?? null;
+    this.proyecto =
+      this.proyectosService.getProyectosSnapshot().find((p) => (p.apiId ?? p.id) === proyectoId) ?? null;
     if (!this.proyecto) {
       void this.router.navigate(['/dashboard/gestion-proyectos']);
       return;
@@ -135,6 +137,7 @@ export class ProyectoFinancieraComponent implements OnInit {
     if (!this.financiera.conpes.consecutivoProyecto && this.proyecto.consecutivoConpes != null) {
       this.financiera.conpes.consecutivoProyecto = String(this.proyecto.consecutivoConpes);
     }
+    this.syncVigenciaValorDisplay();
   }
 
   get totalesIndicativos(): FinancieraTotalesSesion {
@@ -181,16 +184,38 @@ export class ProyectoFinancieraComponent implements OnInit {
   agregarVigencia(): void {
     this.financiera.conpes.vigencias = [
       ...this.financiera.conpes.vigencias,
-      { valor: null, anio: null }
+      { valor: null, anio: new Date().getFullYear() }
     ];
+    this.syncVigenciaValorDisplay();
+    this.guardadoOk = false;
   }
 
   quitarVigencia(index: number): void {
     if (this.financiera.conpes.vigencias.length <= 1) {
-      this.financiera.conpes.vigencias = [{ valor: null, anio: null }];
-      return;
+      this.financiera.conpes.vigencias = [{ valor: null, anio: new Date().getFullYear() }];
+    } else {
+      this.financiera.conpes.vigencias = this.financiera.conpes.vigencias.filter((_, i) => i !== index);
     }
-    this.financiera.conpes.vigencias = this.financiera.conpes.vigencias.filter((_, i) => i !== index);
+    this.syncVigenciaValorDisplay();
+    this.guardadoOk = false;
+  }
+
+  onVigenciaValorChange(index: number, raw: string): void {
+    this.financiera.conpes.vigencias[index].valor = this.parseCurrencyInput(raw);
+    this.guardadoOk = false;
+  }
+
+  onVigenciaValorFocus(index: number): void {
+    const valor = this.financiera.conpes.vigencias[index]?.valor;
+    if (valor != null && Number.isFinite(valor)) {
+      this.vigenciaValorDisplay[index] = String(Math.trunc(valor));
+    }
+  }
+
+  onVigenciaValorBlur(index: number): void {
+    const valor = this.financiera.conpes.vigencias[index]?.valor;
+    this.vigenciaValorDisplay[index] =
+      valor != null && Number.isFinite(valor) ? this.formatCurrencyInput(valor) : '';
   }
 
   guardar(): void {
@@ -204,7 +229,29 @@ export class ProyectoFinancieraComponent implements OnInit {
     return this.dashboardService.formatCurrency(value);
   }
 
-  trackVigencia(_index: number, item: ProyectoFinancieraVigencia): string {
-    return `${item.anio}-${item.valor}`;
+  trackVigencia(index: number): number {
+    return index;
+  }
+
+  private syncVigenciaValorDisplay(): void {
+    this.vigenciaValorDisplay = this.financiera.conpes.vigencias.map((v) =>
+      v.valor != null && Number.isFinite(v.valor) ? this.formatCurrencyInput(v.valor) : ''
+    );
+  }
+
+  private parseCurrencyInput(value: string): number | null {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) {
+      return null;
+    }
+    const n = Number(digits);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  private formatCurrencyInput(value: number): string {
+    return new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   }
 }

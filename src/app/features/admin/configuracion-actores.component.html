@@ -3,8 +3,8 @@
   <!-- Título y resumen rápido -->
   <header class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
     <div>
-      <h1 class="h3 mb-1">Configuracion de Actores</h1>
-      <p class="text-secondary mb-0">Gestion de contratistas, contratantes y supervisores.</p>
+      <h1 class="h3 mb-1">Configuración de actores</h1>
+      <p class="text-secondary mb-0">Gestión de contratistas, contratantes y supervisores.</p>
     </div>
     <div class="badge text-bg-light border p-2">Actores: {{ actores.length }}</div>
   </header>
@@ -32,7 +32,7 @@
             </label>
 
             <label>
-              <span class="form-label">Identificacion o NIT</span>
+              <span class="form-label">Identificación o NIT</span>
               <input class="form-control" type="text" name="actorIdentificacion" [(ngModel)]="nuevoActor.identificacion" required />
             </label>
 
@@ -42,7 +42,7 @@
             </label>
 
             <label>
-              <span class="form-label">Telefono</span>
+              <span class="form-label">Teléfono</span>
               <input class="form-control" type="text" name="actorTelefono" [(ngModel)]="nuevoActor.telefono" required />
             </label>
 
@@ -68,7 +68,7 @@
     <div class="col-12 col-lg-7">
       <article class="card border-0 shadow-sm h-100">
         <div class="card-header bg-body-tertiary d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
-          <h2 class="h5 mb-0">Listado de Actores</h2>
+          <h2 class="h5 mb-0">Listado de actores</h2>
           <div class="filter-wrap">
             <label class="form-label mb-1">Filtrar por tipo</label>
             <select class="form-select form-select-sm" name="filtroTipo" [(ngModel)]="filtroTipo">
