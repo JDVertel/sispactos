@@ -89,22 +89,22 @@
       <span *ngIf="selectedEtapa" class="filter-chip">
         <i class="bi bi-layers-fill"></i>
         <span>{{ selectedEtapa }}</span>
-        <button type="button" (click)="removeEtapa()" aria-label="Quitar etapa">
-          <i class="bi bi-x"></i>
+        <button type="button" (click)="removeEtapa()" aria-label="Quitar etapa" title="Quitar">
+          <i class="bi bi-trash" aria-hidden="true"></i>
         </button>
       </span>
       <span *ngIf="selectedPacto" class="filter-chip">
         <i class="bi bi-pen-fill"></i>
         <span>{{ selectedPacto }}</span>
-        <button type="button" (click)="removePacto()" aria-label="Quitar pacto">
-          <i class="bi bi-x"></i>
+        <button type="button" (click)="removePacto()" aria-label="Quitar pacto" title="Quitar">
+          <i class="bi bi-trash" aria-hidden="true"></i>
         </button>
       </span>
       <span *ngIf="selectedDepartamento" class="filter-chip">
         <i class="bi bi-geo-alt-fill"></i>
         <span>{{ selectedDepartamento }}</span>
-        <button type="button" (click)="removeDepartamento()" aria-label="Quitar departamento">
-          <i class="bi bi-x"></i>
+        <button type="button" (click)="removeDepartamento()" aria-label="Quitar departamento" title="Quitar">
+          <i class="bi bi-trash" aria-hidden="true"></i>
         </button>
       </span>
     </div>

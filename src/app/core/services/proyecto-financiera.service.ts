@@ -1,5 +1,15 @@
 import { Injectable } from '@angular/core';
 import {
+  COMPROMETIDO_DETALLE_KEYS,
+  createEmptyComprometidoDetalle,
+  ETIQUETA_COMPROMETIDO_INICIAL,
+  etiquetaAdicionPresupuestal,
+  migrarComprometidoLegacy,
+  relabelVersionesComprometido
+} from '../financiera/proyecto-financiera-comprometido.util';
+import {
+  ProyectoFinancieraComprometidoDetalle,
+  ProyectoFinancieraComprometidoVersion,
   ProyectoFinancieraConpes,
   ProyectoFinancieraData,
   ProyectoFinancieraVigencia,
@@ -42,12 +52,53 @@ export class ProyectoFinancieraService {
 
   private normalize(raw: Partial<ProyectoFinancieraData>, proyectoId: number): ProyectoFinancieraData {
     const base = createEmptyProyectoFinancieraData(proyectoId);
+    const comprometidoSesion = this.normalizeComprometidoSesion(raw, base);
     return {
       proyectoId,
       indicativos: { ...base.indicativos, ...(raw.indicativos ?? {}) },
+      comprometidoSesion,
       comprometido: { ...base.comprometido, ...(raw.comprometido ?? {}) },
       conpes: this.normalizeConpes(raw.conpes, base.conpes),
       updatedAt: raw.updatedAt ?? base.updatedAt
+    };
+  }
+
+  private normalizeComprometidoSesion(
+    raw: Partial<ProyectoFinancieraData>,
+    base: ProyectoFinancieraData
+  ): ProyectoFinancieraData['comprometidoSesion'] {
+    const fromRaw = raw.comprometidoSesion?.versiones;
+    if (fromRaw?.length) {
+      const versiones = fromRaw.map((v, index) => this.normalizeComprometidoVersion(v, index));
+      return { versiones: relabelVersionesComprometido(versiones) };
+    }
+    const migradas = migrarComprometidoLegacy(raw.comprometido);
+    if (migradas.length) {
+      return { versiones: relabelVersionesComprometido(migradas) };
+    }
+    return base.comprometidoSesion;
+  }
+
+  private normalizeComprometidoVersion(
+    raw: Partial<ProyectoFinancieraComprometidoVersion>,
+    index: number
+  ): ProyectoFinancieraComprometidoVersion {
+    const detalle = createEmptyComprometidoDetalle();
+    const detalleRaw: Partial<ProyectoFinancieraComprometidoDetalle> = raw.detalle ?? {};
+    for (const key of COMPROMETIDO_DETALLE_KEYS) {
+      const val = detalleRaw[key];
+      detalle[key] = val != null && Number.isFinite(Number(val)) ? Number(val) : null;
+    }
+    const tipoVersion = raw.tipoVersion === 'anexo' ? 'anexo' : 'original';
+    return {
+      id: raw.id?.trim() || `comp-${index}-${Date.now()}`,
+      etiqueta:
+        (raw.etiqueta ?? '').trim()
+        || (tipoVersion === 'anexo' ? etiquetaAdicionPresupuestal(index) : ETIQUETA_COMPROMETIDO_INICIAL),
+      tipoVersion,
+      detalle,
+      registradoPor: (raw.registradoPor ?? '').trim() || '—',
+      registradoEn: raw.registradoEn ?? ''
     };
   }
 

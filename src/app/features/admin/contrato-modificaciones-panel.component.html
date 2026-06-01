@@ -1,0 +1,142 @@
+<div class="modificaciones-panel">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <p class="small fw-semibold text-secondary mb-0">Modificaciones registradas ({{ modificaciones.length }})</p>
+    <button type="button" class="btn btn-primary btn-sm" (click)="abrirFormularioModal($event)">
+      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+      Registrar modificación
+    </button>
+  </div>
+
+  <div class="modificaciones-panel__tabla">
+    <div *ngIf="!modificaciones.length" class="alert alert-light border small mb-0 py-2">
+      No hay modificaciones contractuales para este contrato.
+    </div>
+    <div class="table-responsive" *ngIf="modificaciones.length">
+      <table class="table table-sm table-bordered align-middle mb-0 modificaciones-table">
+        <thead class="table-light">
+          <tr>
+            <th>Tipo</th>
+            <th>F. modificación</th>
+            <th>Inicio novedad</th>
+            <th>Fecha final</th>
+            <th class="text-end">Meses</th>
+            <th class="text-end">Valor adicionado</th>
+            <th class="text-end" style="width: 5rem">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let mod of modificaciones; trackBy: trackModificacion">
+            <td>{{ labelTipo(mod.tipoModificacion) }}</td>
+            <td class="text-nowrap">{{ formatDate(mod.fechaModificacion) }}</td>
+            <td class="text-nowrap">{{ formatDate(mod.inicioNovedad) }}</td>
+            <td class="text-nowrap">{{ formatDate(mod.fechaFinal) }}</td>
+            <td class="text-end tabular-nums">{{ mod.meses }}</td>
+            <td class="text-end tabular-nums">{{ formatCurrency(mod.valorAdicionado) }}</td>
+            <td class="text-end">
+              <button
+                type="button"
+                class="btn btn-outline-danger btn-sm py-0 px-1"
+                (click)="quitarModificacion(mod)"
+                title="Eliminar"
+                aria-label="Eliminar modificación"
+              >
+                <i class="bi bi-trash" aria-hidden="true"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  @if (formModalAbierto) {
+    <div
+      class="contrato-submodal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modificacionFormModalTitle"
+      (click)="cerrarFormularioModal()"
+    >
+      <div class="contrato-submodal-dialog" (click)="$event.stopPropagation()">
+        <div class="contrato-submodal-dialog__header">
+          <h3 class="h6 mb-0" id="modificacionFormModalTitle">Nueva modificación contractual</h3>
+          <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarFormularioModal()"></button>
+        </div>
+        <div class="contrato-submodal-dialog__body">
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="form-label form-label-sm">Tipo de modificación <span class="text-danger">*</span></label>
+              <select
+                class="form-select form-select-sm"
+                [(ngModel)]="form.tipoModificacion"
+                (ngModelChange)="formError = ''"
+                [ngModelOptions]="{ standalone: true }"
+              >
+                <option value="" disabled>Seleccionar</option>
+                <option *ngFor="let t of tiposModificacion" [value]="t.value">{{ t.label }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label form-label-sm">Fecha modificación <span class="text-danger">*</span></label>
+              <input
+                class="form-control form-control-sm"
+                type="date"
+                [(ngModel)]="form.fechaModificacion"
+                (ngModelChange)="onFechasChange()"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label form-label-sm">Inicio de la novedad <span class="text-danger">*</span></label>
+              <input
+                class="form-control form-control-sm"
+                type="date"
+                [(ngModel)]="form.inicioNovedad"
+                (ngModelChange)="onFechasChange()"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label form-label-sm">Fecha final <span class="text-danger">*</span></label>
+              <input
+                class="form-control form-control-sm"
+                type="date"
+                [(ngModel)]="form.fechaFinal"
+                (ngModelChange)="onFechasChange()"
+                [ngModelOptions]="{ standalone: true }"
+              />
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label form-label-sm">Meses</label>
+              <output class="form-control form-control-sm bg-light tabular-nums">{{ mesesCalculados }}</output>
+              <span class="form-text">Calculado según inicio y fin de la novedad</span>
+            </div>
+            <div class="col-12">
+              <label class="form-label form-label-sm">Valor adicionado (COP) <span class="text-danger">*</span></label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input
+                  class="form-control text-end"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  [ngModel]="valorAdicionadoDisplay"
+                  (ngModelChange)="onValorAdicionadoInput($event)"
+                  (focus)="onValorAdicionadoFocus()"
+                  (blur)="onValorAdicionadoBlur()"
+                  placeholder="0"
+                  [ngModelOptions]="{ standalone: true }"
+                />
+              </div>
+            </div>
+          </div>
+          <div *ngIf="formError" class="alert alert-danger py-2 px-3 mt-2 mb-0 small">{{ formError }}</div>
+        </div>
+        <div class="contrato-submodal-dialog__footer">
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarFormularioModal()">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm" (click)="guardarModificacion()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

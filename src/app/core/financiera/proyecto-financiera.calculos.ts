@@ -75,6 +75,30 @@ export function calcularTotalesComprometido(data: ProyectoFinancieraComprometido
   return { consolidadoNacion, entidadesTerritoriales, otros, totalInversion };
 }
 
+/** Totales de una sola versión o del acumulado de detalles sumados. */
+export function calcularTotalesComprometidoDesdeDetalle(
+  detalle: Pick<
+    ProyectoFinancieraComprometido,
+    | 'presupuestoComprometidoDnpFrpt'
+    | 'presupuestoComprometidoDnpDistribucion'
+    | 'presupuestoComprometidoSector'
+    | 'presupuestoComprometidoPropiosEtDptos'
+    | 'presupuestoComprometidoEtMunicipios'
+    | 'presupuestoComprometidoRegaliasDirectasDpto'
+    | 'presupuestoComprometidoRegaliasDirectasMunicipios'
+    | 'presupuestoComprometidoFondoRegionalSgr60'
+    | 'presupuestoComprometidoFondoRegionalSgr40'
+    | 'presupuestoComprometidoCtelSgr'
+    | 'presupuestoComprometidoAsignacionAmbiental'
+    | 'presupuestoComprometidoAsignacionInversionLocalSgr'
+    | 'presupuestoComprometidoOcadPaz'
+    | 'presupuestoComprometidoOtrosTerritorios'
+    | 'presupuestoComprometidoAportesOtros'
+  >
+): FinancieraTotalesSesion {
+  return calcularTotalesComprometido(detalle as ProyectoFinancieraComprometido);
+}
+
 export function aplicarTotalesIndicativos(data: ProyectoFinancieraIndicativos): void {
   const t = calcularTotalesIndicativos(data);
   data.aporteIndicativoConsolidadoNacion = t.consolidadoNacion;

@@ -7,16 +7,36 @@
         <span class="fw-semibold">{{ proyecto.codigo }}</span> — {{ proyecto.nombreIniciativa }}
       </p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-      <a routerLink="/dashboard/gestion-proyectos" class="btn btn-outline-secondary btn-sm">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <span
+        class="financiera-estado-guardado small"
+        [class.financiera-estado-guardado--pendiente]="estadoGuardado === 'pendiente'"
+        [class.financiera-estado-guardado--guardando]="estadoGuardado === 'guardando'"
+        role="status"
+      >
+        {{ etiquetaEstadoGuardado }}
+      </span>
+      <a
+        routerLink="/dashboard/gestion-proyectos"
+        class="btn btn-outline-secondary btn-sm"
+        (click)="onVolverClick($event)"
+      >
         Volver a proyectos
       </a>
-      <button type="button" class="btn btn-primary btn-sm" (click)="guardar()">Guardar financiera</button>
+      <button type="button" class="btn btn-primary btn-sm" (click)="guardar()">Guardar ahora</button>
     </div>
   </header>
 
   <div *ngIf="guardadoOk" class="alert alert-success py-2 px-3 small" role="status">
     Información financiera guardada correctamente.
+  </div>
+
+  <div
+    *ngIf="guardadoAutomaticoReciente && !guardadoOk"
+    class="alert alert-info py-2 px-3 small"
+    role="status"
+  >
+    Los cambios se guardaron automáticamente al cambiar de pestaña o editar los datos.
   </div>
 
   <div class="card financiera-card border-0 shadow-sm">
@@ -40,6 +60,16 @@
             (click)="setTab('comprometido')"
           >
             Presupuesto comprometido
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button
+            type="button"
+            class="nav-link"
+            [class.active]="activeTab === 'liberacion'"
+            (click)="setTab('liberacion')"
+          >
+            Liberación de saldos
           </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -114,17 +144,31 @@
 
       <!-- Tab comprometido -->
       <div *ngIf="activeTab === 'comprometido'" class="tab-pane-financiera">
-        <h2 class="h6 text-secondary mb-3">Sesión presupuesto comprometido</h2>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <h2 class="h6 text-secondary mb-1">Sesión presupuesto comprometido</h2>
+            <p class="small text-secondary mb-0">
+              Los totales son la suma del presupuesto comprometido inicial y todas las adiciones presupuestales. Agregue cada incremento desde el modal.
+            </p>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" (click)="abrirModalNuevaVersionComprometido()">
+            {{
+              cantidadVersionesComprometido === 0
+                ? 'Registrar presupuesto comprometido inicial'
+                : 'Agregar adición presupuestal'
+            }}
+          </button>
+        </div>
 
         <div class="financiera-totales-panel mb-4">
-          <p class="financiera-totales-panel__titulo mb-2">Totales calculados (sumatorias)</p>
+          <p class="financiera-totales-panel__titulo mb-2">Totales acumulados (solo lectura)</p>
           <div class="row g-3">
             <div class="col-md-4">
               <div class="financiera-total-card financiera-total-card--principal">
                 <span class="financiera-total-card__label">Presupuesto comprometido total</span>
                 <output class="financiera-total-card__valor">{{ formatCurrency(totalesComprometido.totalInversion) }}</output>
                 <span class="financiera-total-card__hint">
-                  Consolidado nacion + Entidades territoriales + Aportes otros
+                  Suma del inicial y todas las adiciones presupuestales
                 </span>
               </div>
             </div>
@@ -142,29 +186,245 @@
                 <span class="financiera-total-card__label">Presupuesto comprometido entidades territoriales</span>
                 <output class="financiera-total-card__valor">{{ formatCurrency(totalesComprometido.entidadesTerritoriales) }}</output>
                 <span class="financiera-total-card__hint">
-                  Suma de comprometidos ET, regalias, SGR, CTEL, ambiental, OCAD y otros territorios
+                  Suma acumulada de ET, regalías, SGR, CTEL, ambiental, OCAD y otros territorios
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <h3 class="h6 text-secondary mb-3">Detalle (valores editables)</h3>
-        <div class="row g-3">
-          <div class="col-md-4" *ngFor="let campo of camposDetalleComprometido">
-            <label class="financiera-field">
-              <span class="financiera-field__label">{{ campo.label }}</span>
-              <input
-                type="number"
-                class="form-control form-control-sm"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                [value]="valorCampo(campo) ?? ''"
-                (input)="actualizarCampo(campo, $any($event.target).value)"
-              />
-            </label>
+        <h3 class="h6 text-secondary mb-2">Versiones registradas</h3>
+        <p class="small text-secondary mb-3">
+          Seleccione una fila para ver el detalle de esa iteración.
+        </p>
+
+        <div
+          *ngIf="!cantidadVersionesComprometido"
+          class="alert alert-light border text-center small mb-4"
+          role="status"
+        >
+          No hay versiones registradas. Use <strong>Registrar presupuesto comprometido inicial</strong> para el primer registro.
+        </div>
+
+        <div class="table-responsive mb-4" *ngIf="cantidadVersionesComprometido">
+          <table class="table table-sm table-bordered align-middle mb-0 financiera-vigencia-table financiera-versiones-table">
+            <thead class="table-light">
+              <tr>
+                <th rowspan="2" class="align-middle">Versión</th>
+                <th colspan="3" class="text-center financiera-versiones-table__grupo">Totales acumulados</th>
+                <th rowspan="2" class="align-middle">Registrado por</th>
+                <th rowspan="2" class="align-middle">Fecha registro</th>
+              </tr>
+              <tr>
+                <th class="text-end financiera-versiones-table__sub">Total</th>
+                <th class="text-end financiera-versiones-table__sub">Consolidado nación</th>
+                <th class="text-end financiera-versiones-table__sub">Entidades territoriales</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let v of versionesComprometidoOrdenadas; trackBy: trackComprometidoVersion"
+                class="financiera-version-row"
+                [class.table-active]="comprometidoVersionSeleccionadaId === v.id"
+                (click)="seleccionarVersionComprometido(v)"
+                (keydown.enter)="seleccionarVersionComprometido(v)"
+                tabindex="0"
+                role="button"
+              >
+                <td class="fw-semibold">{{ v.etiqueta }}</td>
+                <td class="text-end tabular-nums">
+                  {{ formatCurrency(totalesComprometidoAcumuladosHasta(v).totalInversion) }}
+                </td>
+                <td class="text-end tabular-nums">
+                  {{ formatCurrency(totalesComprometidoAcumuladosHasta(v).consolidadoNacion) }}
+                </td>
+                <td class="text-end tabular-nums">
+                  {{ formatCurrency(totalesComprometidoAcumuladosHasta(v).entidadesTerritoriales) }}
+                </td>
+                <td>{{ usuarioComprometidoVersion(v) }}</td>
+                <td class="small text-secondary">{{ fechaComprometidoVersion(v) }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="financiera-total-row">
+                <th>Total acumulado</th>
+                <th class="text-end tabular-nums">{{ formatCurrency(totalesComprometido.totalInversion) }}</th>
+                <th class="text-end tabular-nums">{{ formatCurrency(totalesComprometido.consolidadoNacion) }}</th>
+                <th class="text-end tabular-nums">{{ formatCurrency(totalesComprometido.entidadesTerritoriales) }}</th>
+                <th colspan="2" class="small text-secondary fw-normal">
+                  {{ cantidadVersionesComprometido }}
+                  {{ cantidadVersionesComprometido === 1 ? 'versión' : 'versiones' }}
+                </th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <ng-container *ngIf="comprometidoVersionSeleccionada as versionSel">
+          <h3 class="h6 text-secondary mb-2">
+            Detalle — {{ versionSel.etiqueta }}
+            <span class="fw-normal text-secondary small">(solo lectura)</span>
+          </h3>
+          <p class="small text-secondary mb-2" *ngIf="totalesVersionComprometidoSeleccionada">
+            Valores de {{ versionSel.etiqueta }}.
+          </p>
+          <div class="row g-3 mb-3" *ngIf="totalesVersionComprometidoSeleccionada as totVer">
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--compact">
+                <span class="financiera-total-card__label">Total del registro</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totVer.totalInversion) }}</output>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--compact">
+                <span class="financiera-total-card__label">Consolidado nación (registro)</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totVer.consolidadoNacion) }}</output>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--compact">
+                <span class="financiera-total-card__label">Entidades territoriales (registro)</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totVer.entidadesTerritoriales) }}</output>
+              </div>
+            </div>
           </div>
+          <p class="small text-secondary mb-2" *ngIf="totalesAcumuladosVersionSeleccionada">
+            Acumulado hasta {{ versionSel.etiqueta }} (coincide con la fila de la tabla).
+          </p>
+          <div class="row g-3 mb-3" *ngIf="totalesAcumuladosVersionSeleccionada as totAcum">
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--compact financiera-total-card--principal">
+                <span class="financiera-total-card__label">Total acumulado</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totAcum.totalInversion) }}</output>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--compact">
+                <span class="financiera-total-card__label">Consolidado nación acumulado</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totAcum.consolidadoNacion) }}</output>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--compact">
+                <span class="financiera-total-card__label">Entidades territoriales acumulado</span>
+                <output class="financiera-total-card__valor">{{ formatCurrency(totAcum.entidadesTerritoriales) }}</output>
+              </div>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4" *ngFor="let campo of camposDetalleComprometido">
+              <div class="financiera-field financiera-field--readonly">
+                <span class="financiera-field__label">{{ campo.label }}</span>
+                <output class="form-control form-control-sm bg-light">
+                  {{ formatCurrency(valorCampoVersionComprometido(campo) ?? 0) }}
+                </output>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Tab liberación de saldos -->
+      <div *ngIf="activeTab === 'liberacion'" class="tab-pane-financiera">
+        <h2 class="h6 text-secondary mb-1">Liberación de saldos</h2>
+        <p class="small text-secondary mb-3">
+          Valores calculados al cierre según presupuesto indicativo y presupuesto comprometido acumulado.
+          El <strong>valor sugerido</strong> por rubro es: indicativo − comprometido acumulado.
+        </p>
+
+        <div class="financiera-totales-panel mb-4">
+          <p class="financiera-totales-panel__titulo mb-2">Totales sugeridos (calculados)</p>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="financiera-total-card financiera-total-card--principal">
+                <span class="financiera-total-card__label">Liberación de saldos total</span>
+                <output
+                  class="financiera-total-card__valor"
+                  [class.text-danger]="totalesLiberacionSugerida.totalInversion < 0"
+                >
+                  {{ formatCurrency(totalesLiberacionSugerida.totalInversion) }}
+                </output>
+                <span class="financiera-total-card__hint">
+                  Indicativo total − Comprometido acumulado
+                </span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card">
+                <span class="financiera-total-card__label">Liberación consolidado nación</span>
+                <output
+                  class="financiera-total-card__valor"
+                  [class.text-danger]="totalesLiberacionSugerida.consolidadoNacion < 0"
+                >
+                  {{ formatCurrency(totalesLiberacionSugerida.consolidadoNacion) }}
+                </output>
+                <span class="financiera-total-card__hint">DNP-FRPT + DNP-distribución + Sector</span>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="financiera-total-card">
+                <span class="financiera-total-card__label">Liberación entidades territoriales</span>
+                <output
+                  class="financiera-total-card__valor"
+                  [class.text-danger]="totalesLiberacionSugerida.entidadesTerritoriales < 0"
+                >
+                  {{ formatCurrency(totalesLiberacionSugerida.entidadesTerritoriales) }}
+                </output>
+                <span class="financiera-total-card__hint">
+                  ET, regalías, SGR, CTEL, ambiental, OCAD y otros territorios
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="h6 text-secondary mb-2">Detalle por rubro</h3>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0 financiera-vigencia-table financiera-liberacion-table">
+            <thead class="table-light">
+              <tr>
+                <th>Rubro</th>
+                <th class="text-end">Indicativo</th>
+                <th class="text-end">Comprometido acum.</th>
+                <th class="text-end">Valor sugerido</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let rubro of rubrosLiberacion">
+                <td>{{ rubro.label }}</td>
+                <td class="text-end tabular-nums text-secondary">
+                  {{ formatCurrency(valorIndicativoRubro(rubro)) }}
+                </td>
+                <td class="text-end tabular-nums text-secondary">
+                  {{ formatCurrency(valorComprometidoRubro(rubro)) }}
+                </td>
+                <td
+                  class="text-end tabular-nums fw-semibold"
+                  [class.text-danger]="valorSugeridoLiberacionRubro(rubro) < 0"
+                  [class.text-success]="valorSugeridoLiberacionRubro(rubro) > 0"
+                >
+                  {{ formatCurrency(valorSugeridoLiberacionRubro(rubro)) }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="financiera-total-row">
+                <th>Total</th>
+                <th class="text-end tabular-nums">
+                  {{ formatCurrency(totalesIndicativos.totalInversion) }}
+                </th>
+                <th class="text-end tabular-nums">
+                  {{ formatCurrency(totalesComprometido.totalInversion) }}
+                </th>
+                <th
+                  class="text-end tabular-nums"
+                  [class.text-danger]="totalesLiberacionSugerida.totalInversion < 0"
+                >
+                  {{ formatCurrency(totalesLiberacionSugerida.totalInversion) }}
+                </th>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
@@ -287,8 +547,14 @@
                   >
                     Editar
                   </button>
-                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="quitarVigencia(v)">
-                    Quitar
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    (click)="quitarVigencia(v)"
+                    title="Quitar"
+                    aria-label="Quitar vigencia"
+                  >
+                    <i class="bi bi-trash" aria-hidden="true"></i>
                   </button>
                 </td>
               </tr>
@@ -379,6 +645,57 @@
             <button type="submit" class="btn btn-primary btn-sm">
               {{ conpesModalEsEdicion ? 'Guardar cambios' : 'Registrar CONPES' }}
             </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal versión presupuesto comprometido -->
+  <div
+    class="modal fade"
+    id="comprometidoVersionModal"
+    tabindex="-1"
+    aria-labelledby="comprometidoVersionModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <form (ngSubmit)="guardarComprometidoModal()" novalidate>
+          <div class="modal-header">
+            <h2 class="modal-title h5 mb-0" id="comprometidoVersionModalLabel">{{ comprometidoModalTitulo }}</h2>
+            <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalComprometido()"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-secondary mb-3">
+              Ingrese los valores del registro. Se sumarán al total acumulado junto con el presupuesto comprometido inicial y las adiciones presupuestales anteriores.
+            </p>
+            <div class="row g-3">
+              <div class="col-md-6" *ngFor="let campo of camposDetalleComprometido">
+                <label class="financiera-field mb-0">
+                  <span class="financiera-field__label">{{ campo.label }}</span>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                    [name]="'compModal_' + campo.key"
+                    [value]="valorComprometidoModalCampo(campo) ?? ''"
+                    (input)="actualizarComprometidoModalCampo(campo, $any($event.target).value)"
+                  />
+                </label>
+              </div>
+            </div>
+            <div *ngIf="comprometidoModalError" class="alert alert-danger py-2 px-3 mt-3 mb-0 small" role="alert">
+              {{ comprometidoModalError }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalComprometido()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm">Guardar versión</button>
           </div>
         </form>
       </div>

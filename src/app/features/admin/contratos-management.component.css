@@ -3,11 +3,65 @@
   --home-font-size: 0.82rem;
 }
 
+.contratos-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 5.5rem);
+}
+
+.contratos-list-card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.contratos-list-card > .card-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  max-height: calc(100vh - 9.5rem);
+}
+
+.contratos-paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.25rem 0.15rem;
+  border-top: 1px solid #ebebeb;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+.contratos-paginacion__rango {
+  white-space: nowrap;
+}
+
+.contratos-paginacion__paginas .page-link {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.45rem;
+  min-width: 1.75rem;
+  text-align: center;
+}
+
+.contratos-paginacion__tamano .form-select {
+  width: auto;
+  min-width: 5.5rem;
+  font-size: 0.7rem;
+  padding: 0.12rem 1.4rem 0.12rem 0.35rem;
+  min-height: 1.55rem;
+}
+
 .top-bar {
   background-color: #ebebeb !important;
   border: none !important;
   border-radius: 0.6rem;
-  padding: 1rem;
+  padding: 0.45rem 0.75rem;
 }
 
 .form-label,
@@ -17,3 +71,366 @@ textarea {
   font-size: var(--home-font-size);
 }
 
+.contratos-stats .contratos-stat {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid #ebebeb;
+  border-radius: 0.15rem;
+  background: #fff;
+  height: 100%;
+}
+
+.contratos-stat__label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6c757d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.contratos-stat__value {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #4d4d4d;
+  line-height: 1.2;
+}
+
+.contratos-stat__value--sm {
+  font-size: 0.72rem;
+}
+
+.contratos-list-card__header {
+  background: #fafafa;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.contratos-list-card__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.contratos-list-card__conteo {
+  white-space: nowrap;
+}
+
+.contratos-filtros-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.contratos-filtro-select {
+  flex: 1 1 7rem;
+  min-width: 0;
+  max-width: 12rem;
+  font-size: 0.7rem;
+  padding: 0.12rem 1.4rem 0.12rem 0.35rem;
+  min-height: 1.55rem;
+  line-height: 1.2;
+}
+
+.contratos-filtro-clear {
+  flex-shrink: 0;
+  color: #6c757d;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.contratos-filtro-clear:hover {
+  color: #dc3545;
+}
+
+@media (max-width: 575.98px) {
+  .contratos-filtro-select {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
+
+.contrato-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.55rem;
+  margin-bottom: 0.35rem;
+  border: 1px solid #ebebeb;
+  border-radius: 0.2rem;
+  background: #fff;
+  font-size: var(--home-font-size);
+}
+
+.contrato-item--compact {
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.contrato-item:last-child {
+  margin-bottom: 0;
+}
+
+.contrato-item__resumen {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.contrato-item__acciones {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.contrato-gestion-modal__content {
+  position: relative;
+}
+
+.contrato-submodal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.contrato-submodal-dialog {
+  width: min(100%, 560px);
+  max-height: min(85vh, 100%);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.2);
+}
+
+.contrato-submodal-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.contrato-submodal-dialog__body {
+  padding: 0.85rem;
+  overflow-y: auto;
+}
+
+.contrato-submodal-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid #ebebeb;
+}
+
+.contrato-gestion-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+}
+
+.contrato-gestion-modal .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+}
+
+.contrato-gestion-modal > .modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.contrato-gestion-modal__body {
+  max-height: min(72vh, calc(100vh - 10rem));
+  overflow-y: auto;
+}
+
+.contrato-item__principal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+}
+
+.contrato-item__numero {
+  font-weight: 700;
+  color: #4d4d4d;
+}
+
+.contrato-item__meta,
+.contrato-item__secundario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  color: #6c757d;
+  line-height: 1.35;
+}
+
+.contrato-item--compact .contrato-item__principal {
+  margin-bottom: 0.1rem;
+}
+
+.contrato-item--compact .contrato-item__meta {
+  margin-bottom: 0;
+}
+
+.contrato-item--compact .contrato-item__secundario {
+  font-size: 0.75rem;
+}
+
+.contrato-monitores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+}
+
+.contrato-monitor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid #e3e3e3;
+  border-radius: 0.2rem;
+  background: #f8f9fa;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.contrato-monitor__label {
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.contrato-monitor__valor {
+  min-width: 1.1rem;
+  text-align: center;
+  font-weight: 700;
+  color: #4d4d4d;
+  font-variant-numeric: tabular-nums;
+}
+
+.contrato-monitor--activo {
+  border-color: #cfe2ff;
+  background: #eef4ff;
+}
+
+.contrato-monitor--activo .contrato-monitor__valor {
+  color: #0d6efd;
+}
+
+.contrato-item__meta {
+  margin-bottom: 0.1rem;
+}
+
+.contrato-item__proyecto {
+  font-weight: 600;
+  color: #4d4d4d;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contrato-item__sep {
+  opacity: 0.45;
+  user-select: none;
+}
+
+.contrato-item__objeto {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.contrato-detalle-tabs {
+  border-bottom: 1px solid #ebebeb;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.contrato-detalle-tabs .nav-link {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #6c757d;
+  padding: 0.35rem 0.55rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.form-label-sm {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.contrato-item__info .card-body {
+  font-size: var(--home-font-size, 0.82rem);
+}
+
+.desembolsos-inline .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.contrato-detalle-tabs .nav-link.active {
+  color: #4d4d4d;
+  background: #fff;
+  border-color: #ebebeb #ebebeb #fff;
+}
+
+.contrato-detalle-pane {
+  padding: 0.5rem 0 0;
+}
+
+.contrato-detalle-pane__content {
+  min-height: 3.5rem;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 575.98px) {
+  .contrato-item {
+    grid-template-columns: 1fr auto;
+  }
+
+  .contrato-item__acciones .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.72rem;
+  }
+
+  .contrato-item__acciones .btn .bi-gear {
+    display: none;
+  }
+}

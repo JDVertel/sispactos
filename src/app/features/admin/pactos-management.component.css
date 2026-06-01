@@ -39,9 +39,24 @@
   color: #232323;
 }
 
-.territorial-chip .btn-close {
-  filter: none;
+.territorial-chip-remove {
+  line-height: 1;
+  text-decoration: none;
   opacity: 1;
+}
+
+.territorial-chip-remove:hover,
+.territorial-chip-remove:focus {
+  opacity: 0.85;
+}
+
+.territorial-chip-municipio .territorial-chip-remove,
+.text-bg-primary .territorial-chip-remove {
+  color: #fff;
+}
+
+.territorial-chip-departamento .territorial-chip-remove {
+  color: #232323;
 }
 
 .municipio-sugerencias {

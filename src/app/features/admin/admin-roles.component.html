@@ -76,7 +76,17 @@
                   <td>
                     <span class="badge text-bg-light border me-1 mb-1" *ngFor="let permission of role.permissions">{{ permission }}</span>
                   </td>
-                  <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeRole(role.id)">Eliminar</button></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="removeRole(role.id)"
+                      title="Eliminar"
+                      aria-label="Eliminar rol"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -141,7 +151,17 @@
                   <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let pacto of user.pactos">{{ pacto }}</span></td>
                   <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span></td>
                   <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let contrato of user.contratos">{{ contrato }}</span></td>
-                  <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeLocalUser(user.id)">Eliminar</button></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="removeLocalUser(user.id)"
+                      title="Eliminar"
+                      aria-label="Eliminar usuario"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -202,7 +222,17 @@
                   <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let pacto of user.pactos">{{ pacto }}</span></td>
                   <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let proyecto of user.proyectos">{{ proyecto }}</span></td>
                   <td><span class="badge text-bg-light border me-1 mb-1" *ngFor="let contrato of user.contratos">{{ contrato }}</span></td>
-                  <td><button type="button" class="btn btn-outline-danger btn-sm" (click)="removeExternalUser(user.id)">Eliminar</button></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-outline-danger btn-sm"
+                      (click)="removeExternalUser(user.id)"
+                      title="Eliminar"
+                      aria-label="Eliminar usuario externo"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>

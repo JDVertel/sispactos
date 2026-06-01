@@ -9,6 +9,7 @@ import { ContratosManagementComponent } from './features/admin/contratos-managem
 import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
 import { PactosTerritorialesComponent } from './features/pactos-territoriales/pactos-territoriales.component';
 import { dashboardAccessGuard } from './core/guards/dashboard-access.guard';
+import { proyectoFinancieraCanDeactivateGuard } from './core/guards/proyecto-financiera-can-deactivate.guard';
 
 export const routes: Routes = [
   {
@@ -43,7 +44,8 @@ export const routes: Routes = [
       {
         path: 'gestion-proyectos/:proyectoId/financiera',
         component: ProyectoFinancieraComponent,
-        canActivate: [dashboardAccessGuard]
+        canActivate: [dashboardAccessGuard],
+        canDeactivate: [proyectoFinancieraCanDeactivateGuard]
       },
       {
         path: 'gestion-contratos',

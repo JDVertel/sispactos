@@ -1,297 +1,1350 @@
 <!-- Pantalla para administrar contratos -->
-<section class="container-fluid px-0">
-  <div class="top-bar d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+
+<section class="container-fluid px-0 contratos-page">
+
+  <div class="top-bar d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-2">
+
     <div>
-      <h1 class="h3 mb-1">Gestión de contratos</h1>
-      <p class="text-secondary mb-0">Crea, administra y visualiza los contratos asociados a los proyectos del sistema.</p>
+
+      <h1 class="h5 mb-0">Gestión de contratos</h1>
+
     </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoContratoModal">
-      + Nuevo Contrato
+
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#nuevoContratoModal">
+
+      + Nuevo contrato
+
     </button>
+
   </div>
 
-  <div class="row g-2 mb-3">
-    <div class="col-12 col-md-4">
-      <div class="badge text-bg-light border w-100 text-start p-3">
-        <div class="small text-secondary">Contratos activos</div>
-        <div class="h5 mb-0">{{ contratos.length }}</div>
+
+
+  <div class="row g-1 mb-2 contratos-stats">
+
+    <div class="col-4">
+
+      <div class="contratos-stat">
+
+        <span class="contratos-stat__label">Activos</span>
+
+        <span class="contratos-stat__value">{{ contratos.length }}</span>
+
       </div>
+
     </div>
-    <div class="col-12 col-md-4">
-      <div class="badge text-bg-light border w-100 text-start p-3">
-        <div class="small text-secondary">Valor total</div>
-        <div class="h5 mb-0">{{ formatCurrency(getTotalValorContratos()) }}</div>
+
+    <div class="col-4">
+
+      <div class="contratos-stat">
+
+        <span class="contratos-stat__label">Valor total</span>
+
+        <span class="contratos-stat__value contratos-stat__value--sm">{{ formatCurrency(getTotalValorContratos()) }}</span>
+
       </div>
+
     </div>
-    <div class="col-12 col-md-4">
-      <div class="badge text-bg-light border w-100 text-start p-3">
-        <div class="small text-secondary">Con URL SECOP</div>
-        <div class="h5 mb-0">{{ getContratosConSecop() }}</div>
+
+    <div class="col-4">
+
+      <div class="contratos-stat">
+
+        <span class="contratos-stat__label">Con SECOP</span>
+
+        <span class="contratos-stat__value">{{ getContratosConSecop() }}</span>
+
       </div>
+
     </div>
+
   </div>
 
-  <div class="card border-0 shadow-sm">
-    <div class="card-header bg-body-tertiary py-3">
-      <h2 class="h5 mb-0">Contratos registrados</h2>
+
+
+  <div class="card border-0 shadow-sm contratos-list-card">
+
+    <div class="card-header contratos-list-card__header py-1 px-2">
+      <div class="contratos-list-card__header-top">
+        <h2 class="h6 mb-0">Contratos</h2>
+        <span class="contratos-list-card__conteo small text-secondary" *ngIf="contratos.length > 0">
+          <strong class="text-body">{{ contratosFiltrados.length }}</strong>/{{ contratos.length }}
+        </span>
+      </div>
+      <div class="contratos-filtros-toolbar" *ngIf="contratos.length > 0">
+        <select
+          id="filtroListaPacto"
+          class="form-select form-select-sm contratos-filtro-select"
+          name="filtroListaPacto"
+          aria-label="Filtrar por pacto"
+          [(ngModel)]="filtroListaPactoKey"
+          (ngModelChange)="onFiltroListaPactoChange()"
+        >
+          <option value="">Pacto: todos</option>
+          <option *ngFor="let opt of pactosFiltroOpciones" [value]="opt.key">{{ opt.label }}</option>
+        </select>
+        <select
+          id="filtroListaProyecto"
+          class="form-select form-select-sm contratos-filtro-select"
+          name="filtroListaProyecto"
+          aria-label="Filtrar por proyecto"
+          [(ngModel)]="filtroListaProyectoKey"
+          (ngModelChange)="onFiltroListaProyectoChange()"
+        >
+          <option value="">Proyecto: todos</option>
+          <option *ngFor="let opt of proyectosFiltroOpciones" [value]="opt.key">{{ opt.label }}</option>
+        </select>
+        <select
+          id="filtroListaContrato"
+          class="form-select form-select-sm contratos-filtro-select"
+          name="filtroListaContrato"
+          aria-label="Filtrar por contrato"
+          [(ngModel)]="filtroListaContratoId"
+          (ngModelChange)="onFiltroListaContratoChange()"
+        >
+          <option [ngValue]="null">Contrato: todos</option>
+          <option *ngFor="let c of contratosFiltroOpciones" [ngValue]="c.id">{{ c.numeroContrato }}</option>
+        </select>
+        <button
+          type="button"
+          class="btn btn-link btn-sm contratos-filtro-clear p-0"
+          *ngIf="tieneFiltrosLista"
+          (click)="limpiarFiltrosLista()"
+          title="Limpiar filtros"
+          aria-label="Limpiar filtros"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
-    <div class="card-body p-2 p-md-3">
-      <div class="alert alert-light border text-center mb-3" *ngIf="contratos.length === 0">
-        Aún no hay contratos registrados. Usa el botón para crear el primero.
+
+    <div class="card-body p-2">
+
+      <div class="alert alert-light border text-center small mb-2 py-2" *ngIf="contratos.length === 0">
+
+        Aún no hay contratos. Use <strong>+ Nuevo contrato</strong> para crear el primero.
+
       </div>
 
-      <article *ngFor="let contrato of contratos" class="card mb-3 border">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start gap-2 border-bottom pb-2 mb-3">
-            <div>
-              <h3 class="h5 mb-1">{{ contrato.proyecto }}</h3>
-              <span class="badge text-bg-secondary me-1">{{ contrato.tipoContrato }}</span>
-              <span class="badge text-bg-light border">{{ contrato.numeroContrato }}</span>
-            </div>
-            <button type="button" class="btn btn-outline-danger btn-sm" (click)="deleteContrato(contrato.id)">Eliminar</button>
+      <div
+        class="alert alert-light border text-center small mb-2 py-2"
+        *ngIf="contratos.length > 0 && contratosFiltrados.length === 0"
+      >
+        No hay contratos que coincidan con los filtros seleccionados.
+        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="limpiarFiltrosLista()">
+          Limpiar filtros
+        </button>
+      </div>
+
+
+
+      <article
+
+        *ngFor="let contrato of contratosFiltradosPaginados; trackBy: trackContrato"
+
+        class="contrato-item contrato-item--compact"
+
+      >
+
+        <div class="contrato-item__resumen">
+
+          <div class="contrato-item__principal">
+
+            <span class="contrato-item__numero">{{ contrato.numeroContrato }}</span>
+
+            <span class="contrato-item__tipo badge text-bg-secondary">{{ contrato.tipoContrato }}</span>
+
+            <span class="contrato-item__estado badge text-bg-light border">{{ contrato.estado }}</span>
+
           </div>
 
-          <p class="mb-3">
-            <span class="small text-uppercase text-secondary fw-semibold">Objeto:</span> {{ contrato.objeto }}
-          </p>
+          <div class="contrato-item__meta">
 
-          <div class="row g-3">
-            <div class="col-12 col-md-6"><div class="small text-secondary">Pacto</div><strong>{{ contrato.pacto }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Estado / Condición</div><strong>{{ contrato.estado }} · {{ contrato.condicion }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Contratista</div><strong>{{ contrato.contratista }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Contratante / Interventor</div><strong>{{ contrato.contratante }} · {{ contrato.interventor }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Valor inicial</div><strong>{{ formatCurrency(contrato.valorInicial) }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Desembolsos</div><strong>{{ contrato.numeroDesembolsos }}</strong></div>
-            <div class="col-12 col-md-6" *ngIf="contrato.contratoPadre"><div class="small text-secondary">Contrato padre</div><strong>{{ contrato.contratoPadre }}</strong></div>
-            <div class="col-12 col-md-6"><div class="small text-secondary">Fechas</div><strong>Suscripción {{ formatDate(contrato.fechaSuscripcion) }} · Inicio {{ formatDate(contrato.fechaInicio) }} · Terminación {{ formatDate(contrato.fechaTerminacionInicial) }}</strong></div>
-            <div class="col-12" *ngIf="contrato.urlSecop"><div class="small text-secondary">URL SECOP</div><strong>{{ contrato.urlSecop }}</strong></div>
+            <span class="contrato-item__proyecto" [title]="contrato.proyecto">{{ contrato.proyecto }}</span>
+
+            <span class="contrato-item__sep">·</span>
+
+            <span [title]="contrato.pacto">{{ contrato.pacto }}</span>
+
+            <span class="contrato-item__sep">·</span>
+
+            <span class="tabular-nums fw-semibold">{{ formatCurrency(contrato.valorInicial) }}</span>
+
           </div>
 
-          <p class="small text-secondary border-top pt-2 mt-3 mb-0">Registrado el {{ formatDate(contrato.fechaCreacion) }}</p>
+          <div class="contrato-item__secundario">
+
+            <span [title]="contrato.contratista">{{ contrato.contratista }}</span>
+
+            <span class="contrato-item__sep">·</span>
+
+            <span>{{ formatDate(contrato.fechaInicio) }} – {{ formatDate(contrato.fechaTerminacionInicial) }}</span>
+
+            <span class="contrato-item__sep" *ngIf="contrato.numeroDesembolsos">·</span>
+
+            <span *ngIf="contrato.numeroDesembolsos">{{ contrato.numeroDesembolsos }} des.</span>
+
+          </div>
+
+          <ul class="contrato-monitores" aria-label="Indicadores del contrato">
+            <li
+              class="contrato-monitor"
+              [class.contrato-monitor--activo]="getMonitores(contrato.id).modificaciones > 0"
+              title="Modificaciones contractuales"
+            >
+              <span class="contrato-monitor__label">Mod.</span>
+              <span class="contrato-monitor__valor">{{ getMonitores(contrato.id).modificaciones }}</span>
+            </li>
+            <li
+              class="contrato-monitor"
+              [class.contrato-monitor--activo]="getMonitores(contrato.id).desembolsos > 0"
+              title="Desembolsos programados"
+            >
+              <span class="contrato-monitor__label">Des.</span>
+              <span class="contrato-monitor__valor">{{ getMonitores(contrato.id).desembolsos }}</span>
+            </li>
+            <li
+              class="contrato-monitor"
+              [class.contrato-monitor--activo]="getMonitores(contrato.id).avances > 0"
+              title="Avances reportados"
+            >
+              <span class="contrato-monitor__label">Av.</span>
+              <span class="contrato-monitor__valor">{{ getMonitores(contrato.id).avances }}</span>
+            </li>
+            <li
+              class="contrato-monitor"
+              [class.contrato-monitor--activo]="getMonitores(contrato.id).segTecnico > 0"
+              title="Seguimientos técnicos reportados"
+            >
+              <span class="contrato-monitor__label">Seg.</span>
+              <span class="contrato-monitor__valor">{{ getMonitores(contrato.id).segTecnico }}</span>
+            </li>
+          </ul>
+
         </div>
+
+        <div class="contrato-item__acciones">
+
+          <button
+
+            type="button"
+
+            class="btn btn-outline-primary btn-sm"
+
+            (click)="abrirGestionContrato(contrato)"
+
+            title="Abrir gestión del contrato"
+
+          >
+
+            <i class="bi bi-gear me-1" aria-hidden="true"></i>
+
+            Gestión
+
+          </button>
+
+          <button
+
+            type="button"
+
+            class="btn btn-outline-danger btn-sm"
+
+            (click)="deleteContrato(contrato.id)"
+
+            title="Eliminar contrato"
+
+            aria-label="Eliminar contrato"
+
+          >
+
+            <i class="bi bi-trash" aria-hidden="true"></i>
+
+          </button>
+
+        </div>
+
       </article>
+
+      <nav
+        class="contratos-paginacion"
+        *ngIf="paginacionNecesaria"
+        aria-label="Paginación de contratos"
+      >
+        <span class="contratos-paginacion__rango small text-secondary">
+          {{ rangoPaginaInicio }}–{{ rangoPaginaFin }} de {{ contratosFiltrados.length }}
+        </span>
+        <ul class="pagination pagination-sm mb-0 contratos-paginacion__paginas">
+          <li class="page-item" [class.disabled]="paginaActual <= 1">
+            <button type="button" class="page-link" (click)="paginaAnterior()" [disabled]="paginaActual <= 1" aria-label="Página anterior">
+              ‹
+            </button>
+          </li>
+          <li
+            class="page-item"
+            *ngFor="let p of paginasVisibles"
+            [class.active]="p === paginaActual"
+          >
+            <button type="button" class="page-link" (click)="irAPagina(p)" [attr.aria-current]="p === paginaActual ? 'page' : null">
+              {{ p }}
+            </button>
+          </li>
+          <li class="page-item" [class.disabled]="paginaActual >= totalPaginas">
+            <button
+              type="button"
+              class="page-link"
+              (click)="paginaSiguiente()"
+              [disabled]="paginaActual >= totalPaginas"
+              aria-label="Página siguiente"
+            >
+              ›
+            </button>
+          </li>
+        </ul>
+        <label class="contratos-paginacion__tamano small mb-0">
+          <span class="visually-hidden">Registros por página</span>
+          <select
+            class="form-select form-select-sm"
+            name="tamanoPagina"
+            aria-label="Registros por página"
+            [(ngModel)]="tamanoPagina"
+            (ngModelChange)="onTamanoPaginaChange()"
+          >
+            <option *ngFor="let n of tamanoPaginaOpciones" [ngValue]="n">{{ n }} / pág.</option>
+          </select>
+        </label>
+      </nav>
+
     </div>
+
   </div>
+
 </section>
 
-<div class="modal fade" id="nuevoContratoModal" tabindex="-1" aria-labelledby="nuevoContratoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
-    <div class="modal-content">
-      <form class="d-flex flex-column h-100" (ngSubmit)="addContrato()">
-        <div class="modal-header">
-          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel"><i class="bi bi-file-earmark-text"></i> Nuevo contrato</h2>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
 
-        <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
-          <div *ngIf="isLoadingCatalogos" class="alert alert-light border small mb-3" role="status">
-            Cargando pactos desde la API y catálogos de contrato…
+
+@if (contratoGestionActivo; as contrato) {
+
+  <div class="contrato-gestion-modal" role="dialog" aria-modal="true" aria-labelledby="contratoGestionModalTitle">
+
+    <div class="modal-backdrop fade show" (click)="cerrarGestionContrato()"></div>
+
+    <div class="modal fade show d-block" tabindex="-1">
+
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-lg-down">
+
+        <div class="modal-content contrato-gestion-modal__content">
+
+          <div class="modal-header py-2">
+
+            <div class="min-w-0">
+
+              <h2 class="modal-title h6 mb-0 text-truncate" id="contratoGestionModalTitle">
+
+                Gestión · {{ contrato.numeroContrato }}
+
+              </h2>
+
+              <p class="small text-secondary mb-0 text-truncate">{{ contrato.proyecto }} · {{ contrato.pacto }}</p>
+
+            </div>
+
+            <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarGestionContrato()"></button>
+
           </div>
-          <div *ngIf="formularioError" class="alert alert-danger py-2 small mb-3" role="alert">{{ formularioError }}</div>
 
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label class="form-label">Pacto <span class="text-danger">*</span></label>
-              <select
-                class="form-select"
-                name="contratoPacto"
-                [(ngModel)]="newContrato.idPactoTerritorial"
-                (ngModelChange)="onPactoChange($event)"
-                [disabled]="isLoadingCatalogos || !pactosCatalogo.length"
-                required
-              >
-                <option [ngValue]="null" disabled>Seleccionar pacto</option>
-                <option *ngFor="let pacto of pactosCatalogo" [ngValue]="pacto.idPactoTerritorial">{{ pacto.nombre }}</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Proyecto <span class="text-danger">*</span></label>
-              <select
-                class="form-select"
-                name="contratoProyecto"
-                [(ngModel)]="newContrato.idProyecto"
-                [disabled]="!newContrato.idPactoTerritorial || isLoadingCatalogos || !proyectosFiltrados.length"
-                required
-              >
-                <option [ngValue]="null" disabled>
-                  {{
-                    isLoadingCatalogos
-                      ? 'Cargando proyectos…'
-                      : newContrato.idPactoTerritorial && !proyectosFiltrados.length
-                        ? 'Sin proyectos para este pacto'
-                        : 'Seleccionar proyecto'
-                  }}
-                </option>
-                <option *ngFor="let proyecto of proyectosFiltrados" [ngValue]="proyecto.id">{{ proyecto.nombreIniciativa }}</option>
-              </select>
-            </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Tipo de contrato <span class="text-danger">*</span></label>
-              <select
-                class="form-select"
-                name="contratoTipo"
-                [(ngModel)]="newContrato.idTipoContrato"
-                [disabled]="isLoadingCatalogos || !tiposContratoCatalogo.length"
-                required
-              >
-                <option [ngValue]="null" disabled>Seleccionar tipo</option>
-                <option *ngFor="let tipo of tiposContratoCatalogo" [ngValue]="tipo.id">{{ tipo.texto }}</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Contratista <span class="text-danger">*</span></label>
-              <select class="form-select" name="contratoContratista" [(ngModel)]="newContrato.contratista" required>
-                <option value="" disabled>Seleccionar contratista</option>
-                <option *ngFor="let contratista of contratistasDisponibles" [value]="contratista">{{ contratista }}</option>
-              </select>
-            </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">N.º contrato <span class="text-danger">*</span></label>
-              <input
-                class="form-control"
-                type="text"
-                name="numeroContrato"
-                [(ngModel)]="newContrato.numeroContrato"
-                pattern="[A-Za-z0-9-]+"
-                title="Solo letras, números y guion"
-                (input)="onNumeroContratoInput($event)"
-                required
-              />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Fecha de suscripción <span class="text-danger">*</span></label>
-              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="newContrato.fechaSuscripcion" required />
-            </div>
+          <div class="modal-body contrato-gestion-modal__body">
 
-            <div class="col-12 col-md-4">
-              <label class="form-label">Fecha de inicio <span class="text-danger">*</span></label>
-              <input class="form-control" type="date" name="fechaInicio" [(ngModel)]="newContrato.fechaInicio" required />
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Fecha de terminación inicial <span class="text-danger">*</span></label>
-              <input class="form-control" type="date" name="fechaTerminacionInicial" [(ngModel)]="newContrato.fechaTerminacionInicial" required />
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">N.º desembolsos <span class="text-danger">*</span></label>
-              <input
-                class="form-control"
-                type="number"
-                name="numeroDesembolsos"
-                [(ngModel)]="newContrato.numeroDesembolsos"
-                min="1"
-                step="1"
-                inputmode="numeric"
-                required
-              />
+            <p class="contrato-item__objeto small text-secondary mb-2" *ngIf="contrato.objeto">
+
+              <span class="fw-semibold text-body">Objeto:</span> {{ contrato.objeto }}
+
+            </p>
+
+
+
+            <div class="contrato-item__info card border-0 bg-light mb-2">
+
+              <div class="card-body py-2 px-3">
+
+                <p class="small fw-semibold text-secondary mb-2 text-uppercase">Información del proyecto y contrato</p>
+
+                <div class="row g-2 small">
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Pacto</span>
+
+                    <strong>{{ contrato.pacto || '—' }}</strong>
+
+                  </div>
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Proyecto</span>
+
+                    <strong>{{ contrato.proyecto || '—' }}</strong>
+
+                  </div>
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Contrato</span>
+
+                    <strong>{{ contrato.numeroContrato }}</strong>
+
+                  </div>
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Contratista</span>
+
+                    <strong>{{ contrato.contratista || '—' }}</strong>
+
+                  </div>
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Estado</span>
+
+                    <strong>{{ contrato.estado }} · {{ contrato.condicion }}</strong>
+
+                  </div>
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Valor inicial</span>
+
+                    <strong class="tabular-nums">{{ formatCurrency(contrato.valorInicial) }}</strong>
+
+                  </div>
+
+                  <div class="col-6 col-md-3">
+
+                    <span class="text-secondary d-block">Desembolsos previstos</span>
+
+                    <strong>{{ cantidadDesembolsosPrevista(contrato) }}</strong>
+
+                  </div>
+
+                  <div class="col-12 col-md-6">
+
+                    <span class="text-secondary d-block">Vigencia</span>
+
+                    <strong>{{ formatDate(contrato.fechaInicio) }} – {{ formatDate(contrato.fechaTerminacionInicial) }}</strong>
+
+                  </div>
+
+                </div>
+
+              </div>
+
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Estado <span class="text-danger">*</span></label>
-              <select
-                class="form-select"
-                name="contratoEstado"
-                [(ngModel)]="newContrato.idEstado"
-                [disabled]="isLoadingCatalogos || !estadosContratoCatalogo.length"
-                required
-              >
-                <option [ngValue]="null" disabled>Seleccionar estado</option>
-                <option *ngFor="let estado of estadosContratoCatalogo" [ngValue]="estado.id">{{ estado.texto }}</option>
-              </select>
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Condición <span class="text-danger">*</span></label>
-              <select
-                class="form-select"
-                name="contratoCondicion"
-                [(ngModel)]="newContrato.idCondicion"
-                (ngModelChange)="onCondicionChange()"
-                [disabled]="isLoadingCatalogos || !condicionesContratoCatalogo.length"
-                required
-              >
-                <option [ngValue]="null" disabled>Seleccionar condición</option>
-                <option *ngFor="let condicion of condicionesContratoCatalogo" [ngValue]="condicion.id">{{ condicion.texto }}</option>
-              </select>
+
+
+            <ul class="nav nav-tabs contrato-detalle-tabs" role="tablist">
+
+              <li class="nav-item" *ngFor="let tab of contratoDetalleTabs" role="presentation">
+
+                <button
+
+                  type="button"
+
+                  class="nav-link"
+
+                  [class.active]="getContratoTab(contrato.id) === tab.id"
+
+                  (click)="setContratoTab(contrato.id, tab.id, $event)"
+
+                >
+
+                  {{ tab.label }}
+
+                </button>
+
+              </li>
+
+            </ul>
+
+
+
+            <div class="contrato-detalle-pane">
+
+              @if (getContratoTab(contrato.id) === 'modificaciones') {
+
+                <div class="contrato-detalle-pane__content">
+
+                  <app-contrato-modificaciones-panel [contrato]="contrato" />
+
+                </div>
+
+              }
+
+              @if (getContratoTab(contrato.id) === 'desembolsos') {
+
+                <div class="contrato-detalle-pane__content desembolsos-inline">
+
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <p class="small fw-semibold text-secondary mb-0">
+
+                      Registros ({{ getDesembolsos(contrato.id).length }} / {{ cantidadDesembolsosPrevista(contrato) }})
+                    </p>
+                    <button type="button" class="btn btn-primary btn-sm" (click)="abrirModalDesembolso(contrato, $event)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                      Registrar desembolso
+                    </button>
+                  </div>
+
+                  @if (!getDesembolsos(contrato.id).length) {
+
+                    <div class="alert alert-light border small mb-0 py-2">Sin desembolsos programados.</div>
+
+                  } @else {
+
+                    <div class="table-responsive">
+
+                      <table class="table table-sm table-bordered align-middle mb-0">
+
+                        <thead class="table-light">
+
+                          <tr>
+
+                            <th class="text-center">N.º</th>
+
+                            <th>F. programada</th>
+
+                            <th class="text-end">Valor</th>
+
+                            <th>Hito</th>
+
+                            <th></th>
+
+                          </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                          @for (d of getDesembolsos(contrato.id); track trackDesembolso($index, d)) {
+
+                            <tr>
+
+                              <td class="text-center fw-semibold">{{ d.numeroDesembolso }}</td>
+
+                              <td>{{ formatDate(d.fechaEstimadaProgramada) }}</td>
+
+                              <td class="text-end tabular-nums">{{ formatCurrency(d.valor) }}</td>
+
+                              <td>{{ d.hito }}</td>
+
+                              <td class="text-end">
+
+                                <button
+
+                                  type="button"
+
+                                  class="btn btn-outline-danger btn-sm py-0 px-1"
+
+                                  (click)="quitarDesembolso(d)"
+
+                                  title="Quitar"
+
+                                  aria-label="Quitar desembolso"
+
+                                >
+
+                                  <i class="bi bi-trash" aria-hidden="true"></i>
+
+                                </button>
+
+                              </td>
+
+                            </tr>
+
+                          }
+
+                        </tbody>
+
+                        <tfoot>
+
+                          <tr class="table-light">
+
+                            <th colspan="2">Total</th>
+
+                            <th class="text-end tabular-nums">{{ formatCurrency(totalDesembolsosProgramados(contrato.id)) }}</th>
+
+                            <th colspan="2"></th>
+
+                          </tr>
+
+                        </tfoot>
+
+                      </table>
+
+                    </div>
+
+                  }
+
+                </div>
+
+              }
+
+              @if (getContratoTab(contrato.id) === 'avances') {
+
+                <div class="contrato-detalle-pane__content">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <p class="small fw-semibold text-secondary mb-0">
+                      Avances reportados ({{ getAvances(contrato.id).length }})
+                    </p>
+                    <button type="button" class="btn btn-primary btn-sm" (click)="abrirModalAvance($event)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                      Registrar avance
+                    </button>
+                  </div>
+                  @if (!getAvances(contrato.id).length) {
+                    <div class="alert alert-light border small mb-0 py-2">Sin avances registrados.</div>
+                  } @else {
+                    <div class="table-responsive">
+                      <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>F. reporte</th>
+                            <th>Detalle</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (a of getAvances(contrato.id); track trackAvance($index, a)) {
+                            <tr>
+                              <td class="text-nowrap">{{ formatDate(a.fechaReporte) }}</td>
+                              <td>{{ a.detalle }}</td>
+                              <td class="text-end">
+                                <button
+                                  type="button"
+                                  class="btn btn-outline-danger btn-sm py-0 px-1"
+                                  (click)="quitarAvance(a)"
+                                  title="Quitar"
+                                  aria-label="Quitar avance"
+                                >
+                                  <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+
+              }
+
+              @if (getContratoTab(contrato.id) === 'segTecnico') {
+
+                <div class="contrato-detalle-pane__content">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <p class="small fw-semibold text-secondary mb-0">
+                      Seg. técnico · {{ contrato.contratante }} · {{ contrato.interventor }}
+                      ({{ getSeguimientosTecnicos(contrato.id).length }})
+                    </p>
+                    <button type="button" class="btn btn-primary btn-sm" (click)="abrirModalSegTecnico($event)">
+                      <i class="bi bi-plus-lg me-1" aria-hidden="true"></i>
+                      Registrar seguimiento
+                    </button>
+                  </div>
+                  @if (!getSeguimientosTecnicos(contrato.id).length) {
+                    <div class="alert alert-light border small mb-0 py-2">Sin registros de seguimiento técnico.</div>
+                  } @else {
+                    <div class="table-responsive">
+                      <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>F. reporte</th>
+                            <th>Detalle</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (s of getSeguimientosTecnicos(contrato.id); track trackSegTecnico($index, s)) {
+                            <tr>
+                              <td class="text-nowrap">{{ formatDate(s.fechaReporte) }}</td>
+                              <td>{{ s.detalle }}</td>
+                              <td class="text-end">
+                                <button
+                                  type="button"
+                                  class="btn btn-outline-danger btn-sm py-0 px-1"
+                                  (click)="quitarSegTecnico(s)"
+                                  title="Quitar"
+                                  aria-label="Quitar seguimiento técnico"
+                                >
+                                  <i class="bi bi-trash" aria-hidden="true"></i>
+                                </button>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                </div>
+
+              }
+
             </div>
 
-            <div class="col-12 col-md-6" *ngIf="requiereContratoPadre">
-              <label class="form-label">Contrato padre <span class="text-danger">*</span></label>
-              <select
-                *ngIf="contratosPadreOpciones.length; else contratoPadreManual"
-                class="form-select"
-                name="contratoPadre"
-                [(ngModel)]="newContrato.contratoPadre"
-                required
-              >
-                <option value="" disabled>Seleccionar contrato padre</option>
-                <option *ngFor="let cp of contratosPadreOpciones" [value]="cp">{{ cp }}</option>
-              </select>
-              <ng-template #contratoPadreManual>
-                <input
-                  class="form-control"
-                  type="text"
-                  name="contratoPadre"
-                  [(ngModel)]="newContrato.contratoPadre"
-                  placeholder="Número del contrato padre"
-                  pattern="[A-Za-z0-9-]+"
-                  (input)="onContratoPadreInput($event)"
-                  required
-                />
-              </ng-template>
-            </div>
+          </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Valor inicial del contrato (COP) <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input
-                  class="form-control text-end"
-                  type="text"
-                  name="valorInicial"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  [(ngModel)]="valorInicialDisplay"
-                  (ngModelChange)="onValorInicialInput($event)"
-                  (focus)="onValorInicialFocus()"
-                  (blur)="onValorInicialBlur()"
-                  placeholder="0"
-                  required
-                />
+          @if (modalDesembolsoAbierto) {
+            <div
+              class="contrato-submodal-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="desembolsoFormModalTitle"
+              (click)="cerrarModalDesembolso()"
+            >
+              <div class="contrato-submodal-dialog" (click)="$event.stopPropagation()">
+                <div class="contrato-submodal-dialog__header">
+                  <h3 class="h6 mb-0" id="desembolsoFormModalTitle">Registrar desembolso programado</h3>
+                  <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalDesembolso()"></button>
+                </div>
+                <div class="contrato-submodal-dialog__body">
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">N.º desembolso</label>
+                      <select
+                        class="form-select form-select-sm"
+                        [ngModel]="getDesembolsoForm(contrato.id).numeroDesembolso"
+                        (ngModelChange)="getDesembolsoForm(contrato.id).numeroDesembolso = $event; desembolsoErrorPorContrato[contrato.id] = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      >
+                        <option [ngValue]="null" disabled>Seleccionar</option>
+                        @for (n of numerosDesembolsoOpciones(contrato); track n) {
+                          <option [ngValue]="n">Desembolso {{ n }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">F. estimada programada</label>
+                      <input
+                        class="form-control form-control-sm"
+                        type="date"
+                        [ngModel]="getDesembolsoForm(contrato.id).fechaEstimadaProgramada"
+                        (ngModelChange)="getDesembolsoForm(contrato.id).fechaEstimadaProgramada = $event; desembolsoErrorPorContrato[contrato.id] = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Valor (COP)</label>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <input
+                          class="form-control text-end"
+                          type="text"
+                          inputmode="numeric"
+                          [ngModel]="desembolsoValorDisplayPorContrato[contrato.id]"
+                          (ngModelChange)="onDesembolsoValorInput(contrato.id, $event)"
+                          (focus)="onDesembolsoValorFocus(contrato.id)"
+                          (blur)="onDesembolsoValorBlur(contrato.id)"
+                          [ngModelOptions]="{ standalone: true }"
+                        />
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Hito</label>
+                      <input
+                        class="form-control form-control-sm"
+                        type="text"
+                        [ngModel]="getDesembolsoForm(contrato.id).hito"
+                        (ngModelChange)="getDesembolsoForm(contrato.id).hito = $event; desembolsoErrorPorContrato[contrato.id] = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </div>
+                  </div>
+                  @if (desembolsoErrorPorContrato[contrato.id]) {
+                    <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">{{ desembolsoErrorPorContrato[contrato.id] }}</div>
+                  }
+                </div>
+                <div class="contrato-submodal-dialog__footer">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalDesembolso()">Cancelar</button>
+                  <button type="button" class="btn btn-primary btn-sm" (click)="guardarDesembolso(contrato)">Guardar</button>
+                </div>
               </div>
             </div>
+          }
 
-            <div class="col-12 col-md-6">
-              <label class="form-label">Contratante <span class="text-danger">*</span></label>
-              <select class="form-select" name="contratoContratante" [(ngModel)]="newContrato.contratante" required>
-                <option value="" disabled>Seleccionar contratante</option>
-                <option *ngFor="let contratante of contratantesDisponibles" [value]="contratante">{{ contratante }}</option>
-              </select>
+          @if (modalAvanceAbierto) {
+            <div
+              class="contrato-submodal-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="avanceFormModalTitle"
+              (click)="cerrarModalAvance()"
+            >
+              <div class="contrato-submodal-dialog" (click)="$event.stopPropagation()">
+                <div class="contrato-submodal-dialog__header">
+                  <h3 class="h6 mb-0" id="avanceFormModalTitle">Registrar avance</h3>
+                  <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalAvance()"></button>
+                </div>
+                <div class="contrato-submodal-dialog__body">
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Fecha del reporte <span class="text-danger">*</span></label>
+                      <input
+                        class="form-control form-control-sm"
+                        type="date"
+                        [(ngModel)]="avanceForm.fechaReporte"
+                        (ngModelChange)="avanceFormError = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label form-label-sm">Detalle <span class="text-danger">*</span></label>
+                      <textarea
+                        class="form-control form-control-sm"
+                        rows="3"
+                        [(ngModel)]="avanceForm.detalle"
+                        (ngModelChange)="avanceFormError = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      ></textarea>
+                    </div>
+                  </div>
+                  @if (avanceFormError) {
+                    <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">{{ avanceFormError }}</div>
+                  }
+                </div>
+                <div class="contrato-submodal-dialog__footer">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalAvance()">Cancelar</button>
+                  <button type="button" class="btn btn-primary btn-sm" (click)="guardarAvance(contrato)">Guardar</button>
+                </div>
+              </div>
             </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label">Interventor <span class="text-danger">*</span></label>
-              <select class="form-select" name="contratoInterventor" [(ngModel)]="newContrato.interventor" required>
-                <option value="" disabled>Seleccionar interventor</option>
-                <option *ngFor="let interventor of interventoresDisponibles" [value]="interventor">{{ interventor }}</option>
-              </select>
+          }
+
+          @if (modalSegTecnicoAbierto) {
+            <div
+              class="contrato-submodal-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="segTecnicoFormModalTitle"
+              (click)="cerrarModalSegTecnico()"
+            >
+              <div class="contrato-submodal-dialog" (click)="$event.stopPropagation()">
+                <div class="contrato-submodal-dialog__header">
+                  <h3 class="h6 mb-0" id="segTecnicoFormModalTitle">Registrar seguimiento técnico</h3>
+                  <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalSegTecnico()"></button>
+                </div>
+                <div class="contrato-submodal-dialog__body">
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Fecha del reporte <span class="text-danger">*</span></label>
+                      <input
+                        class="form-control form-control-sm"
+                        type="date"
+                        [(ngModel)]="segTecnicoForm.fechaReporte"
+                        (ngModelChange)="segTecnicoFormError = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label form-label-sm">Detalle <span class="text-danger">*</span></label>
+                      <textarea
+                        class="form-control form-control-sm"
+                        rows="3"
+                        [(ngModel)]="segTecnicoForm.detalle"
+                        (ngModelChange)="segTecnicoFormError = ''"
+                        [ngModelOptions]="{ standalone: true }"
+                      ></textarea>
+                    </div>
+                  </div>
+                  @if (segTecnicoFormError) {
+                    <div class="alert alert-danger py-2 px-3 mt-2 mb-0 small">{{ segTecnicoFormError }}</div>
+                  }
+                </div>
+                <div class="contrato-submodal-dialog__footer">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalSegTecnico()">Cancelar</button>
+                  <button type="button" class="btn btn-primary btn-sm" (click)="guardarSegTecnico(contrato)">Guardar</button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <div class="modal-footer py-2 justify-content-between">
+
+            <div class="small text-secondary text-truncate me-2">
+
+              <span *ngIf="contrato.contratoPadre">Padre: {{ contrato.contratoPadre }} · </span>
+
+              <span *ngIf="contrato.urlSecop">
+
+                <a [href]="contrato.urlSecop" target="_blank" rel="noopener noreferrer">SECOP</a> ·
+
+              </span>
+
+              Registrado {{ formatDate(contrato.fechaCreacion) }}
+
             </div>
 
-            <div class="col-12">
-              <label class="form-label">Objeto <span class="text-danger">*</span></label>
-              <textarea class="form-control" name="contratoObjeto" [(ngModel)]="newContrato.objeto" rows="3" required></textarea>
-            </div>
-            <div class="col-12">
-              <label class="form-label">URL SECOP</label>
-              <input class="form-control" type="url" name="contratoUrlSecop" [(ngModel)]="newContrato.urlSecop" placeholder="Opcional" />
-            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" (click)="cerrarGestionContrato()">
+
+              Cerrar
+
+            </button>
+
           </div>
+
         </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+}
+
+
+
+<div class="modal fade" id="nuevoContratoModal" tabindex="-1" aria-labelledby="nuevoContratoModalLabel" aria-hidden="true">
+
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
+
+    <div class="modal-content">
+
+      <form class="d-flex flex-column h-100" (ngSubmit)="addContrato()">
+
+        <div class="modal-header">
+
+          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel"><i class="bi bi-file-earmark-text"></i> Nuevo contrato</h2>
+
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+
+        </div>
+
+
+
+        <div class="modal-body overflow-auto" style="max-height: calc(100vh - 12rem);">
+
+          <div *ngIf="isLoadingCatalogos" class="alert alert-light border small mb-3" role="status">
+
+            Cargando pactos desde la API y catálogos de contrato…
+
+          </div>
+
+          <div *ngIf="formularioError" class="alert alert-danger py-2 small mb-3" role="alert">{{ formularioError }}</div>
+
+
+
+          <div class="row g-3">
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Pacto <span class="text-danger">*</span></label>
+
+              <select
+
+                class="form-select"
+
+                name="contratoPacto"
+
+                [(ngModel)]="newContrato.idPactoTerritorial"
+
+                (ngModelChange)="onPactoChange($event)"
+
+                [disabled]="isLoadingCatalogos || !pactosCatalogo.length"
+
+                required
+
+              >
+
+                <option [ngValue]="null" disabled>Seleccionar pacto</option>
+
+                <option *ngFor="let pacto of pactosCatalogo" [ngValue]="pacto.idPactoTerritorial">{{ pacto.nombre }}</option>
+
+              </select>
+
+            </div>
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Proyecto <span class="text-danger">*</span></label>
+
+              <select
+
+                class="form-select"
+
+                name="contratoProyecto"
+
+                [(ngModel)]="newContrato.idProyecto"
+
+                [disabled]="!newContrato.idPactoTerritorial || isLoadingCatalogos || !proyectosFiltrados.length"
+
+                required
+
+              >
+
+                <option [ngValue]="null" disabled>
+
+                  {{
+
+                    isLoadingCatalogos
+
+                      ? 'Cargando proyectos…'
+
+                      : newContrato.idPactoTerritorial && !proyectosFiltrados.length
+
+                        ? 'Sin proyectos para este pacto'
+
+                        : 'Seleccionar proyecto'
+
+                  }}
+
+                </option>
+
+                <option *ngFor="let proyecto of proyectosFiltrados" [ngValue]="proyecto.id">{{ proyecto.nombreIniciativa }}</option>
+
+              </select>
+
+            </div>
+
+
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Tipo de contrato <span class="text-danger">*</span></label>
+
+              <select
+
+                class="form-select"
+
+                name="contratoTipo"
+
+                [(ngModel)]="newContrato.idTipoContrato"
+
+                [disabled]="isLoadingCatalogos || !tiposContratoCatalogo.length"
+
+                required
+
+              >
+
+                <option [ngValue]="null" disabled>Seleccionar tipo</option>
+
+                <option *ngFor="let tipo of tiposContratoCatalogo" [ngValue]="tipo.id">{{ tipo.texto }}</option>
+
+              </select>
+
+            </div>
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Contratista <span class="text-danger">*</span></label>
+
+              <select class="form-select" name="contratoContratista" [(ngModel)]="newContrato.contratista" required>
+
+                <option value="" disabled>Seleccionar contratista</option>
+
+                <option *ngFor="let contratista of contratistasDisponibles" [value]="contratista">{{ contratista }}</option>
+
+              </select>
+
+            </div>
+
+
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">N.º contrato <span class="text-danger">*</span></label>
+
+              <input
+
+                class="form-control"
+
+                type="text"
+
+                name="numeroContrato"
+
+                [(ngModel)]="newContrato.numeroContrato"
+
+                pattern="[A-Za-z0-9-]+"
+
+                title="Solo letras, números y guion"
+
+                (input)="onNumeroContratoInput($event)"
+
+                required
+
+              />
+
+            </div>
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Fecha de suscripción <span class="text-danger">*</span></label>
+
+              <input class="form-control" type="date" name="fechaSuscripcion" [(ngModel)]="newContrato.fechaSuscripcion" required />
+
+            </div>
+
+
+
+            <div class="col-12 col-md-4">
+
+              <label class="form-label">Fecha de inicio <span class="text-danger">*</span></label>
+
+              <input class="form-control" type="date" name="fechaInicio" [(ngModel)]="newContrato.fechaInicio" required />
+
+            </div>
+
+            <div class="col-12 col-md-4">
+
+              <label class="form-label">Fecha de terminación inicial <span class="text-danger">*</span></label>
+
+              <input class="form-control" type="date" name="fechaTerminacionInicial" [(ngModel)]="newContrato.fechaTerminacionInicial" required />
+
+            </div>
+
+            <div class="col-12 col-md-4">
+
+              <label class="form-label">N.º desembolsos <span class="text-danger">*</span></label>
+
+              <input
+
+                class="form-control"
+
+                type="number"
+
+                name="numeroDesembolsos"
+
+                [(ngModel)]="newContrato.numeroDesembolsos"
+
+                min="1"
+
+                step="1"
+
+                inputmode="numeric"
+
+                required
+
+              />
+
+            </div>
+
+
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Estado <span class="text-danger">*</span></label>
+
+              <select
+
+                class="form-select"
+
+                name="contratoEstado"
+
+                [(ngModel)]="newContrato.idEstado"
+
+                [disabled]="isLoadingCatalogos || !estadosContratoCatalogo.length"
+
+                required
+
+              >
+
+                <option [ngValue]="null" disabled>Seleccionar estado</option>
+
+                <option *ngFor="let estado of estadosContratoCatalogo" [ngValue]="estado.id">{{ estado.texto }}</option>
+
+              </select>
+
+            </div>
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Condición <span class="text-danger">*</span></label>
+
+              <select
+
+                class="form-select"
+
+                name="contratoCondicion"
+
+                [(ngModel)]="newContrato.idCondicion"
+
+                (ngModelChange)="onCondicionChange()"
+
+                [disabled]="isLoadingCatalogos || !condicionesContratoCatalogo.length"
+
+                required
+
+              >
+
+                <option [ngValue]="null" disabled>Seleccionar condición</option>
+
+                <option *ngFor="let condicion of condicionesContratoCatalogo" [ngValue]="condicion.id">{{ condicion.texto }}</option>
+
+              </select>
+
+            </div>
+
+
+
+            <div class="col-12 col-md-6" *ngIf="requiereContratoPadre">
+
+              <label class="form-label">Contrato padre <span class="text-danger">*</span></label>
+
+              <select
+
+                *ngIf="contratosPadreOpciones.length; else contratoPadreManual"
+
+                class="form-select"
+
+                name="contratoPadre"
+
+                [(ngModel)]="newContrato.contratoPadre"
+
+                required
+
+              >
+
+                <option value="" disabled>Seleccionar contrato padre</option>
+
+                <option *ngFor="let cp of contratosPadreOpciones" [value]="cp">{{ cp }}</option>
+
+              </select>
+
+              <ng-template #contratoPadreManual>
+
+                <input
+
+                  class="form-control"
+
+                  type="text"
+
+                  name="contratoPadre"
+
+                  [(ngModel)]="newContrato.contratoPadre"
+
+                  placeholder="Número del contrato padre"
+
+                  pattern="[A-Za-z0-9-]+"
+
+                  (input)="onContratoPadreInput($event)"
+
+                  required
+
+                />
+
+              </ng-template>
+
+            </div>
+
+
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Valor inicial del contrato (COP) <span class="text-danger">*</span></label>
+
+              <div class="input-group">
+
+                <span class="input-group-text">$</span>
+
+                <input
+
+                  class="form-control text-end"
+
+                  type="text"
+
+                  name="valorInicial"
+
+                  inputmode="numeric"
+
+                  autocomplete="off"
+
+                  [(ngModel)]="valorInicialDisplay"
+
+                  (ngModelChange)="onValorInicialInput($event)"
+
+                  (focus)="onValorInicialFocus()"
+
+                  (blur)="onValorInicialBlur()"
+
+                  placeholder="0"
+
+                  required
+
+                />
+
+              </div>
+
+            </div>
+
+
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Contratante <span class="text-danger">*</span></label>
+
+              <select class="form-select" name="contratoContratante" [(ngModel)]="newContrato.contratante" required>
+
+                <option value="" disabled>Seleccionar contratante</option>
+
+                <option *ngFor="let contratante of contratantesDisponibles" [value]="contratante">{{ contratante }}</option>
+
+              </select>
+
+            </div>
+
+            <div class="col-12 col-md-6">
+
+              <label class="form-label">Interventor <span class="text-danger">*</span></label>
+
+              <select class="form-select" name="contratoInterventor" [(ngModel)]="newContrato.interventor" required>
+
+                <option value="" disabled>Seleccionar interventor</option>
+
+                <option *ngFor="let interventor of interventoresDisponibles" [value]="interventor">{{ interventor }}</option>
+
+              </select>
+
+            </div>
+
+
+
+            <div class="col-12">
+
+              <label class="form-label">Objeto <span class="text-danger">*</span></label>
+
+              <textarea class="form-control" name="contratoObjeto" [(ngModel)]="newContrato.objeto" rows="3" required></textarea>
+
+            </div>
+
+            <div class="col-12">
+
+              <label class="form-label">URL SECOP</label>
+
+              <input class="form-control" type="url" name="contratoUrlSecop" [(ngModel)]="newContrato.urlSecop" placeholder="Opcional" />
+
+            </div>
+
+          </div>
+
+        </div>
+
+
 
         <div class="modal-footer bg-body sticky-bottom">
+
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+
           <button type="submit" class="btn btn-primary">Guardar contrato</button>
+
         </div>
+
       </form>
+
     </div>
+
   </div>
+
 </div>
+

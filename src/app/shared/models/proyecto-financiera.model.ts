@@ -33,7 +33,40 @@ export interface ProyectoFinancieraIndicativos {
   aporteIndicativoOtros: number | null;
 }
 
-/** Sesión: presupuesto comprometido. */
+/** Valores editables de una versión de presupuesto comprometido (sin totales calculados). */
+export interface ProyectoFinancieraComprometidoDetalle {
+  presupuestoComprometidoDnpFrpt: number | null;
+  presupuestoComprometidoDnpDistribucion: number | null;
+  presupuestoComprometidoSector: number | null;
+  presupuestoComprometidoPropiosEtDptos: number | null;
+  presupuestoComprometidoEtMunicipios: number | null;
+  presupuestoComprometidoRegaliasDirectasDpto: number | null;
+  presupuestoComprometidoRegaliasDirectasMunicipios: number | null;
+  presupuestoComprometidoFondoRegionalSgr60: number | null;
+  presupuestoComprometidoFondoRegionalSgr40: number | null;
+  presupuestoComprometidoCtelSgr: number | null;
+  presupuestoComprometidoAsignacionAmbiental: number | null;
+  presupuestoComprometidoAsignacionInversionLocalSgr: number | null;
+  presupuestoComprometidoOcadPaz: number | null;
+  presupuestoComprometidoOtrosTerritorios: number | null;
+  presupuestoComprometidoAportesOtros: number | null;
+}
+
+/** Una iteración (inicial o adición presupuestal) del presupuesto comprometido. */
+export interface ProyectoFinancieraComprometidoVersion {
+  id: string;
+  etiqueta: string;
+  tipoVersion: 'original' | 'anexo';
+  detalle: ProyectoFinancieraComprometidoDetalle;
+  registradoPor: string;
+  registradoEn: string;
+}
+
+export interface ProyectoFinancieraComprometidoSesion {
+  versiones: ProyectoFinancieraComprometidoVersion[];
+}
+
+/** Sesión: presupuesto comprometido (totales legacy / caché). */
 export interface ProyectoFinancieraComprometido {
   presupuestoComprometidoTotal: number | null;
   presupuestoComprometidoDnpFrpt: number | null;
@@ -75,6 +108,9 @@ export function isProyectoFinancieraConpesRegistrado(conpes: ProyectoFinancieraC
 export interface ProyectoFinancieraData {
   proyectoId: number;
   indicativos: ProyectoFinancieraIndicativos;
+  /** Versiones inicial + adiciones presupuestales; los totales visibles son la suma de todas. */
+  comprometidoSesion: ProyectoFinancieraComprometidoSesion;
+  /** Totales calculados (sincronizado al guardar; compatibilidad). */
   comprometido: ProyectoFinancieraComprometido;
   conpes: ProyectoFinancieraConpes;
   updatedAt: string;
@@ -126,10 +162,15 @@ export function createEmptyProyectoFinancieraComprometido(): ProyectoFinancieraC
   };
 }
 
+export function createEmptyProyectoFinancieraComprometidoSesion(): ProyectoFinancieraComprometidoSesion {
+  return { versiones: [] };
+}
+
 export function createEmptyProyectoFinancieraData(proyectoId: number): ProyectoFinancieraData {
   return {
     proyectoId,
     indicativos: createEmptyProyectoFinancieraIndicativos(),
+    comprometidoSesion: createEmptyProyectoFinancieraComprometidoSesion(),
     comprometido: createEmptyProyectoFinancieraComprometido(),
     conpes: {
       numeroConpes: '',

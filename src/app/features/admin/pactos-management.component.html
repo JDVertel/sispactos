@@ -280,10 +280,13 @@
                   {{ linea }}
                   <button
                     type="button"
-                    class="btn-close btn-close-white btn-sm"
+                    class="btn btn-link btn-sm p-0 territorial-chip-remove"
                     aria-label="Eliminar línea temática"
+                    title="Eliminar"
                     (click)="removeLineaTematica(i)"
-                  ></button>
+                  >
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                  </button>
                 </span>
               </div>
 
@@ -374,10 +377,13 @@
                     {{ u.municipio }}
                     <button
                       type="button"
-                      class="btn-close btn-close-white btn-sm"
+                      class="btn btn-link btn-sm p-0 territorial-chip-remove"
                       aria-label="Quitar municipio"
+                      title="Quitar"
                       (click)="removeMunicipioAlcance(i)"
-                    ></button>
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
                   </span>
                 </div>
                 <ng-container *ngIf="modoFormulario === 'crear'">
@@ -427,10 +433,13 @@
                     {{ departamento }}
                     <button
                       type="button"
-                      class="btn-close btn-close-white btn-sm"
+                      class="btn btn-link btn-sm p-0 territorial-chip-remove"
                       aria-label="Quitar departamento"
+                      title="Quitar"
                       (click)="removeDepartamentoAlcance(i)"
-                    ></button>
+                    >
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
                   </span>
                 </div>
                 <div class="form-text" *ngIf="!departamentosDisponibles.length">

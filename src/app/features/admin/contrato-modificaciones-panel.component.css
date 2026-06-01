@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  position: relative;
+  --mod-font: 0.82rem;
+  font-size: var(--mod-font);
+}
+
+.modificaciones-panel__info .card-body {
+  font-size: var(--mod-font);
+}
+
+.form-label-sm {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.modificaciones-table thead th {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.modificaciones-table tbody td {
+  font-size: var(--mod-font);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.form-text {
+  font-size: 0.68rem;
+}
+
+.contrato-submodal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1070;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.contrato-submodal-dialog {
+  width: min(100%, 560px);
+  max-height: min(85vh, 100%);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.2);
+}
+
+.contrato-submodal-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #ebebeb;
+}
+
+.contrato-submodal-dialog__body {
+  padding: 0.85rem;
+  overflow-y: auto;
+}
+
+.contrato-submodal-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid #ebebeb;
+}

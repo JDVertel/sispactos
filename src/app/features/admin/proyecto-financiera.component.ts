@@ -1,11 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
+  createEmptyComprometidoDetalle,
+  detalleToComprometidoCompleto,
+  etiquetaNuevaVersionComprometido,
+  relabelVersionesComprometido,
+  sumarComprometidoDetalles,
+  tipoVersionNuevaComprometido
+} from '../../core/financiera/proyecto-financiera-comprometido.util';
+import {
+  calcularDetalleLiberacionSugerida,
+  LIBERACION_RUBROS,
+  LiberacionRubroPar
+} from '../../core/financiera/proyecto-financiera-liberacion.util';
+import {
   aplicarTotalesComprometido,
   aplicarTotalesIndicativos,
-  calcularTotalesComprometido,
+  calcularTotalesComprometidoDesdeDetalle,
   calcularTotalesIndicativos,
   FinancieraTotalesSesion
 } from '../../core/financiera/proyecto-financiera.calculos';
@@ -14,6 +27,8 @@ import { ProyectoFinancieraService } from '../../core/services/proyecto-financie
 import { ProyectosService } from '../../core/services/proyectos.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import {
+  ProyectoFinancieraComprometidoDetalle,
+  ProyectoFinancieraComprometidoVersion,
   ProyectoFinancieraData,
   ProyectoFinancieraVigencia,
   createEmptyProyectoFinancieraData,
@@ -21,7 +36,7 @@ import {
 } from '../../shared/models/proyecto-financiera.model';
 import { Proyecto } from '../../shared/models';
 
-type FinancieraTab = 'indicativos' | 'comprometido' | 'conpes';
+type FinancieraTab = 'indicativos' | 'comprometido' | 'liberacion' | 'conpes';
 type FinancieraGrupo = 'indicativos' | 'comprometido';
 
 interface VigenciaModalForm {
@@ -42,6 +57,8 @@ interface FinancieraCampoDetalle {
   group: FinancieraGrupo;
 }
 
+export type FinancieraEstadoGuardado = 'guardado' | 'pendiente' | 'guardando';
+
 @Component({
   selector: 'app-proyecto-financiera',
   standalone: true,
@@ -49,17 +66,32 @@ interface FinancieraCampoDetalle {
   templateUrl: './proyecto-financiera.component.html',
   styleUrl: './proyecto-financiera.component.css'
 })
-export class ProyectoFinancieraComponent implements OnInit {
+export class ProyectoFinancieraComponent implements OnInit, OnDestroy {
   proyecto: Proyecto | null = null;
   financiera: ProyectoFinancieraData = createEmptyProyectoFinancieraData(0);
   activeTab: FinancieraTab = 'indicativos';
   guardadoOk = false;
+  guardadoAutomaticoReciente = false;
+  estadoGuardado: FinancieraEstadoGuardado = 'guardado';
   vigenciaModalError = '';
   conpesModalError = '';
+  comprometidoModalError = '';
+  comprometidoVersionSeleccionadaId: string | null = null;
+  comprometidoModalForm: ProyectoFinancieraComprometidoDetalle = createEmptyComprometidoDetalle();
   private vigenciaEditIndex: number | null = null;
   conpesModalEsEdicion = false;
   vigenciaModalForm: VigenciaModalForm = this.emptyVigenciaModalForm();
   conpesModalForm: ConpesModalForm = this.emptyConpesModalForm();
+
+  private ultimoSnapshotGuardado = '';
+  private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+  private guardadoAutomaticoTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly AUTOSAVE_MS = 600;
+  private modalComprometidoAbierto = false;
+  private modalConpesAbierto = false;
+  private modalVigenciaAbierto = false;
+  private conpesModalSnapshotInicial = '';
+  private vigenciaModalSnapshotInicial = '';
 
   readonly camposDetalleIndicativos: FinancieraCampoDetalle[] = [
     { key: 'aporteIndicativoDnpFrpt', label: 'Aporte indicativo DNP FRPT', group: 'indicativos' },
@@ -154,6 +186,56 @@ export class ProyectoFinancieraComponent implements OnInit {
     }
 
     this.financiera = this.financieraService.getByProyectoId(proyectoId);
+    this.sincronizarComprometidoDesdeVersiones();
+    this.seleccionarPrimeraVersionComprometidoSiHay();
+    this.actualizarSnapshotGuardado();
+    setTimeout(() => this.registrarCierreModalesBootstrap(), 0);
+  }
+
+  ngOnDestroy(): void {
+    this.cancelarAutosaveProgramado();
+    if (this.guardadoAutomaticoTimer) {
+      clearTimeout(this.guardadoAutomaticoTimer);
+    }
+    this.desregistrarCierreModalesBootstrap();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.requiereConfirmacionAlSalir()) {
+      event.preventDefault();
+    }
+  }
+
+  get tieneCambiosPendientes(): boolean {
+    return this.estadoGuardado === 'pendiente';
+  }
+
+  get etiquetaEstadoGuardado(): string {
+    switch (this.estadoGuardado) {
+      case 'guardando':
+        return 'Guardando…';
+      case 'pendiente':
+        return 'Guardando cambios…';
+      default:
+        return 'Guardado automáticamente';
+    }
+  }
+
+  /** Usado por el guard de ruta y el enlace Volver. */
+  confirmarNavegacionFuera(): boolean {
+    this.sincronizarEstadoModales();
+    if (!this.confirmarSiModalAbiertoConCambios()) {
+      return false;
+    }
+    this.flushAutosaveSiPendiente();
+    return true;
+  }
+
+  onVolverClick(event: MouseEvent): void {
+    if (!this.confirmarNavegacionFuera()) {
+      event.preventDefault();
+    }
   }
 
   get conpesRegistrado(): boolean {
@@ -177,18 +259,76 @@ export class ProyectoFinancieraComponent implements OnInit {
   }
 
   get totalesComprometido(): FinancieraTotalesSesion {
-    return calcularTotalesComprometido(this.financiera.comprometido);
+    const detalle = sumarComprometidoDetalles(this.financiera.comprometidoSesion.versiones);
+    return calcularTotalesComprometidoDesdeDetalle(detalle);
   }
 
-  get camposDetalleActivos(): FinancieraCampoDetalle[] {
-    return this.activeTab === 'comprometido'
-      ? this.camposDetalleComprometido
-      : this.camposDetalleIndicativos;
+  readonly rubrosLiberacion: LiberacionRubroPar[] = LIBERACION_RUBROS;
+
+  get detalleComprometidoAcumulado(): ProyectoFinancieraComprometidoDetalle {
+    return sumarComprometidoDetalles(this.financiera.comprometidoSesion.versiones);
+  }
+
+  get detalleLiberacionSugerida(): ProyectoFinancieraComprometidoDetalle {
+    return calcularDetalleLiberacionSugerida(this.financiera.indicativos, this.detalleComprometidoAcumulado);
+  }
+
+  get totalesLiberacionSugerida(): FinancieraTotalesSesion {
+    return calcularTotalesComprometidoDesdeDetalle(this.detalleLiberacionSugerida);
+  }
+
+  valorIndicativoRubro(rubro: LiberacionRubroPar): number {
+    return Number(this.financiera.indicativos[rubro.indicativoKey]) || 0;
+  }
+
+  valorComprometidoRubro(rubro: LiberacionRubroPar): number {
+    return Number(this.detalleComprometidoAcumulado[rubro.comprometidoKey]) || 0;
+  }
+
+  valorSugeridoLiberacionRubro(rubro: LiberacionRubroPar): number {
+    return Number(this.detalleLiberacionSugerida[rubro.comprometidoKey]) || 0;
+  }
+
+  get comprometidoModalTitulo(): string {
+    const etiqueta = etiquetaNuevaVersionComprometido(this.financiera.comprometidoSesion.versiones);
+    return `Registrar ${etiqueta}`;
+  }
+
+  get versionesComprometidoOrdenadas(): ProyectoFinancieraComprometidoVersion[] {
+    return [...this.financiera.comprometidoSesion.versiones].sort(
+      (a, b) => new Date(a.registradoEn || 0).getTime() - new Date(b.registradoEn || 0).getTime()
+    );
+  }
+
+  get comprometidoVersionSeleccionada(): ProyectoFinancieraComprometidoVersion | null {
+    if (!this.comprometidoVersionSeleccionadaId) {
+      return null;
+    }
+    return (
+      this.financiera.comprometidoSesion.versiones.find(
+        (v) => v.id === this.comprometidoVersionSeleccionadaId
+      ) ?? null
+    );
+  }
+
+  get cantidadVersionesComprometido(): number {
+    return this.financiera.comprometidoSesion.versiones.length;
   }
 
   setTab(tab: FinancieraTab): void {
+    if (tab === this.activeTab) {
+      return;
+    }
+    this.sincronizarEstadoModales();
+    if (!this.confirmarSiModalAbiertoConCambios()) {
+      return;
+    }
+    const habiaPendientes = this.tieneCambiosPendientesEnDatos();
+    this.flushAutosaveSiPendiente();
     this.activeTab = tab;
-    this.guardadoOk = false;
+    if (habiaPendientes) {
+      this.mostrarAvisoGuardadoAutomatico();
+    }
   }
 
   get valorTotalVigencias(): number {
@@ -200,21 +340,121 @@ export class ProyectoFinancieraComponent implements OnInit {
   }
 
   valorCampo(campo: FinancieraCampoDetalle): number | null {
-    const grupo =
-      campo.group === 'indicativos' ? this.financiera.indicativos : this.financiera.comprometido;
-    const raw = (grupo as unknown as Record<string, number | null>)[campo.key];
+    const raw = (this.financiera.indicativos as unknown as Record<string, number | null>)[campo.key];
     return raw ?? null;
+  }
+
+  valorCampoVersionComprometido(campo: FinancieraCampoDetalle): number | null {
+    const version = this.comprometidoVersionSeleccionada;
+    if (!version) {
+      return null;
+    }
+    const raw = (version.detalle as unknown as Record<string, number | null>)[campo.key];
+    return raw ?? null;
+  }
+
+  totalesVersionComprometido(version: ProyectoFinancieraComprometidoVersion): FinancieraTotalesSesion {
+    return calcularTotalesComprometidoDesdeDetalle(version.detalle);
+  }
+
+  /** Totales acumulados hasta la versión indicada (inclusive), alineados con la cabecera. */
+  totalesComprometidoAcumuladosHasta(version: ProyectoFinancieraComprometidoVersion): FinancieraTotalesSesion {
+    const ordenadas = this.versionesComprometidoOrdenadas;
+    const indice = ordenadas.findIndex((v) => v.id === version.id);
+    const hasta = indice < 0 ? [] : ordenadas.slice(0, indice + 1);
+    const detalle = sumarComprometidoDetalles(hasta);
+    return calcularTotalesComprometidoDesdeDetalle(detalle);
+  }
+
+  get totalesVersionComprometidoSeleccionada(): FinancieraTotalesSesion | null {
+    const version = this.comprometidoVersionSeleccionada;
+    return version ? this.totalesVersionComprometido(version) : null;
+  }
+
+  get totalesAcumuladosVersionSeleccionada(): FinancieraTotalesSesion | null {
+    const version = this.comprometidoVersionSeleccionada;
+    return version ? this.totalesComprometidoAcumuladosHasta(version) : null;
   }
 
   actualizarCampo(campo: FinancieraCampoDetalle, value: string): void {
     const parsed = value === '' ? null : Number(value);
     const num = parsed != null && Number.isFinite(parsed) ? parsed : null;
-    if (campo.group === 'indicativos') {
-      (this.financiera.indicativos as unknown as Record<string, number | null>)[campo.key] = num;
-    } else {
-      (this.financiera.comprometido as unknown as Record<string, number | null>)[campo.key] = num;
+    (this.financiera.indicativos as unknown as Record<string, number | null>)[campo.key] = num;
+    this.programarAutosave();
+  }
+
+  actualizarComprometidoModalCampo(campo: FinancieraCampoDetalle, value: string): void {
+    const parsed = value === '' ? null : Number(value);
+    const num = parsed != null && Number.isFinite(parsed) ? parsed : null;
+    (this.comprometidoModalForm as unknown as Record<string, number | null>)[campo.key] = num;
+    this.comprometidoModalError = '';
+  }
+
+  valorComprometidoModalCampo(campo: FinancieraCampoDetalle): number | null {
+    const raw = (this.comprometidoModalForm as unknown as Record<string, number | null>)[campo.key];
+    return raw ?? null;
+  }
+
+  seleccionarVersionComprometido(version: ProyectoFinancieraComprometidoVersion): void {
+    this.comprometidoVersionSeleccionadaId = version.id;
+  }
+
+  abrirModalNuevaVersionComprometido(): void {
+    this.comprometidoModalForm = createEmptyComprometidoDetalle();
+    this.comprometidoModalError = '';
+    this.modalComprometidoAbierto = true;
+    setTimeout(() => this.showBootstrapModal('comprometidoVersionModal'), 0);
+  }
+
+  cerrarModalComprometido(): void {
+    if (!this.confirmarCerrarModalComprometido()) {
+      return;
     }
-    this.guardadoOk = false;
+    this.hideBootstrapModal('comprometidoVersionModal');
+    this.comprometidoModalError = '';
+    this.comprometidoModalForm = createEmptyComprometidoDetalle();
+    this.modalComprometidoAbierto = false;
+  }
+
+  guardarComprometidoModal(): void {
+    const error = this.validarComprometidoModal();
+    if (error) {
+      this.comprometidoModalError = error;
+      return;
+    }
+
+    const usuario = this.usuarioActualEtiqueta();
+    const ahora = new Date().toISOString();
+    const versiones = this.financiera.comprometidoSesion.versiones;
+    const etiqueta = etiquetaNuevaVersionComprometido(versiones);
+    const tipoVersion = tipoVersionNuevaComprometido(versiones);
+    const nueva: ProyectoFinancieraComprometidoVersion = {
+      id: this.nuevoIdComprometidoVersion(),
+      etiqueta,
+      tipoVersion,
+      detalle: { ...this.comprometidoModalForm },
+      registradoPor: usuario,
+      registradoEn: ahora
+    };
+
+    this.financiera.comprometidoSesion = {
+      versiones: relabelVersionesComprometido([...versiones, nueva])
+    };
+    this.comprometidoVersionSeleccionadaId = nueva.id;
+    this.persistirFinanciera({ silencioso: true });
+    this.cerrarModalComprometidoForzado();
+  }
+
+  usuarioComprometidoVersion(version: ProyectoFinancieraComprometidoVersion): string {
+    return (version.registradoPor || '—').trim() || '—';
+  }
+
+  fechaComprometidoVersion(version: ProyectoFinancieraComprometidoVersion): string {
+    return this.formatIsoFechaHora(version.registradoEn);
+  }
+
+  trackComprometidoVersion(_index: number, version: ProyectoFinancieraComprometidoVersion): string {
+    return version.id;
   }
 
   abrirModalRegistrarConpes(): void {
@@ -228,13 +468,16 @@ export class ProyectoFinancieraComponent implements OnInit {
         || (this.proyecto?.consecutivoConpes != null ? String(this.proyecto.consecutivoConpes) : '')
     };
     this.conpesModalError = '';
+    this.conpesModalSnapshotInicial = this.snapshotConpesModalForm();
+    this.modalConpesAbierto = true;
     setTimeout(() => this.showBootstrapModal('conpesSesionModal'), 0);
   }
 
   cerrarModalConpes(): void {
-    this.hideBootstrapModal('conpesSesionModal');
-    this.conpesModalError = '';
-    this.conpesModalForm = this.emptyConpesModalForm();
+    if (!this.confirmarCerrarModalConpes()) {
+      return;
+    }
+    this.cerrarModalConpesForzado();
   }
 
   guardarConpesModal(): void {
@@ -263,9 +506,8 @@ export class ProyectoFinancieraComponent implements OnInit {
       this.financiera.conpes.actualizadoEn = ahora;
     }
 
-    this.financieraService.save(this.financiera);
-    this.guardadoOk = true;
-    this.cerrarModalConpes();
+    this.persistirFinanciera({ silencioso: true });
+    this.cerrarModalConpesForzado();
   }
 
   usuarioConpes(): string {
@@ -302,6 +544,8 @@ export class ProyectoFinancieraComponent implements OnInit {
       valorDisplay: '',
       anio: new Date().getFullYear()
     };
+    this.vigenciaModalSnapshotInicial = this.snapshotVigenciaModalForm();
+    this.modalVigenciaAbierto = true;
     this.vigenciaModalError = '';
     this.abrirModalVigencia();
   }
@@ -318,15 +562,17 @@ export class ProyectoFinancieraComponent implements OnInit {
       valorDisplay: valor != null && Number.isFinite(valor) ? this.formatCurrencyInput(valor) : '',
       anio: vigencia.anio
     };
+    this.vigenciaModalSnapshotInicial = this.snapshotVigenciaModalForm();
+    this.modalVigenciaAbierto = true;
     this.vigenciaModalError = '';
     this.abrirModalVigencia();
   }
 
   cerrarModalVigencia(): void {
-    this.cerrarModalVigenciaUi();
-    this.vigenciaEditIndex = null;
-    this.vigenciaModalError = '';
-    this.vigenciaModalForm = this.emptyVigenciaModalForm();
+    if (!this.confirmarCerrarModalVigencia()) {
+      return;
+    }
+    this.cerrarModalVigenciaForzado();
   }
 
   onVigenciaModalValorChange(raw: string): void {
@@ -382,15 +628,13 @@ export class ProyectoFinancieraComponent implements OnInit {
       ];
     }
 
-    this.financieraService.save(this.financiera);
-    this.guardadoOk = true;
-    this.cerrarModalVigencia();
+    this.persistirFinanciera({ silencioso: true });
+    this.cerrarModalVigenciaForzado();
   }
 
   quitarVigencia(vigencia: ProyectoFinancieraVigencia): void {
     this.financiera.conpes.vigencias = this.financiera.conpes.vigencias.filter((v) => v.id !== vigencia.id);
-    this.financieraService.save(this.financiera);
-    this.guardadoOk = true;
+    this.persistirFinanciera({ silencioso: true });
   }
 
   usuarioVigencia(vigencia: ProyectoFinancieraVigencia): string {
@@ -402,10 +646,239 @@ export class ProyectoFinancieraComponent implements OnInit {
   }
 
   guardar(): void {
+    this.flushAutosaveSiPendiente();
+    this.persistirFinanciera({ silencioso: false });
+  }
+
+  private persistirFinanciera(opciones: { silencioso?: boolean } = {}): void {
+    const silencioso = opciones.silencioso ?? false;
+    this.cancelarAutosaveProgramado();
+    this.estadoGuardado = 'guardando';
     aplicarTotalesIndicativos(this.financiera.indicativos);
-    aplicarTotalesComprometido(this.financiera.comprometido);
+    this.financiera.comprometidoSesion = {
+      versiones: relabelVersionesComprometido(this.financiera.comprometidoSesion.versiones)
+    };
+    this.sincronizarComprometidoDesdeVersiones();
     this.financieraService.save(this.financiera);
-    this.guardadoOk = true;
+    this.actualizarSnapshotGuardado();
+    this.estadoGuardado = 'guardado';
+    if (silencioso) {
+      this.mostrarAvisoGuardadoAutomatico();
+    } else {
+      this.guardadoOk = true;
+      this.guardadoAutomaticoReciente = false;
+    }
+  }
+
+  private programarAutosave(): void {
+    this.estadoGuardado = 'pendiente';
+    this.cancelarAutosaveProgramado();
+    this.autosaveTimer = setTimeout(() => {
+      this.autosaveTimer = null;
+      if (this.tieneCambiosPendientesEnDatos()) {
+        this.persistirFinanciera({ silencioso: true });
+      } else {
+        this.estadoGuardado = 'guardado';
+      }
+    }, this.AUTOSAVE_MS);
+  }
+
+  private flushAutosaveSiPendiente(): void {
+    this.cancelarAutosaveProgramado();
+    if (this.tieneCambiosPendientesEnDatos()) {
+      this.persistirFinanciera({ silencioso: true });
+    }
+  }
+
+  private cancelarAutosaveProgramado(): void {
+    if (this.autosaveTimer) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = null;
+    }
+  }
+
+  private tieneCambiosPendientesEnDatos(): boolean {
+    return this.snapshotDesdeEstado() !== this.ultimoSnapshotGuardado;
+  }
+
+  private requiereConfirmacionAlSalir(): boolean {
+    return this.tieneCambiosPendientesEnDatos() || this.modalAbiertoConCambios();
+  }
+
+  private confirmarSiModalAbiertoConCambios(): boolean {
+    if (!this.modalAbiertoConCambios()) {
+      return true;
+    }
+    return window.confirm(
+      'Tiene un formulario abierto con cambios sin guardar. ¿Desea salir sin guardarlos?'
+    );
+  }
+
+  private confirmarCerrarModalComprometido(): boolean {
+    if (!this.modalComprometidoAbierto || !this.comprometidoModalTieneDatos()) {
+      return true;
+    }
+    return window.confirm(
+      'Hay valores ingresados en el formulario que no se han guardado. ¿Desea cerrar sin guardar?'
+    );
+  }
+
+  private confirmarCerrarModalConpes(): boolean {
+    if (!this.modalConpesAbierto || !this.conpesModalTieneCambios()) {
+      return true;
+    }
+    return window.confirm(
+      'Hay cambios en la sesión CONPES sin guardar. ¿Desea cerrar sin guardar?'
+    );
+  }
+
+  private confirmarCerrarModalVigencia(): boolean {
+    if (!this.modalVigenciaAbierto || !this.vigenciaModalTieneCambios()) {
+      return true;
+    }
+    return window.confirm(
+      'Hay cambios en la vigencia sin guardar. ¿Desea cerrar sin guardar?'
+    );
+  }
+
+  private modalAbiertoConCambios(): boolean {
+    this.sincronizarEstadoModales();
+    return (
+      (this.modalComprometidoAbierto && this.comprometidoModalTieneDatos())
+      || (this.modalConpesAbierto && this.conpesModalTieneCambios())
+      || (this.modalVigenciaAbierto && this.vigenciaModalTieneCambios())
+    );
+  }
+
+  /** Evita bloquear pestañas si el modal se cerró con X o clic fuera sin pasar por cerrarModal*. */
+  private sincronizarEstadoModales(): void {
+    if (!this.isBootstrapModalVisible('comprometidoVersionModal')) {
+      this.modalComprometidoAbierto = false;
+    }
+    if (!this.isBootstrapModalVisible('conpesSesionModal')) {
+      this.modalConpesAbierto = false;
+    }
+    if (!this.isBootstrapModalVisible('conpesVigenciaModal')) {
+      this.modalVigenciaAbierto = false;
+    }
+  }
+
+  private isBootstrapModalVisible(elementId: string): boolean {
+    const el = document.getElementById(elementId);
+    return el?.classList.contains('show') ?? false;
+  }
+
+  private readonly modalHiddenHandlers = new Map<string, () => void>();
+
+  private registrarCierreModalesBootstrap(): void {
+    this.vincularCierreModal('comprometidoVersionModal', () => {
+      this.modalComprometidoAbierto = false;
+      this.comprometidoModalForm = createEmptyComprometidoDetalle();
+      this.comprometidoModalError = '';
+    });
+    this.vincularCierreModal('conpesSesionModal', () => {
+      this.modalConpesAbierto = false;
+      this.conpesModalForm = this.emptyConpesModalForm();
+      this.conpesModalError = '';
+      this.conpesModalSnapshotInicial = '';
+    });
+    this.vincularCierreModal('conpesVigenciaModal', () => {
+      this.modalVigenciaAbierto = false;
+      this.vigenciaEditIndex = null;
+      this.vigenciaModalForm = this.emptyVigenciaModalForm();
+      this.vigenciaModalError = '';
+      this.vigenciaModalSnapshotInicial = '';
+    });
+  }
+
+  private vincularCierreModal(elementId: string, onHidden: () => void): void {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      return;
+    }
+    const handler = (): void => onHidden();
+    el.addEventListener('hidden.bs.modal', handler);
+    this.modalHiddenHandlers.set(elementId, handler);
+  }
+
+  private desregistrarCierreModalesBootstrap(): void {
+    for (const [elementId, handler] of this.modalHiddenHandlers) {
+      document.getElementById(elementId)?.removeEventListener('hidden.bs.modal', handler);
+    }
+    this.modalHiddenHandlers.clear();
+  }
+
+  private comprometidoModalTieneDatos(): boolean {
+    return this.camposDetalleComprometido.some((campo) => {
+      const val = this.valorComprometidoModalCampo(campo);
+      return val != null && val !== 0;
+    });
+  }
+
+  private conpesModalTieneCambios(): boolean {
+    return this.snapshotConpesModalForm() !== this.conpesModalSnapshotInicial;
+  }
+
+  private vigenciaModalTieneCambios(): boolean {
+    return this.snapshotVigenciaModalForm() !== this.vigenciaModalSnapshotInicial;
+  }
+
+  private snapshotConpesModalForm(): string {
+    return JSON.stringify(this.conpesModalForm);
+  }
+
+  private snapshotVigenciaModalForm(): string {
+    return JSON.stringify(this.vigenciaModalForm);
+  }
+
+  private snapshotDesdeEstado(): string {
+    const data = JSON.parse(JSON.stringify(this.financiera)) as ProyectoFinancieraData;
+    aplicarTotalesIndicativos(data.indicativos);
+    const detalle = sumarComprometidoDetalles(data.comprometidoSesion.versiones);
+    Object.assign(data.comprometido, detalleToComprometidoCompleto(detalle));
+    aplicarTotalesComprometido(data.comprometido);
+    const { updatedAt: _u, ...rest } = data;
+    return JSON.stringify(rest);
+  }
+
+  private actualizarSnapshotGuardado(): void {
+    this.ultimoSnapshotGuardado = this.snapshotDesdeEstado();
+  }
+
+  private mostrarAvisoGuardadoAutomatico(): void {
+    this.guardadoAutomaticoReciente = true;
+    this.guardadoOk = false;
+    if (this.guardadoAutomaticoTimer) {
+      clearTimeout(this.guardadoAutomaticoTimer);
+    }
+    this.guardadoAutomaticoTimer = setTimeout(() => {
+      this.guardadoAutomaticoReciente = false;
+      this.guardadoAutomaticoTimer = null;
+    }, 3500);
+  }
+
+  private cerrarModalComprometidoForzado(): void {
+    this.hideBootstrapModal('comprometidoVersionModal');
+    this.comprometidoModalError = '';
+    this.comprometidoModalForm = createEmptyComprometidoDetalle();
+    this.modalComprometidoAbierto = false;
+  }
+
+  private cerrarModalConpesForzado(): void {
+    this.hideBootstrapModal('conpesSesionModal');
+    this.conpesModalError = '';
+    this.conpesModalForm = this.emptyConpesModalForm();
+    this.modalConpesAbierto = false;
+    this.conpesModalSnapshotInicial = '';
+  }
+
+  private cerrarModalVigenciaForzado(): void {
+    this.cerrarModalVigenciaUi();
+    this.vigenciaEditIndex = null;
+    this.vigenciaModalError = '';
+    this.vigenciaModalForm = this.emptyVigenciaModalForm();
+    this.modalVigenciaAbierto = false;
+    this.vigenciaModalSnapshotInicial = '';
   }
 
   formatCurrency(value: number): string {
@@ -458,6 +931,34 @@ export class ProyectoFinancieraComponent implements OnInit {
 
   private nuevoIdVigencia(): string {
     return `vig-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private nuevoIdComprometidoVersion(): string {
+    return `comp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private sincronizarComprometidoDesdeVersiones(): void {
+    const detalle = sumarComprometidoDetalles(this.financiera.comprometidoSesion.versiones);
+    const completo = detalleToComprometidoCompleto(detalle);
+    Object.assign(this.financiera.comprometido, completo);
+    aplicarTotalesComprometido(this.financiera.comprometido);
+  }
+
+  private seleccionarPrimeraVersionComprometidoSiHay(): void {
+    const ordenadas = this.versionesComprometidoOrdenadas;
+    if (ordenadas.length && !this.comprometidoVersionSeleccionadaId) {
+      this.comprometidoVersionSeleccionadaId = ordenadas[0].id;
+    }
+  }
+
+  private validarComprometidoModal(): string | null {
+    for (const campo of this.camposDetalleComprometido) {
+      const val = this.valorComprometidoModalCampo(campo);
+      if (val != null && (!Number.isFinite(val) || val < 0)) {
+        return `El valor de "${campo.label}" debe ser mayor o igual a cero.`;
+      }
+    }
+    return null;
   }
 
   private emptyVigenciaModalForm(): VigenciaModalForm {
