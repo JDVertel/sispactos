@@ -4,7 +4,7 @@
       <p class="text-uppercase small text-secondary mb-1">Financiera · Proyecto</p>
       <h1 class="h3 mb-1">Módulo financiero</h1>
       <p class="text-secondary mb-0">
-        <span class="fw-semibold">{{ proyecto.codigo }}</span> — {{ proyecto.nombre }}
+        <span class="fw-semibold">{{ proyecto.codigo }}</span> — {{ proyecto.nombreIniciativa }}
       </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -170,106 +170,296 @@
 
       <!-- Tab CONPES -->
       <div *ngIf="activeTab === 'conpes'" class="tab-pane-financiera">
-        <h2 class="h6 text-secondary mb-3">Sesión CONPES</h2>
-
-        <div class="financiera-totales-panel mb-4">
-          <p class="financiera-totales-panel__titulo mb-2">Total CONPES (sumatoria de vigencias)</p>
-          <div class="row g-3">
-            <div class="col-md-6 col-lg-4">
-              <div class="financiera-total-card financiera-total-card--principal">
-                <span class="financiera-total-card__label">Valor total CONPES</span>
-                <output class="financiera-total-card__valor">{{ formatCurrency(valorTotalVigencias) }}</output>
-                <span class="financiera-total-card__hint">
-                  Suma de los valores por año ({{ financiera.conpes.vigencias.length }}
-                  {{ financiera.conpes.vigencias.length === 1 ? 'vigencia' : 'vigencias' }})
-                </span>
-              </div>
-            </div>
+        <!-- Paso 1: Sesión CONPES -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+          <div>
+            <h2 class="h6 text-secondary mb-1">Sesión CONPES</h2>
+            <p class="small text-secondary mb-0">
+              Primero registre la sesión CONPES. Después podrá agregar las vigencias por año.
+            </p>
           </div>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            (click)="abrirModalRegistrarConpes()"
+          >
+            {{ conpesRegistrado ? 'Editar CONPES' : 'Registrar CONPES' }}
+          </button>
         </div>
 
-        <div class="row g-3 mb-4">
-          <div class="col-md-4">
-            <label class="financiera-field">
-              <span class="financiera-field__label">Número de CONPES</span>
-              <input class="form-control form-control-sm" type="text" [(ngModel)]="financiera.conpes.numeroConpes" name="numeroConpes" />
-            </label>
-          </div>
-          <div class="col-md-4">
-            <label class="financiera-field">
-              <span class="financiera-field__label">Fecha</span>
-              <input class="form-control form-control-sm" type="date" [(ngModel)]="financiera.conpes.fechaConpes" name="fechaConpes" />
-            </label>
-          </div>
-          <div class="col-md-4">
-            <label class="financiera-field">
-              <span class="financiera-field__label">Consecutivo del proyecto</span>
-              <input
-                class="form-control form-control-sm"
-                type="text"
-                [(ngModel)]="financiera.conpes.consecutivoProyecto"
-                name="consecutivoProyecto"
-              />
-            </label>
-          </div>
+        <div
+          *ngIf="!conpesRegistrado"
+          class="alert alert-warning py-2 px-3 small mb-4"
+          role="status"
+        >
+          Debe <strong>registrar la sesión CONPES</strong> antes de poder agregar vigencias por año.
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h3 class="h6 mb-0">Vigencia por año</h3>
-          <button type="button" class="btn btn-outline-primary btn-sm" (click)="agregarVigencia()">Agregar año</button>
-        </div>
-        <p class="small text-secondary mb-2">
-          Registre el valor en pesos colombianos (COP) para cada año de vigencia.
-        </p>
-
-        <div class="table-responsive">
-          <table class="table table-sm table-bordered align-middle mb-2 financiera-vigencia-table">
+        <div class="table-responsive mb-4" *ngIf="conpesRegistrado">
+          <table class="table table-sm table-bordered align-middle mb-0 financiera-vigencia-table">
             <thead class="table-light">
               <tr>
-                <th>Valor (COP)</th>
-                <th style="width: 8rem">Año</th>
-                <th class="text-end" style="width: 5rem">Acción</th>
+                <th>Número CONPES</th>
+                <th>Fecha sesión</th>
+                <th>Consecutivo proyecto</th>
+                <th>Registrado por</th>
+                <th>Fecha registro</th>
+                <th class="text-end" style="width: 6rem">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let v of financiera.conpes.vigencias; let i = index; trackBy: trackVigencia">
-                <td>
-                  <div class="input-group input-group-sm financiera-currency-input">
-                    <span class="input-group-text">$</span>
-                    <input
-                      type="text"
-                      class="form-control text-end"
-                      inputmode="numeric"
-                      autocomplete="off"
-                      [name]="'vigenciaValor' + i"
-                      [(ngModel)]="vigenciaValorDisplay[i]"
-                      placeholder="0"
-                      (ngModelChange)="onVigenciaValorChange(i, $event)"
-                      (focus)="onVigenciaValorFocus(i)"
-                      (blur)="onVigenciaValorBlur(i)"
-                    />
-                  </div>
-                </td>
-                <td>
-                  <input
-                    type="number"
-                    class="form-control form-control-sm text-center"
-                    min="1900"
-                    max="2100"
-                    step="1"
-                    inputmode="numeric"
-                    [(ngModel)]="v.anio"
-                    [name]="'vigenciaAnio' + i"
-                    (ngModelChange)="guardadoOk = false"
-                  />
-                </td>
+              <tr>
+                <td class="fw-semibold">{{ financiera.conpes.numeroConpes }}</td>
+                <td>{{ fechaConpesDisplay() }}</td>
+                <td>{{ financiera.conpes.consecutivoProyecto || '—' }}</td>
+                <td>{{ usuarioConpes() }}</td>
+                <td class="small text-secondary">{{ fechaRegistroConpes() }}</td>
                 <td class="text-end">
-                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="quitarVigencia(i)">Quitar</button>
+                  <button type="button" class="btn btn-outline-primary btn-sm" (click)="abrirModalRegistrarConpes()">
+                    Editar
+                  </button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        <!-- Paso 2: Vigencias (solo si hay CONPES) -->
+        <ng-container *ngIf="conpesRegistrado">
+          <div class="financiera-totales-panel mb-4">
+            <p class="financiera-totales-panel__titulo mb-2">Total vigencias (sumatoria por año)</p>
+            <div class="row g-3">
+              <div class="col-md-6 col-lg-4">
+                <div class="financiera-total-card financiera-total-card--principal">
+                  <span class="financiera-total-card__label">Valor total vigencias</span>
+                  <output class="financiera-total-card__valor">{{ formatCurrency(valorTotalVigencias) }}</output>
+                  <span class="financiera-total-card__hint">
+                    {{ cantidadVigenciasRegistradas }}
+                    {{ cantidadVigenciasRegistradas === 1 ? 'vigencia registrada' : 'vigencias registradas' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div>
+              <h3 class="h6 mb-0">Vigencias por año</h3>
+              <p class="small text-secondary mb-0">
+                Cada vigencia se registra en el modal con año, valor y usuario que la incluyó.
+              </p>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" (click)="abrirModalNuevaVigencia()">
+              Agregar vigencia
+            </button>
+          </div>
+
+          <div
+            *ngIf="!cantidadVigenciasRegistradas"
+            class="alert alert-light border text-center small mb-3"
+            role="status"
+          >
+            No hay vigencias registradas. Use <strong>Agregar vigencia</strong> para incluir el primer año.
+          </div>
+
+          <div class="table-responsive" *ngIf="cantidadVigenciasRegistradas">
+          <table class="table table-sm table-bordered align-middle mb-0 financiera-vigencia-table">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 5rem">Año</th>
+                <th class="text-end">Valor (COP)</th>
+                <th>Registrado por</th>
+                <th>Fecha registro</th>
+                <th class="text-end" style="width: 9rem">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let v of vigenciasConpesOrdenadas; trackBy: trackVigencia">
+                <td class="text-center fw-semibold">{{ v.anio }}</td>
+                <td class="text-end tabular-nums">{{ formatCurrency(v.valor ?? 0) }}</td>
+                <td>{{ usuarioVigencia(v) }}</td>
+                <td class="small text-secondary">{{ fechaVigencia(v) }}</td>
+                <td class="text-end text-nowrap">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm me-1"
+                    (click)="abrirModalEditarVigencia(v)"
+                  >
+                    Editar
+                  </button>
+                  <button type="button" class="btn btn-outline-danger btn-sm" (click)="quitarVigencia(v)">
+                    Quitar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="financiera-total-row">
+                <th>Total</th>
+                <th class="text-end tabular-nums">{{ formatCurrency(valorTotalVigencias) }}</th>
+                <th colspan="3" class="small text-secondary fw-normal">
+                  {{ cantidadVigenciasRegistradas }}
+                  {{ cantidadVigenciasRegistradas === 1 ? 'vigencia' : 'vigencias' }}
+                </th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal sesión CONPES -->
+  <div
+    class="modal fade"
+    id="conpesSesionModal"
+    tabindex="-1"
+    aria-labelledby="conpesSesionModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form (ngSubmit)="guardarConpesModal()" novalidate>
+          <div class="modal-header">
+            <h2 class="modal-title h5 mb-0" id="conpesSesionModalLabel">{{ conpesModalTitulo }}</h2>
+            <button type="button" class="btn-close" aria-label="Cerrar" (click)="cerrarModalConpes()"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-secondary mb-3">
+              Datos de la sesión CONPES. Este registro es obligatorio para poder agregar vigencias por año.
+            </p>
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="financiera-field mb-0">
+                  <span class="financiera-field__label">Número de CONPES</span>
+                  <input
+                    class="form-control form-control-sm"
+                    type="text"
+                    name="conpesModalNumero"
+                    required
+                    [(ngModel)]="conpesModalForm.numeroConpes"
+                    (ngModelChange)="conpesModalError = ''"
+                  />
+                </label>
+              </div>
+              <div class="col-sm-6">
+                <label class="financiera-field mb-0">
+                  <span class="financiera-field__label">Fecha sesión</span>
+                  <input
+                    class="form-control form-control-sm"
+                    type="date"
+                    name="conpesModalFecha"
+                    required
+                    [(ngModel)]="conpesModalForm.fechaConpes"
+                    (ngModelChange)="conpesModalError = ''"
+                  />
+                </label>
+              </div>
+              <div class="col-sm-6">
+                <label class="financiera-field mb-0">
+                  <span class="financiera-field__label">Consecutivo del proyecto</span>
+                  <input
+                    class="form-control form-control-sm"
+                    type="text"
+                    name="conpesModalConsecutivo"
+                    [(ngModel)]="conpesModalForm.consecutivoProyecto"
+                  />
+                </label>
+              </div>
+            </div>
+            <div *ngIf="conpesModalError" class="alert alert-danger py-2 px-3 mt-3 mb-0 small" role="alert">
+              {{ conpesModalError }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalConpes()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm">
+              {{ conpesModalEsEdicion ? 'Guardar cambios' : 'Registrar CONPES' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal vigencia CONPES -->
+  <div
+    class="modal fade"
+    id="conpesVigenciaModal"
+    tabindex="-1"
+    aria-labelledby="conpesVigenciaModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form (ngSubmit)="guardarVigenciaModal()" novalidate>
+          <div class="modal-header">
+            <h2 class="modal-title h5 mb-0" id="conpesVigenciaModalLabel">{{ vigenciaModalTitulo }}</h2>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Cerrar"
+              (click)="cerrarModalVigencia()"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-secondary mb-3">
+              Valor en pesos colombianos (COP) para el año de vigencia CONPES. Al guardar se registra su usuario y la fecha.
+            </p>
+            <div class="row g-3">
+              <div class="col-sm-5">
+                <label class="financiera-field mb-0">
+                  <span class="financiera-field__label">Año</span>
+                  <input
+                    class="form-control form-control-sm text-center"
+                    type="number"
+                    name="vigenciaModalAnio"
+                    min="1900"
+                    max="2100"
+                    step="1"
+                    inputmode="numeric"
+                    required
+                    [(ngModel)]="vigenciaModalForm.anio"
+                    (ngModelChange)="vigenciaModalError = ''"
+                  />
+                </label>
+              </div>
+              <div class="col-sm-7">
+                <label class="financiera-field mb-0">
+                  <span class="financiera-field__label">Valor (COP)</span>
+                  <div class="input-group input-group-sm financiera-currency-input">
+                    <span class="input-group-text">$</span>
+                    <input
+                      type="text"
+                      class="form-control text-end"
+                      name="vigenciaModalValor"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      placeholder="0"
+                      required
+                      [(ngModel)]="vigenciaModalForm.valorDisplay"
+                      (ngModelChange)="onVigenciaModalValorChange($event)"
+                      (focus)="onVigenciaModalValorFocus()"
+                      (blur)="onVigenciaModalValorBlur()"
+                    />
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div *ngIf="vigenciaModalError" class="alert alert-danger py-2 px-3 mt-3 mb-0 small" role="alert">
+              {{ vigenciaModalError }}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cerrarModalVigencia()">
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm">Guardar vigencia</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

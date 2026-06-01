@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Proyecto, ProyectoImagenRegistrada, ProyectoMultimediaMetadato } from '../../shared/models';
+import { parseCamposDesdeAlcanceApi } from '../utils/proyecto-alcance-fields.util';
 import { of } from 'rxjs';
 
 const PROYECTO_API_URL = '/api/Proyecto';
@@ -11,9 +12,11 @@ export type CreateProyectoCommand = {
   idPactoTerritorial: number;
   idEntidadProyecto: string;
   bpin: string;
-  nombreBpin: string;
+  /** Nombre de proyecto BPIN en MGA. */
+  nombreProyectoBpin: string;
   codigo: string;
-  nombre: string;
+  /** Nombre iniciativa. */
+  nombreIniciativa: string;
   fechaActaCD: string;
   actaCD: string;
   /** Id de ítem en `Catalogo`; enviar `null` si no aplica (no usar 0). */
@@ -90,13 +93,14 @@ export interface ProyectoApiResult {
 /** Opción mínima desde GET `/api/Proyecto`. */
 export interface ProyectoApiOption {
   id: number;
-  nombre: string;
+  nombreIniciativa: string;
   idPactoTerritorial: number;
 }
 
 type ApiProyectoCreateResponse = {
   id?: unknown;
   nombre?: unknown;
+  nombreIniciativa?: unknown;
 };
 
 @Injectable({
@@ -127,6 +131,11 @@ export class ProyectosService {
     return this.proyectos.value;
   }
 
+  /** Actualiza la lista en memoria (p. ej. tras enriquecer etiquetas de catálogo). */
+  publishProyectosSnapshot(proyectos: Proyecto[]): void {
+    this.proyectos.next(proyectos);
+  }
+
   /** GET `/api/Proyecto` — recarga tabla y BehaviorSubject desde BD. */
   refreshProyectosFromApi(): Observable<Proyecto[]> {
     return this.fetchProyectosApiRaw$().pipe(
@@ -134,7 +143,9 @@ export class ProyectosService {
         const proyectos = list
           .map((row) => this.mapApiRowToProyecto(row))
           .filter((p) => p.apiId != null && p.apiId >= 1)
-          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' }));
+          .sort((a, b) =>
+            a.nombreIniciativa.localeCompare(b.nombreIniciativa, 'es-CO', { sensitivity: 'base' })
+          );
         this.proyectos.next(proyectos);
         return proyectos;
       }),
@@ -152,8 +163,10 @@ export class ProyectosService {
       map((list) => this.normalizeProyectosApiList(list)),
       map((rows) =>
         rows
-          .filter((p) => p.id > 0 && !!p.nombre && p.idPactoTerritorial > 0)
-          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' }))
+          .filter((p) => p.id > 0 && !!p.nombreIniciativa && p.idPactoTerritorial > 0)
+          .sort((a, b) =>
+            a.nombreIniciativa.localeCompare(b.nombreIniciativa, 'es-CO', { sensitivity: 'base' })
+          )
       ),
       catchError((error: HttpErrorResponse) => {
         console.error('[API ERROR] GET /api/Proyecto', error);
@@ -282,7 +295,12 @@ export class ProyectosService {
     const parsed = this.parseJsonPayload(text);
     const row = (parsed && typeof parsed === 'object' ? parsed : {}) as ApiProyectoCreateResponse;
     const id = typeof row.id === 'number' ? row.id : Number(row.id);
-    const nombre = typeof row.nombre === 'string' ? row.nombre : '';
+    const nombre =
+      typeof row.nombreIniciativa === 'string'
+        ? row.nombreIniciativa
+        : typeof row.nombre === 'string'
+          ? row.nombre
+          : '';
 
     if (!Number.isFinite(id) || id < 1) {
       return {
@@ -311,19 +329,31 @@ export class ProyectosService {
       (detalle.presupuestoSector ?? 0) +
       (detalle.presuspuestoTerritorio ?? 0) +
       (detalle.presupuestoOtros ?? 0);
+    const desdeAlcance = parseCamposDesdeAlcanceApi(detalle.alcance);
     return {
       id: apiId,
       apiId,
       idPactoTerritorial: detalle.idPactoTerritorial,
-      nombre: (detalle.nombre ?? '').trim() || 'Sin nombre',
-      nombreBpin: detalle.nombreBpin,
-      descripcion: (detalle.alcance ?? '').trim(),
+      idEstadoProyecto: detalle.idEstadoProyecto,
+      idCondicionProyecto: detalle.idCondicionProyecto,
+      idSectorCatalogo: detalle.idSector,
+      idEntidadProyecto: detalle.idEntidadProyecto,
+      nombreIniciativa: this.readNombreIniciativaFromDetalle(detalle) || 'Sin nombre',
+      nombreProyectoBpin: this.readNombreProyectoBpinFromDetalle(detalle) || undefined,
+      descripcion: desdeAlcance.alcanceLimpio || (detalle.alcance ?? '').trim(),
       codigo: (detalle.codigo ?? String(apiId)).trim() || String(apiId),
+      productoPrincipalMGA:
+        this.readProductoPrincipalMgaFromDetalle(detalle, desdeAlcance.productoPrincipalMga),
+      cantidadMeta: detalle.cantidadMeta ?? desdeAlcance.cantidadMeta ?? undefined,
+      unidadMedidaMeta: detalle.unidadMedidaMeta?.trim() || desdeAlcance.unidadMedidaMeta || undefined,
+      lineaTematica: detalle.lineasTematicas,
+      sesionCDInclusion: detalle.sesionCDInclusion ?? desdeAlcance.sesionCdPei ?? undefined,
       bpin: detalle.bpin,
       pactoAsociado: '',
       sector: '',
-      estado: '—',
-      responsable: (detalle.entidadResponsablePI ?? '—').trim() || '—',
+      estado: '',
+      municipioEntidadNombre: (detalle.entidadResponsablePI ?? '').trim() || undefined,
+      responsable: (detalle.entidadResponsablePI ?? '').trim() || undefined,
       presupuesto: presupuesto > 0 ? presupuesto : 0,
       avance: 0,
       fechaInicio: this.parseApiDate(detalle.fechaInicio),
@@ -361,29 +391,65 @@ export class ProyectosService {
       pactoAsociado = (this.readApiString(pacto['nombre'] ?? pacto['Nombre']) ?? '').trim();
     }
 
+    const alcanceRaw = this.readApiString(row['alcance'] ?? row['Alcance']) ?? '';
+    const desdeAlcance = parseCamposDesdeAlcanceApi(alcanceRaw);
+    const productoPrincipalMGA = this.readProductoPrincipalMgaFromRow(row, desdeAlcance.productoPrincipalMga);
+    const cantidadMeta =
+      this.readApiNumber(row['cantidadMeta'] ?? row['CantidadMeta'] ?? row['cantidadMetaPa'] ?? row['CantidadMetaPa'])
+      ?? desdeAlcance.cantidadMeta
+      ?? undefined;
+    const unidadMedidaMeta =
+      this.readApiString(
+        row['unidadMedidaMeta'] ?? row['UnidadMedidaMeta'] ?? row['metaPa'] ?? row['MetaPa']
+      ) ?? desdeAlcance.unidadMedidaMeta;
+
+    const codigoApi =
+      this.readApiString(row['codigo'] ?? row['Codigo'] ?? row['codigoProyecto'] ?? row['CodigoProyecto']) ?? '';
+    const codigo = codigoApi.trim() || (apiId >= 1 ? String(apiId) : '');
+
+    const nombreIniciativa = this.readNombreIniciativaFromRow(row) || 'Sin nombre';
+    const nombreProyectoBpin = this.readNombreProyectoBpinFromRow(row) ?? '';
+
     return {
       id: apiId,
       apiId,
       idPactoTerritorial,
+      idAreaInfluencia: this.readApiNumber(row['idAreaInfluencia'] ?? row['IdAreaInfluencia']),
       idEstadoProyecto: this.readApiNumber(row['idEstadoProyecto'] ?? row['IdEstadoProyecto']),
       idCondicionProyecto: this.readApiNumber(row['idCondicionProyecto'] ?? row['IdCondicionProyecto']),
       idSectorCatalogo: this.readApiNumber(row['idSector'] ?? row['IdSector']),
-      nombre: (this.readApiString(row['nombre'] ?? row['Nombre']) ?? '').trim() || 'Sin nombre',
-      nombreBpin: this.readApiString(row['nombreBpin'] ?? row['NombreBpin']),
-      descripcion: (this.readApiString(row['alcance'] ?? row['Alcance']) ?? '').trim(),
-      codigo: (this.readApiString(row['codigo'] ?? row['Codigo']) ?? String(apiId)).trim() || String(apiId),
-      bpin: this.readApiString(row['bpin'] ?? row['Bpin']),
+      idAportanteNacion: this.readApiNumber(row['idAportanteNacion'] ?? row['IdAportanteNacion']),
+      idEntidadProyecto: this.readApiString(row['idEntidadProyecto'] ?? row['IdEntidadProyecto']),
+      sesionCDInclusion:
+        this.readApiNumber(
+          row['sesionCDInclusion']
+            ?? row['SesionCDInclusion']
+            ?? row['idMecanismoInclusion']
+            ?? row['IdMecanismoInclusion']
+        ) ?? desdeAlcance.sesionCdPei ?? undefined,
+      inversionClimatica: this.readApiBoolean(row['esInversionClimatica'] ?? row['EsInversionClimatica']),
+      nombreIniciativa,
+      nombreProyectoBpin: nombreProyectoBpin || undefined,
+      descripcion: desdeAlcance.alcanceLimpio || alcanceRaw.trim(),
+      codigo,
+      bpin: this.readApiString(row['bpin'] ?? row['Bpin'] ?? row['BPIN']),
       pactoAsociado,
+      lineaTematica:
+        this.readApiString(row['lineasTematicas'] ?? row['LineasTematicas'] ?? row['lineaTematica'] ?? row['LineaTematica']),
       sector:
-        this.readApiString(row['sector'] ?? row['Sector'])
+        this.readNestedCatalogoTexto(row['sector'] ?? row['Sector'] ?? row['catalogoSector'] ?? row['CatalogoSector'])
         ?? this.readApiString(row['nombreSector'] ?? row['NombreSector'])
-        ?? '—',
+        ?? '',
       estado:
-        this.readApiString(row['estado'] ?? row['Estado'])
-        ?? this.readApiString(row['estadoProyecto'] ?? row['EstadoProyecto'])
-        ?? '—',
+        this.readNestedCatalogoTexto(
+          row['estadoProyecto'] ?? row['EstadoProyecto'] ?? row['catalogoEstado'] ?? row['CatalogoEstado']
+        )
+        ?? this.readApiString(row['estado'] ?? row['Estado'])
+        ?? '',
+      municipioEntidadNombre:
+        (this.readApiString(row['entidadResponsablePI'] ?? row['EntidadResponsablePI']) ?? '').trim() || undefined,
       responsable:
-        (this.readApiString(row['entidadResponsablePI'] ?? row['EntidadResponsablePI']) ?? '—').trim() || '—',
+        (this.readApiString(row['entidadResponsablePI'] ?? row['EntidadResponsablePI']) ?? '').trim() || undefined,
       presupuesto: presupuesto > 0 ? presupuesto : 0,
       avance: this.readApiNumber(row['avance'] ?? row['Avance']) ?? 0,
       fechaInicio: this.parseApiDate(row['fechaInicio'] ?? row['FechaInicio']),
@@ -391,12 +457,103 @@ export class ProyectosService {
       fechaCreacion: this.parseApiDate(row['fechaCreacion'] ?? row['FechaCreacion'] ?? row['fechaReporte']),
       latitud: this.readApiCoordinate(row['latitudProyecto'] ?? row['LatitudProyecto']),
       longitud: this.readApiCoordinate(row['longitudProyecto'] ?? row['LongitudProyecto']),
+      productoPrincipalMGA: productoPrincipalMGA || undefined,
+      cantidadMeta: cantidadMeta ?? undefined,
+      unidadMedidaMeta: unidadMedidaMeta || undefined,
+      tieneViabilidad: this.readApiBoolean(row['tieneViabilidad'] ?? row['TieneViabilidad']),
+      fechaViabilidad: this.parseApiDate(row['fechaViabilidad'] ?? row['FechaViabilidad']),
       ...multimedia,
       frpt: this.readApiBoolean(row['esFRPT'] ?? row['EsFRPT']),
       consecutivoConpes: this.readApiNumber(row['consecutivoConpes'] ?? row['ConsecutivoConpes']),
       numeroEmpleosDirectos: this.readApiNumber(row['numeroEmpleosDirectos'] ?? row['NumeroEmpleosDirectos']),
       numeroEmpleosIndirectos: this.readApiNumber(row['numeroEmpleosIndirectos'] ?? row['NumeroEmpleosIndirectos'])
     };
+  }
+
+  private readNombreIniciativaFromRow(row: Record<string, unknown>): string {
+    return (
+      this.readApiString(
+        row['nombreIniciativa']
+          ?? row['NombreIniciativa']
+          ?? row['nombre']
+          ?? row['Nombre']
+      ) ?? ''
+    ).trim();
+  }
+
+  private readNombreProyectoBpinFromRow(row: Record<string, unknown>): string | undefined {
+    return this.readApiString(
+      row['nombreProyectoBpin']
+        ?? row['NombreProyectoBpin']
+        ?? row['nombreBpin']
+        ?? row['NombreBpin']
+        ?? row['nombreBPIN']
+        ?? row['NombreBPIN']
+    );
+  }
+
+  private readProductoPrincipalMgaFromRow(
+    row: Record<string, unknown>,
+    desdeAlcance?: string
+  ): string | undefined {
+    const direct = this.readApiString(
+      row['productoPrincipalMGA']
+        ?? row['ProductoPrincipalMGA']
+        ?? row['productoMGA']
+        ?? row['ProductoMGA']
+    );
+    if (direct) {
+      return direct;
+    }
+    if (desdeAlcance) {
+      return desdeAlcance;
+    }
+    const legacyCantidad = this.readApiString(row['cantidadMeta'] ?? row['CantidadMeta']);
+    return legacyCantidad;
+  }
+
+  private readNombreIniciativaFromDetalle(detalle: ProyectoDetalleApi): string {
+    return (
+      detalle.nombreIniciativa
+      ?? (detalle as ProyectoDetalleApi & { nombre?: string }).nombre
+      ?? ''
+    ).trim();
+  }
+
+  private readNombreProyectoBpinFromDetalle(detalle: ProyectoDetalleApi): string {
+    return (
+      detalle.nombreProyectoBpin
+      ?? (detalle as ProyectoDetalleApi & { nombreBpin?: string }).nombreBpin
+      ?? ''
+    ).trim();
+  }
+
+  private readProductoPrincipalMgaFromDetalle(
+    detalle: ProyectoDetalleApi,
+    desdeAlcance?: string
+  ): string | undefined {
+    const direct = detalle.productoPrincipalMGA?.trim();
+    if (direct) {
+      return direct;
+    }
+    if (desdeAlcance) {
+      return desdeAlcance;
+    }
+    if (detalle.cantidadMeta != null) {
+      return String(detalle.cantidadMeta);
+    }
+    return undefined;
+  }
+
+  private readNestedCatalogoTexto(value: unknown): string | undefined {
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    const item = value as Record<string, unknown>;
+    return (
+      this.readApiString(item['texto'] ?? item['Texto'] ?? item['nombre'] ?? item['Nombre'] ?? item['descripcion'])
+      ?? undefined
+    );
   }
 
   private parseApiDate(value: unknown): Date {
@@ -413,11 +570,11 @@ export class ProyectosService {
     for (const row of list) {
       const id = this.readApiNumber(row['id'] ?? row['Id']);
       const idPactoTerritorial = this.readIdPactoTerritorialFromProyectoRow(row);
-      const nombre = (this.readApiString(row['nombre'] ?? row['Nombre']) ?? '').trim();
-      if (!id || !idPactoTerritorial || !nombre) {
+      const nombreIniciativa = this.readNombreIniciativaFromRow(row);
+      if (!id || !idPactoTerritorial || !nombreIniciativa) {
         continue;
       }
-      out.push({ id, nombre, idPactoTerritorial });
+      out.push({ id, nombreIniciativa, idPactoTerritorial });
     }
     return out;
   }
@@ -485,9 +642,13 @@ export class ProyectosService {
       idPactoTerritorial: n('idPactoTerritorial', 'IdPactoTerritorial'),
       idEntidadProyecto: s('idEntidadProyecto', 'IdEntidadProyecto'),
       bpin: s('bpin', 'Bpin'),
-      nombreBpin: s('nombreBpin', 'NombreBpin'),
-      codigo: s('codigo', 'Codigo'),
-      nombre: s('nombre', 'Nombre'),
+      nombreProyectoBpin:
+        s('nombreProyectoBpin', 'NombreProyectoBpin')
+        ?? s('nombreBpin', 'NombreBpin')
+        ?? s('nombreBPIN', 'NombreBPIN'),
+      codigo: s('codigo', 'Codigo') ?? s('codigoProyecto', 'CodigoProyecto'),
+      nombreIniciativa:
+        s('nombreIniciativa', 'NombreIniciativa') ?? s('nombre', 'Nombre'),
       fechaActaCD: s('fechaActaCD', 'FechaActaCD'),
       actaCD: s('actaCD', 'ActaCD'),
       idAreaInfluencia: n('idAreaInfluencia', 'IdAreaInfluencia'),

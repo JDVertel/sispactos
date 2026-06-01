@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import {
+  ProyectoFinancieraConpes,
   ProyectoFinancieraData,
+  ProyectoFinancieraVigencia,
   createEmptyProyectoFinancieraData
 } from '../../shared/models/proyecto-financiera.model';
 
@@ -44,18 +46,44 @@ export class ProyectoFinancieraService {
       proyectoId,
       indicativos: { ...base.indicativos, ...(raw.indicativos ?? {}) },
       comprometido: { ...base.comprometido, ...(raw.comprometido ?? {}) },
-      conpes: {
-        ...base.conpes,
-        ...(raw.conpes ?? {}),
-        vigencias:
-          raw.conpes?.vigencias?.length
-            ? raw.conpes.vigencias.map((v) => ({
-                valor: v.valor ?? null,
-                anio: v.anio ?? null
-              }))
-            : base.conpes.vigencias
-      },
+      conpes: this.normalizeConpes(raw.conpes, base.conpes),
       updatedAt: raw.updatedAt ?? base.updatedAt
     };
   }
+
+  private normalizeConpes(
+    raw: Partial<ProyectoFinancieraConpes> | undefined,
+    base: ProyectoFinancieraConpes
+  ): ProyectoFinancieraConpes {
+    const merged = { ...base, ...(raw ?? {}) };
+    return {
+      numeroConpes: (merged.numeroConpes ?? '').trim(),
+      fechaConpes: (merged.fechaConpes ?? '').trim(),
+      consecutivoProyecto: (merged.consecutivoProyecto ?? '').trim(),
+      registradoPor: merged.registradoPor?.trim() || undefined,
+      registradoEn: merged.registradoEn || undefined,
+      actualizadoPor: merged.actualizadoPor?.trim() || undefined,
+      actualizadoEn: merged.actualizadoEn || undefined,
+      vigencias: (merged.vigencias ?? []).map((v, index) => this.normalizeVigencia(v, index))
+    };
+  }
+
+  private normalizeVigencia(
+    raw: Partial<ProyectoFinancieraVigencia> & { valor?: number | null; anio?: number | null },
+    index: number
+  ): ProyectoFinancieraVigencia {
+    return {
+      id: raw.id?.trim() || `vig-${proyectoIdFallback(index)}-${Date.now()}`,
+      valor: raw.valor ?? null,
+      anio: raw.anio ?? null,
+      registradoPor: (raw.registradoPor ?? '').trim() || '—',
+      registradoEn: raw.registradoEn ?? '',
+      actualizadoPor: raw.actualizadoPor?.trim() || undefined,
+      actualizadoEn: raw.actualizadoEn || undefined
+    };
+  }
+}
+
+function proyectoIdFallback(index: number): string {
+  return `idx${index}`;
 }

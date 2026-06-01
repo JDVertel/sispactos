@@ -9,18 +9,32 @@ import {
   calcularTotalesIndicativos,
   FinancieraTotalesSesion
 } from '../../core/financiera/proyecto-financiera.calculos';
+import { AuthService } from '../../core/services/auth.service';
 import { ProyectoFinancieraService } from '../../core/services/proyecto-financiera.service';
 import { ProyectosService } from '../../core/services/proyectos.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import {
   ProyectoFinancieraData,
   ProyectoFinancieraVigencia,
-  createEmptyProyectoFinancieraData
+  createEmptyProyectoFinancieraData,
+  isProyectoFinancieraConpesRegistrado
 } from '../../shared/models/proyecto-financiera.model';
 import { Proyecto } from '../../shared/models';
 
 type FinancieraTab = 'indicativos' | 'comprometido' | 'conpes';
 type FinancieraGrupo = 'indicativos' | 'comprometido';
+
+interface VigenciaModalForm {
+  valor: number | null;
+  valorDisplay: string;
+  anio: number | null;
+}
+
+interface ConpesModalForm {
+  numeroConpes: string;
+  fechaConpes: string;
+  consecutivoProyecto: string;
+}
 
 interface FinancieraCampoDetalle {
   key: string;
@@ -40,7 +54,12 @@ export class ProyectoFinancieraComponent implements OnInit {
   financiera: ProyectoFinancieraData = createEmptyProyectoFinancieraData(0);
   activeTab: FinancieraTab = 'indicativos';
   guardadoOk = false;
-  vigenciaValorDisplay: string[] = [];
+  vigenciaModalError = '';
+  conpesModalError = '';
+  private vigenciaEditIndex: number | null = null;
+  conpesModalEsEdicion = false;
+  vigenciaModalForm: VigenciaModalForm = this.emptyVigenciaModalForm();
+  conpesModalForm: ConpesModalForm = this.emptyConpesModalForm();
 
   readonly camposDetalleIndicativos: FinancieraCampoDetalle[] = [
     { key: 'aporteIndicativoDnpFrpt', label: 'Aporte indicativo DNP FRPT', group: 'indicativos' },
@@ -115,7 +134,8 @@ export class ProyectoFinancieraComponent implements OnInit {
     private readonly router: Router,
     private readonly proyectosService: ProyectosService,
     private readonly financieraService: ProyectoFinancieraService,
-    private readonly dashboardService: DashboardService
+    private readonly dashboardService: DashboardService,
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -134,10 +154,22 @@ export class ProyectoFinancieraComponent implements OnInit {
     }
 
     this.financiera = this.financieraService.getByProyectoId(proyectoId);
-    if (!this.financiera.conpes.consecutivoProyecto && this.proyecto.consecutivoConpes != null) {
-      this.financiera.conpes.consecutivoProyecto = String(this.proyecto.consecutivoConpes);
-    }
-    this.syncVigenciaValorDisplay();
+  }
+
+  get conpesRegistrado(): boolean {
+    return isProyectoFinancieraConpesRegistrado(this.financiera.conpes);
+  }
+
+  get conpesModalTitulo(): string {
+    return this.conpesModalEsEdicion ? 'Editar sesión CONPES' : 'Registrar sesión CONPES';
+  }
+
+  get vigenciasConpesOrdenadas(): ProyectoFinancieraVigencia[] {
+    return [...this.financiera.conpes.vigencias].sort((a, b) => (a.anio ?? 0) - (b.anio ?? 0));
+  }
+
+  get vigenciaModalTitulo(): string {
+    return this.vigenciaEditIndex != null ? 'Editar vigencia por año' : 'Agregar vigencia por año';
   }
 
   get totalesIndicativos(): FinancieraTotalesSesion {
@@ -160,7 +192,11 @@ export class ProyectoFinancieraComponent implements OnInit {
   }
 
   get valorTotalVigencias(): number {
-    return this.financiera.conpes.vigencias.reduce((sum, v) => sum + (Number(v.valor) || 0), 0);
+    return this.vigenciasConpesOrdenadas.reduce((sum, v) => sum + (Number(v.valor) || 0), 0);
+  }
+
+  get cantidadVigenciasRegistradas(): number {
+    return this.financiera.conpes.vigencias.length;
   }
 
   valorCampo(campo: FinancieraCampoDetalle): number | null {
@@ -181,41 +217,188 @@ export class ProyectoFinancieraComponent implements OnInit {
     this.guardadoOk = false;
   }
 
-  agregarVigencia(): void {
-    this.financiera.conpes.vigencias = [
-      ...this.financiera.conpes.vigencias,
-      { valor: null, anio: new Date().getFullYear() }
-    ];
-    this.syncVigenciaValorDisplay();
-    this.guardadoOk = false;
+  abrirModalRegistrarConpes(): void {
+    this.conpesModalEsEdicion = this.conpesRegistrado;
+    const c = this.financiera.conpes;
+    this.conpesModalForm = {
+      numeroConpes: c.numeroConpes || '',
+      fechaConpes: c.fechaConpes || '',
+      consecutivoProyecto:
+        c.consecutivoProyecto
+        || (this.proyecto?.consecutivoConpes != null ? String(this.proyecto.consecutivoConpes) : '')
+    };
+    this.conpesModalError = '';
+    setTimeout(() => this.showBootstrapModal('conpesSesionModal'), 0);
   }
 
-  quitarVigencia(index: number): void {
-    if (this.financiera.conpes.vigencias.length <= 1) {
-      this.financiera.conpes.vigencias = [{ valor: null, anio: new Date().getFullYear() }];
+  cerrarModalConpes(): void {
+    this.hideBootstrapModal('conpesSesionModal');
+    this.conpesModalError = '';
+    this.conpesModalForm = this.emptyConpesModalForm();
+  }
+
+  guardarConpesModal(): void {
+    const error = this.validarConpesModal();
+    if (error) {
+      this.conpesModalError = error;
+      return;
+    }
+
+    const usuario = this.usuarioActualEtiqueta();
+    const ahora = new Date().toISOString();
+    const prev = this.financiera.conpes;
+
+    this.financiera.conpes = {
+      ...prev,
+      numeroConpes: this.conpesModalForm.numeroConpes.trim(),
+      fechaConpes: this.conpesModalForm.fechaConpes.trim(),
+      consecutivoProyecto: this.conpesModalForm.consecutivoProyecto.trim()
+    };
+
+    if (!this.conpesModalEsEdicion) {
+      this.financiera.conpes.registradoPor = usuario;
+      this.financiera.conpes.registradoEn = ahora;
     } else {
-      this.financiera.conpes.vigencias = this.financiera.conpes.vigencias.filter((_, i) => i !== index);
+      this.financiera.conpes.actualizadoPor = usuario;
+      this.financiera.conpes.actualizadoEn = ahora;
     }
-    this.syncVigenciaValorDisplay();
-    this.guardadoOk = false;
+
+    this.financieraService.save(this.financiera);
+    this.guardadoOk = true;
+    this.cerrarModalConpes();
   }
 
-  onVigenciaValorChange(index: number, raw: string): void {
-    this.financiera.conpes.vigencias[index].valor = this.parseCurrencyInput(raw);
-    this.guardadoOk = false;
+  usuarioConpes(): string {
+    const c = this.financiera.conpes;
+    return (c.actualizadoPor || c.registradoPor || '—').trim() || '—';
   }
 
-  onVigenciaValorFocus(index: number): void {
-    const valor = this.financiera.conpes.vigencias[index]?.valor;
+  fechaRegistroConpes(): string {
+    return this.formatIsoFechaHora(
+      this.financiera.conpes.actualizadoEn || this.financiera.conpes.registradoEn
+    );
+  }
+
+  fechaConpesDisplay(): string {
+    const ymd = this.financiera.conpes.fechaConpes;
+    if (!ymd) {
+      return '—';
+    }
+    const d = new Date(`${ymd}T12:00:00`);
+    if (Number.isNaN(d.getTime())) {
+      return ymd;
+    }
+    return d.toLocaleDateString('es-CO', { dateStyle: 'medium' });
+  }
+
+  abrirModalNuevaVigencia(): void {
+    if (!this.conpesRegistrado) {
+      this.conpesModalError = '';
+      return;
+    }
+    this.vigenciaEditIndex = null;
+    this.vigenciaModalForm = {
+      valor: null,
+      valorDisplay: '',
+      anio: new Date().getFullYear()
+    };
+    this.vigenciaModalError = '';
+    this.abrirModalVigencia();
+  }
+
+  abrirModalEditarVigencia(vigencia: ProyectoFinancieraVigencia): void {
+    const index = this.financiera.conpes.vigencias.findIndex((v) => v.id === vigencia.id);
+    if (index < 0) {
+      return;
+    }
+    this.vigenciaEditIndex = index;
+    const valor = vigencia.valor;
+    this.vigenciaModalForm = {
+      valor,
+      valorDisplay: valor != null && Number.isFinite(valor) ? this.formatCurrencyInput(valor) : '',
+      anio: vigencia.anio
+    };
+    this.vigenciaModalError = '';
+    this.abrirModalVigencia();
+  }
+
+  cerrarModalVigencia(): void {
+    this.cerrarModalVigenciaUi();
+    this.vigenciaEditIndex = null;
+    this.vigenciaModalError = '';
+    this.vigenciaModalForm = this.emptyVigenciaModalForm();
+  }
+
+  onVigenciaModalValorChange(raw: string): void {
+    this.vigenciaModalForm.valorDisplay = raw;
+    this.vigenciaModalForm.valor = this.parseCurrencyInput(raw);
+    this.vigenciaModalError = '';
+  }
+
+  onVigenciaModalValorFocus(): void {
+    const valor = this.vigenciaModalForm.valor;
     if (valor != null && Number.isFinite(valor)) {
-      this.vigenciaValorDisplay[index] = String(Math.trunc(valor));
+      this.vigenciaModalForm.valorDisplay = String(Math.trunc(valor));
     }
   }
 
-  onVigenciaValorBlur(index: number): void {
-    const valor = this.financiera.conpes.vigencias[index]?.valor;
-    this.vigenciaValorDisplay[index] =
+  onVigenciaModalValorBlur(): void {
+    const valor = this.vigenciaModalForm.valor;
+    this.vigenciaModalForm.valorDisplay =
       valor != null && Number.isFinite(valor) ? this.formatCurrencyInput(valor) : '';
+  }
+
+  guardarVigenciaModal(): void {
+    const error = this.validarVigenciaModal();
+    if (error) {
+      this.vigenciaModalError = error;
+      return;
+    }
+
+    const usuario = this.usuarioActualEtiqueta();
+    const ahora = new Date().toISOString();
+    const anio = this.vigenciaModalForm.anio!;
+    const valor = this.vigenciaModalForm.valor!;
+
+    if (this.vigenciaEditIndex != null) {
+      const actual = this.financiera.conpes.vigencias[this.vigenciaEditIndex];
+      this.financiera.conpes.vigencias[this.vigenciaEditIndex] = {
+        ...actual,
+        anio,
+        valor,
+        actualizadoPor: usuario,
+        actualizadoEn: ahora
+      };
+    } else {
+      this.financiera.conpes.vigencias = [
+        ...this.financiera.conpes.vigencias,
+        {
+          id: this.nuevoIdVigencia(),
+          anio,
+          valor,
+          registradoPor: usuario,
+          registradoEn: ahora
+        }
+      ];
+    }
+
+    this.financieraService.save(this.financiera);
+    this.guardadoOk = true;
+    this.cerrarModalVigencia();
+  }
+
+  quitarVigencia(vigencia: ProyectoFinancieraVigencia): void {
+    this.financiera.conpes.vigencias = this.financiera.conpes.vigencias.filter((v) => v.id !== vigencia.id);
+    this.financieraService.save(this.financiera);
+    this.guardadoOk = true;
+  }
+
+  usuarioVigencia(vigencia: ProyectoFinancieraVigencia): string {
+    return (vigencia.actualizadoPor || vigencia.registradoPor || '—').trim() || '—';
+  }
+
+  fechaVigencia(vigencia: ProyectoFinancieraVigencia): string {
+    return this.formatIsoFechaHora(vigencia.actualizadoEn || vigencia.registradoEn);
   }
 
   guardar(): void {
@@ -229,14 +412,110 @@ export class ProyectoFinancieraComponent implements OnInit {
     return this.dashboardService.formatCurrency(value);
   }
 
-  trackVigencia(index: number): number {
-    return index;
+  trackVigencia(_index: number, vigencia: ProyectoFinancieraVigencia): string {
+    return vigencia.id;
   }
 
-  private syncVigenciaValorDisplay(): void {
-    this.vigenciaValorDisplay = this.financiera.conpes.vigencias.map((v) =>
-      v.valor != null && Number.isFinite(v.valor) ? this.formatCurrencyInput(v.valor) : ''
+  private validarConpesModal(): string | null {
+    if (!this.conpesModalForm.numeroConpes.trim()) {
+      return 'Indique el número de CONPES.';
+    }
+    if (!this.conpesModalForm.fechaConpes.trim()) {
+      return 'Indique la fecha de la sesión CONPES.';
+    }
+    return null;
+  }
+
+  private validarVigenciaModal(): string | null {
+    if (!this.conpesRegistrado) {
+      return 'Debe registrar la sesión CONPES antes de agregar vigencias.';
+    }
+    const anio = this.vigenciaModalForm.anio;
+    if (anio == null || !Number.isInteger(anio) || anio < 1900 || anio > 2100) {
+      return 'Indique un año valido (1900–2100).';
+    }
+    const valor = this.vigenciaModalForm.valor;
+    if (valor == null || !Number.isFinite(valor) || valor < 0) {
+      return 'Indique un valor en pesos mayor o igual a cero.';
+    }
+    const duplicado = this.financiera.conpes.vigencias.some(
+      (v, i) => v.anio === anio && i !== this.vigenciaEditIndex
     );
+    if (duplicado) {
+      return `Ya existe una vigencia registrada para el año ${anio}.`;
+    }
+    return null;
+  }
+
+  private usuarioActualEtiqueta(): string {
+    const user = this.authService.getCurrentUser();
+    if (!user?.username?.trim()) {
+      return 'Usuario';
+    }
+    const rol = this.authService.getSessionRoleLabel();
+    return rol ? `${user.username} (${rol})` : user.username;
+  }
+
+  private nuevoIdVigencia(): string {
+    return `vig-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  private emptyVigenciaModalForm(): VigenciaModalForm {
+    return { valor: null, valorDisplay: '', anio: null };
+  }
+
+  private emptyConpesModalForm(): ConpesModalForm {
+    return { numeroConpes: '', fechaConpes: '', consecutivoProyecto: '' };
+  }
+
+  private formatIsoFechaHora(iso?: string): string {
+    if (!iso) {
+      return '—';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return '—';
+    }
+    return d.toLocaleString('es-CO', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    });
+  }
+
+  private abrirModalVigencia(): void {
+    setTimeout(() => this.showBootstrapModal('conpesVigenciaModal'), 0);
+  }
+
+  private cerrarModalVigenciaUi(): void {
+    this.hideBootstrapModal('conpesVigenciaModal');
+  }
+
+  private showBootstrapModal(elementId: string): void {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      return;
+    }
+    const bootstrap = (window as { bootstrap?: { Modal?: { getOrCreateInstance?: (el: Element) => { show?: () => void } } } })
+      .bootstrap;
+    try {
+      bootstrap?.Modal?.getOrCreateInstance?.(el)?.show?.();
+    } catch {
+      // noop
+    }
+  }
+
+  private hideBootstrapModal(elementId: string): void {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      return;
+    }
+    const bootstrap = (window as { bootstrap?: { Modal?: { getInstance?: (el: Element) => { hide?: () => void } } } })
+      .bootstrap;
+    try {
+      bootstrap?.Modal?.getInstance?.(el)?.hide?.();
+    } catch {
+      // noop
+    }
   }
 
   private parseCurrencyInput(value: string): number | null {

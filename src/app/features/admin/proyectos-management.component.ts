@@ -17,6 +17,7 @@ import { Pacto, Proyecto, ProyectoImagenRegistrada, ProyectoMultimediaMetadato }
 import { EMPTY, Observable, forkJoin, of } from 'rxjs';
 import { catchError, finalize, map, switchMap, take, tap } from 'rxjs/operators';
 import { PROYECTO_DEV_LOCAL_SAVE } from '../../core/config/proyecto-save.config';
+import { parseCamposDesdeAlcanceApi } from '../../core/utils/proyecto-alcance-fields.util';
 import { UbicacionMapComponent } from '../../shared/components/ubicacion-map/ubicacion-map.component';
 import {
   CATALOGO_TIPO_AREA_INFLUENCIA_PROYECTO,
@@ -35,8 +36,8 @@ type ModoFormularioProyecto = 'crear' | 'editar';
 interface ProyectoFormData {
   pactoAsociado: string;
   bpin: string;
-  nombreBpin: string;
-  nombre: string;
+  nombreProyectoBpin: string;
+  nombreIniciativa: string;
   actaCdNumero: string;
   actaCdFecha: string;
   idAreaInfluencia: number | null;
@@ -56,9 +57,10 @@ interface ProyectoFormData {
   municipioEntidad: string;
   inversionClimatica: boolean;
   alcance: string;
-  /** Meta de producto principal (texto asociado al producto MGA del paso 1). */
-  productoPrincipalMga: string;
-  cantidadMeta: number | null;
+  /** Meta de producto principal → API `productoPrincipalMGA`. */
+  metaProductoPrincipal: string;
+  /** Producto principal MGA (descripcion complementaria en formulario). */
+  productoMgaDescripcion: string;
   unidadMedidaMeta: string;
   sesionCDInclusion: number | null;
   latitud: number | null;
@@ -101,8 +103,8 @@ type MultimediaImagenPreview = {
 type ProyectoCampoValidacion =
   | 'pacto'
   | 'bpin'
-  | 'nombreBpin'
-  | 'nombre'
+  | 'nombreProyectoBpin'
+  | 'nombreIniciativa'
   | 'consecutivoConpes'
   | 'actaCdFecha'
   | 'estado'
@@ -113,7 +115,7 @@ type ProyectoCampoValidacion =
   | 'numeroContratoEspecifico'
   | 'sesionCd'
   | 'alcance'
-  | 'cantidadMeta';
+  | 'metaProductoPrincipal';
 
 @Component({
   selector: 'app-proyectos-management',
@@ -218,7 +220,7 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadCatalogosProyecto$().subscribe();
+    this.loadCatalogosProyecto$().subscribe(() => this.reenriquecerProyectosEnMemoria());
     this.cargarProyectosDesdeApi();
 
     this.pactosService
@@ -234,6 +236,7 @@ export class ProyectosManagementComponent implements OnInit {
 
     this.pactosService.getPactos().subscribe((pactos: Pacto[]) => {
       this.applyPactosCatalogo(pactos);
+      this.reenriquecerProyectosEnMemoria();
     });
 
     this.pactosService.getEntidadTerritorialCatalogo().subscribe((rows) => {
@@ -244,6 +247,7 @@ export class ProyectosManagementComponent implements OnInit {
           { sensitivity: 'base' }
         )
       );
+      this.reenriquecerProyectosEnMemoria();
     });
   }
 
@@ -316,8 +320,8 @@ export class ProyectosManagementComponent implements OnInit {
     const campos: ProyectoCampoValidacion[] = [
       'pacto',
       'bpin',
-      'nombreBpin',
-      'nombre',
+      'nombreProyectoBpin',
+      'nombreIniciativa',
       'consecutivoConpes',
       'actaCdFecha',
       'estado',
@@ -326,7 +330,7 @@ export class ProyectosManagementComponent implements OnInit {
       'lineaTematica',
       'alcance',
       'sesionCd',
-      'cantidadMeta'
+      'metaProductoPrincipal'
     ];
     if (this.newProyecto.tieneViabilidad) {
       campos.push('fechaViabilidad');
@@ -339,7 +343,7 @@ export class ProyectosManagementComponent implements OnInit {
 
   /** Validacion reducida mientras se completa el formulario / integracion API. */
   private camposValidacionProyectoMinimos(): ProyectoCampoValidacion[] {
-    return ['nombre'];
+    return ['nombreIniciativa'];
   }
 
   private actualizarValidacionCampo(campo: ProyectoCampoValidacion): void {
@@ -372,10 +376,10 @@ export class ProyectosManagementComponent implements OnInit {
         }
         return null;
       }
-      case 'nombreBpin':
-        return p.nombreBpin.trim() ? null : 'Campo obligatorio.';
-      case 'nombre':
-        return p.nombre.trim() ? null : 'Campo obligatorio.';
+      case 'nombreProyectoBpin':
+        return p.nombreProyectoBpin.trim() ? null : 'Campo obligatorio.';
+      case 'nombreIniciativa':
+        return p.nombreIniciativa.trim() ? null : 'Campo obligatorio.';
       case 'consecutivoConpes': {
         const conpesTrim = p.consecutivoConpes.trim();
         if (conpesTrim && !/^\d{5}$/.test(conpesTrim)) {
@@ -445,16 +449,8 @@ export class ProyectosManagementComponent implements OnInit {
         return null;
       case 'alcance':
         return p.alcance.trim() ? null : 'Campo obligatorio.';
-      case 'cantidadMeta': {
-        const cantidad = p.cantidadMeta;
-        if (cantidad === null || cantidad === undefined || Number.isNaN(Number(cantidad))) {
-          return null;
-        }
-        if (!Number.isFinite(cantidad) || !Number.isInteger(cantidad) || cantidad < 0) {
-          return 'Debe ser un numero entero mayor o igual a 0.';
-        }
+      case 'metaProductoPrincipal':
         return null;
-      }
       default:
         return null;
     }
@@ -499,10 +495,10 @@ export class ProyectosManagementComponent implements OnInit {
     }
 
     const {
-      nombre,
+      nombreIniciativa,
       pactoAsociado,
       bpin,
-      nombreBpin,
+      nombreProyectoBpin,
       actaCdNumero,
       actaCdFecha,
       idSector,
@@ -521,7 +517,7 @@ export class ProyectosManagementComponent implements OnInit {
       idCondicionProyecto,
       sesionCDInclusion,
       alcance,
-      cantidadMeta,
+      metaProductoPrincipal,
       unidadMedidaMeta
     } = this.newProyecto;
 
@@ -556,10 +552,9 @@ export class ProyectosManagementComponent implements OnInit {
       return;
     }
 
-    const productoMgaTexto = (this.newProyecto.productoPrincipalMga || '').trim();
+    const metaProductoPrincipalTexto = (metaProductoPrincipal || '').trim();
     const unidadMedidaMetaTexto = (unidadMedidaMeta || '').trim();
-    const cantidadMetaVal = this.resolveCantidadMeta(cantidadMeta);
-    const alcanceTexto = (alcance || nombreBpin || nombre).trim() || 'Pendiente';
+    const alcanceTexto = (alcance || nombreProyectoBpin || nombreIniciativa).trim() || 'Pendiente';
     const alcanceApi = this.buildAlcanceParaApi(alcanceTexto);
     const sesionCDInclusionVal =
       sesionCDInclusion != null && sesionCDInclusion >= 1 ? sesionCDInclusion : null;
@@ -572,9 +567,9 @@ export class ProyectosManagementComponent implements OnInit {
       idPactoTerritorial,
       idEntidadProyecto: idEntidadTerritorial,
       bpin: bpin.trim(),
-      nombreBpin: (nombreBpin || nombre).trim(),
+      nombreProyectoBpin: (nombreProyectoBpin || nombreIniciativa).trim(),
       codigo,
-      nombre: nombre.trim(),
+      nombreIniciativa: nombreIniciativa.trim(),
       fechaActaCD: fechaActaCdIso || nowIso,
       actaCD: actaCd || '0',
       idAreaInfluencia: idAreaInfluencia != null && idAreaInfluencia >= 1 ? idAreaInfluencia : null,
@@ -598,8 +593,8 @@ export class ProyectosManagementComponent implements OnInit {
       aporteIndicativoNacion: 0,
       aporteIndicativoTerritorio: 0,
       aporteIndicativoOtros: 0,
-      productoPrincipalMGA: productoMgaTexto,
-      cantidadMeta: cantidadMetaVal ?? 0,
+      productoPrincipalMGA: metaProductoPrincipalTexto,
+      cantidadMeta: 0,
       unidadMedidaMeta: unidadMedidaMetaTexto,
       sesionCDInclusion: sesionCDInclusionVal,
       idSectorAdministracionNacional: null,
@@ -631,14 +626,13 @@ export class ProyectosManagementComponent implements OnInit {
       sesionCDInclusion: sesionCDInclusionVal ?? undefined,
       idEntidadProyecto: idEntidadTerritorial,
       unidadMedidaMeta: unidadMedidaMetaTexto,
-      nombreBpin: nombreBpin.trim(),
+      nombreProyectoBpin: nombreProyectoBpin.trim(),
       inversionClimatica: !!this.newProyecto.inversionClimatica,
       actaCdNumero: actaCd,
       actaCdFecha: actaFechaYmd
     };
 
-    const productoMga = productoMgaTexto;
-    const cantidadMetaGuardado = cantidadMetaVal;
+    const metaProductoPrincipalGuardado = metaProductoPrincipalTexto;
     const nombresMultimedia = this.multimediaAdjuntos.map((a) => a.nombre).filter(Boolean);
     const urlsVideoMultimedia = this.multimediaVideoUrls.map((v) => v.url).filter(Boolean);
     const metadatosMultimedia = this.buildMultimediaMetadatosParaGuardado();
@@ -646,7 +640,7 @@ export class ProyectosManagementComponent implements OnInit {
     const longitud = this.parseCoordenada(this.newProyecto.longitud);
 
     const proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion' | 'codigo'> = {
-      nombre: nombre.trim(),
+      nombreIniciativa: nombreIniciativa.trim(),
       descripcion: alcanceApi,
       pactoAsociado: pactoAsociado.trim(),
       bpin: bpin.trim(),
@@ -669,8 +663,9 @@ export class ProyectosManagementComponent implements OnInit {
       fechaInicio: new Date(nowIso),
       fechaFin: new Date(nowIso),
       avance: 0,
-      ...(productoMga ? { productoPrincipalMga: productoMga } : {}),
-      ...(cantidadMetaGuardado != null ? { cantidadMeta: cantidadMetaGuardado } : {}),
+      ...(metaProductoPrincipalGuardado
+        ? { productoPrincipalMGA: metaProductoPrincipalGuardado }
+        : {}),
       ...(unidadMedidaMetaTexto ? { unidadMedidaMeta: unidadMedidaMetaTexto } : {}),
       ...(latitud != null ? { latitud } : {}),
       ...(longitud != null ? { longitud } : {}),
@@ -765,7 +760,7 @@ export class ProyectosManagementComponent implements OnInit {
           this.handleProyectoApiError(result, 'No fue posible actualizar el proyecto en la API.');
           return EMPTY;
         }
-        return this.proyectosService.refreshProyectosFromApi();
+        return this.refreshProyectosTablaDesdeApi$();
       }),
       tap(() => {
         this.resetForm();
@@ -796,7 +791,7 @@ export class ProyectosManagementComponent implements OnInit {
           return EMPTY;
         }
 
-        return this.proyectosService.refreshProyectosFromApi().pipe(
+        return this.refreshProyectosTablaDesdeApi$().pipe(
           tap(() => {
             this.resetForm();
             this.tryCloseProyectoModal();
@@ -825,10 +820,95 @@ export class ProyectosManagementComponent implements OnInit {
 
   private cargarProyectosDesdeApi(): void {
     this.isLoadingProyectosTabla = true;
-    this.proyectosService
-      .refreshProyectosFromApi()
+    this.refreshProyectosTablaDesdeApi$()
       .pipe(finalize(() => (this.isLoadingProyectosTabla = false)))
       .subscribe();
+  }
+
+  /** GET `/api/Proyecto` y resuelve pacto, sector, estado y municipio como en el formulario. */
+  private refreshProyectosTablaDesdeApi$(): Observable<Proyecto[]> {
+    return this.proyectosService.refreshProyectosFromApi().pipe(
+      map((list) => this.enrichProyectosParaTabla(list)),
+      tap((list) => this.proyectosService.publishProyectosSnapshot(list))
+    );
+  }
+
+  /** Etiquetas de tabla alineadas al formulario (ids + catálogos). */
+  private enrichProyectosParaTabla(proyectos: Proyecto[]): Proyecto[] {
+    return proyectos.map((p) => this.enrichProyectoParaTabla(p));
+  }
+
+  private enrichProyectoParaTabla(proyecto: Proyecto): Proyecto {
+    const pactoAsociado =
+      this.findPactoNombreById(proyecto.idPactoTerritorial) || this.etiquetaTextoApi(proyecto.pactoAsociado);
+    const sector =
+      this.textoCatalogoOption(this.sectoresProyectoCatalogo, proyecto.idSectorCatalogo ?? null)
+      || this.etiquetaTextoApi(proyecto.sector);
+    const estado =
+      this.textoCatalogoOption(this.estadosProyectoCatalogo, proyecto.idEstadoProyecto ?? null)
+      || this.etiquetaTextoApi(proyecto.estado);
+    const municipioEntidadNombre = this.etiquetaMunicipioEntidad(proyecto);
+    return {
+      ...proyecto,
+      pactoAsociado: pactoAsociado || undefined,
+      sector: sector || undefined,
+      estado: estado || proyecto.estado || '',
+      municipioEntidadNombre: municipioEntidadNombre || undefined
+    };
+  }
+
+  private reenriquecerProyectosEnMemoria(): void {
+    const snap = this.proyectosService.getProyectosSnapshot();
+    if (!snap.length) {
+      return;
+    }
+    this.proyectosService.publishProyectosSnapshot(this.enrichProyectosParaTabla(snap));
+  }
+
+  private etiquetaTextoApi(value?: string | null): string {
+    const t = (value || '').trim();
+    if (!t || t === '—') {
+      return '';
+    }
+    return t;
+  }
+
+  private etiquetaMunicipioEntidad(proyecto: Proyecto): string {
+    const id = (proyecto.idEntidadProyecto || '').trim();
+    if (id) {
+      const hit = this.entidadesTerritorialesProyecto.find((e) => e.idEntidadTerritorial === id);
+      if (hit) {
+        return (hit.displayName || hit.nombreEntidadTerritorial).trim();
+      }
+    }
+    return (
+      this.etiquetaTextoApi(proyecto.municipioEntidadNombre)
+      || this.etiquetaTextoApi(proyecto.responsable)
+    );
+  }
+
+  pactoResumenTabla(proyecto: Proyecto): string {
+    return this.textoResumenTabla(
+      this.findPactoNombreById(proyecto.idPactoTerritorial) || proyecto.pactoAsociado
+    );
+  }
+
+  sectorResumenTabla(proyecto: Proyecto): string {
+    return this.textoResumenTabla(
+      this.textoCatalogoOption(this.sectoresProyectoCatalogo, proyecto.idSectorCatalogo ?? null)
+        || proyecto.sector
+    );
+  }
+
+  estadoResumenTabla(proyecto: Proyecto): string {
+    return this.textoResumenTabla(
+      this.textoCatalogoOption(this.estadosProyectoCatalogo, proyecto.idEstadoProyecto ?? null)
+        || proyecto.estado
+    );
+  }
+
+  municipioResumenTabla(proyecto: Proyecto): string {
+    return this.textoResumenTabla(this.etiquetaMunicipioEntidad(proyecto));
   }
 
   private aplicarDefaultsFormularioProyectoDev(): void {
@@ -846,10 +926,10 @@ export class ProyectosManagementComponent implements OnInit {
       p.idSector = this.primerIdCatalogo(this.sectoresProyectoCatalogo);
     }
     if (!p.alcance.trim()) {
-      p.alcance = (p.nombreBpin || p.nombre || 'Pendiente').trim();
+      p.alcance = (p.nombreProyectoBpin || p.nombreIniciativa || 'Pendiente').trim();
     }
-    if (!p.nombreBpin.trim()) {
-      p.nombreBpin = p.nombre.trim() || 'Proyecto';
+    if (!p.nombreProyectoBpin.trim()) {
+      p.nombreProyectoBpin = p.nombreIniciativa.trim() || 'Proyecto';
     }
   }
 
@@ -1450,8 +1530,8 @@ export class ProyectosManagementComponent implements OnInit {
     return {
       pactoAsociado: '',
       bpin: '',
-      nombreBpin: '',
-      nombre: '',
+      nombreProyectoBpin: '',
+      nombreIniciativa: '',
       actaCdNumero: '',
       actaCdFecha: '',
       idAreaInfluencia: null,
@@ -1470,8 +1550,8 @@ export class ProyectosManagementComponent implements OnInit {
       municipioEntidad: '',
       inversionClimatica: false,
       alcance: '',
-      productoPrincipalMga: '',
-      cantidadMeta: null,
+      metaProductoPrincipal: '',
+      productoMgaDescripcion: '',
       unidadMedidaMeta: '',
       sesionCDInclusion: null,
       latitud: null,
@@ -1490,6 +1570,25 @@ export class ProyectosManagementComponent implements OnInit {
   formatCoordenadaResumen(value: number | null | undefined): string {
     const parsed = this.parseCoordenada(value);
     return parsed == null ? '—' : parsed.toFixed(5);
+  }
+
+  /** Código visible en tabla (API o id del registro). */
+  codigoProyectoResumen(proyecto: Proyecto): string {
+    const codigo = (proyecto.codigo || '').trim();
+    if (codigo && codigo !== '0') {
+      return codigo;
+    }
+    const id = proyecto.apiId ?? proyecto.id;
+    return id != null && id >= 1 ? String(id) : '—';
+  }
+
+  textoResumenTabla(value: string | null | undefined): string {
+    const t = (value || '').trim();
+    return t || '—';
+  }
+
+  metaProductoPrincipalResumen(proyecto: Proyecto): string {
+    return this.textoResumenTabla(proyecto.productoPrincipalMGA);
   }
 
   getProyectoImagenesCount(proyecto: Proyecto): number {
@@ -1660,61 +1759,6 @@ export class ProyectosManagementComponent implements OnInit {
     return (alcanceBase || '').trim();
   }
 
-  private parseCamposDesdeAlcanceApi(raw?: string | null): {
-    productoPrincipalMga: string;
-    cantidadMeta: number | null;
-    unidadMedidaMeta: string;
-    sesionCdPei: number | null;
-    alcanceLimpio: string;
-  } {
-    const texto = (raw || '').trim();
-    let sesionCdPei: number | null = null;
-    const sesionMatch = texto.match(/Sesion CD inclusion PEI:\s*(\d+)/i);
-    if (sesionMatch?.[1]) {
-      const n = Number(sesionMatch[1]);
-      sesionCdPei = Number.isInteger(n) && n >= 1 ? n : null;
-    }
-
-    let productoPrincipalMga = '';
-    const prodMatch = texto.match(/Producto principal MGA:\s*([^|]+)/i);
-    if (prodMatch?.[1]) {
-      productoPrincipalMga = prodMatch[1].trim();
-    }
-
-    let cantidadMeta: number | null = null;
-    const cantidadMatch = texto.match(/Cantidad:\s*(\d+)/i);
-    if (cantidadMatch?.[1]) {
-      cantidadMeta = this.resolveCantidadMeta(Number(cantidadMatch[1]));
-    }
-
-    let unidadMedidaMeta = '';
-    const unidadMatch = texto.match(/(?:Meta PA|Unidad medida meta):\s*([^|]+)/i);
-    if (unidadMatch?.[1]) {
-      unidadMedidaMeta = unidadMatch[1].trim();
-    }
-
-    let alcanceLimpio = texto;
-    for (const patron of [
-      /Producto principal MGA:\s*[^|]+/gi,
-      /Meta producto principal:\s*[^|]+/gi,
-      /Meta PA:\s*[^|]+/gi,
-      /Unidad medida meta:\s*[^|]+/gi,
-      /Cantidad:\s*\d+/gi,
-      /Sesion CD inclusion PEI:\s*\d+/gi
-    ]) {
-      alcanceLimpio = alcanceLimpio.replace(patron, '');
-    }
-    alcanceLimpio = alcanceLimpio.replace(/\|\s*\|/g, '|').replace(/^\|\s*|\s*\|$/g, '').trim();
-
-    return {
-      productoPrincipalMga,
-      cantidadMeta,
-      unidadMedidaMeta,
-      sesionCdPei,
-      alcanceLimpio
-    };
-  }
-
   private resolveCantidadMeta(cantidad: number | null | undefined): number | null {
     if (cantidad === null || cantidad === undefined || Number.isNaN(Number(cantidad))) {
       return null;
@@ -1852,7 +1896,7 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   private cargarFormularioDesdeProyectoLocal(proyecto: Proyecto): void {
-    const desdeAlcance = this.parseCamposDesdeAlcanceApi(proyecto.descripcion);
+    const desdeAlcance = parseCamposDesdeAlcanceApi(proyecto.descripcion);
     let actaNumero = proyecto.actaCdNumero ?? '';
     let actaFecha = proyecto.actaCdFecha ?? '';
     if ((!actaNumero || !actaFecha) && proyecto.actaCd) {
@@ -1865,8 +1909,8 @@ export class ProyectosManagementComponent implements OnInit {
       ...this.getInitialFormData(),
       pactoAsociado: proyecto.pactoAsociado ?? '',
       bpin: proyecto.bpin ?? '',
-      nombreBpin: proyecto.nombreBpin ?? '',
-      nombre: proyecto.nombre ?? '',
+      nombreProyectoBpin: proyecto.nombreProyectoBpin ?? '',
+      nombreIniciativa: proyecto.nombreIniciativa ?? '',
       actaCdNumero: actaNumero,
       actaCdFecha: actaFecha,
       idAreaInfluencia: this.coerceSelectCatalogId(
@@ -1900,15 +1944,12 @@ export class ProyectosManagementComponent implements OnInit {
       ),
       inversionClimatica: !!proyecto.inversionClimatica,
       alcance: desdeAlcance.alcanceLimpio || proyecto.descripcion || '',
-      productoPrincipalMga:
-        proyecto.productoPrincipalMga?.trim()
+      metaProductoPrincipal:
+        proyecto.productoPrincipalMGA?.trim()
         || desdeAlcance.productoPrincipalMga
+        || (proyecto.cantidadMeta != null ? String(proyecto.cantidadMeta) : '')
         || '',
-      cantidadMeta:
-        proyecto.cantidadMeta
-        ?? (proyecto as Proyecto & { cantidadMetaPa?: number }).cantidadMetaPa
-        ?? desdeAlcance.cantidadMeta
-        ?? null,
+      productoMgaDescripcion: proyecto.productoMgaDescripcion?.trim() || '',
       unidadMedidaMeta:
         proyecto.unidadMedidaMeta?.trim()
         || (proyecto as Proyecto & { metaPaTexto?: string }).metaPaTexto?.trim()
@@ -1927,7 +1968,7 @@ export class ProyectosManagementComponent implements OnInit {
   }
 
   private cargarFormularioDesdeDetalle(detalle: ProyectoDetalleApi, fallback: Proyecto): void {
-    const desdeAlcance = this.parseCamposDesdeAlcanceApi(detalle.alcance ?? fallback.descripcion);
+    const desdeAlcance = parseCamposDesdeAlcanceApi(detalle.alcance ?? fallback.descripcion);
     const detalleLegacy = detalle as ProyectoDetalleApi & {
       productoMGA?: string;
       metaPa?: string;
@@ -1937,8 +1978,15 @@ export class ProyectosManagementComponent implements OnInit {
       pactoAsociado:
         this.findPactoNombreById(detalle.idPactoTerritorial) || fallback.pactoAsociado || '',
       bpin: detalle.bpin ?? fallback.bpin ?? '',
-      nombreBpin: detalle.nombreBpin ?? fallback.nombre ?? '',
-      nombre: detalle.nombre ?? fallback.nombre ?? '',
+      nombreProyectoBpin:
+        (detalle.nombreProyectoBpin ?? (detalle as ProyectoDetalleApi & { nombreBpin?: string }).nombreBpin ?? '')
+          .trim()
+        || (fallback.nombreProyectoBpin ?? '').trim()
+        || (fallback.nombreIniciativa ?? '').trim(),
+      nombreIniciativa:
+        (detalle.nombreIniciativa ?? (detalle as ProyectoDetalleApi & { nombre?: string }).nombre ?? '')
+          .trim()
+        || (fallback.nombreIniciativa ?? '').trim(),
       actaCdNumero: detalle.actaCD ?? fallback.actaCdNumero ?? '',
       actaCdFecha: this.isoToYmd(detalle.fechaActaCD) || fallback.actaCdFecha || '',
       idAreaInfluencia: this.coerceSelectCatalogId(
@@ -1979,18 +2027,17 @@ export class ProyectosManagementComponent implements OnInit {
       ),
       inversionClimatica: detalle.esInversionClimatica ?? !!fallback.inversionClimatica,
       alcance: desdeAlcance.alcanceLimpio || detalle.alcance || fallback.descripcion || '',
-      productoPrincipalMga:
-        detalle.productoPrincipalMGA?.trim()
+      metaProductoPrincipal:
+        (detalle.productoPrincipalMGA ?? '').trim()
         || detalleLegacy.productoMGA?.trim()
-        || fallback.productoPrincipalMga?.trim()
+        || (fallback.productoPrincipalMGA ?? '').trim()
         || desdeAlcance.productoPrincipalMga
+        || (fallback.cantidadMeta != null ? String(fallback.cantidadMeta) : '')
         || '',
-      cantidadMeta:
-        detalle.cantidadMeta
-        ?? fallback.cantidadMeta
-        ?? (fallback as Proyecto & { cantidadMetaPa?: number }).cantidadMetaPa
-        ?? desdeAlcance.cantidadMeta
-        ?? null,
+      productoMgaDescripcion:
+        detalleLegacy.productoMGA?.trim()
+        || fallback.productoMgaDescripcion?.trim()
+        || '',
       unidadMedidaMeta:
         detalle.unidadMedidaMeta?.trim()
         || detalleLegacy.metaPa?.trim()

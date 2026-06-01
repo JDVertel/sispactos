@@ -1,7 +1,14 @@
-/** Fila de vigencia CONPES (valor por año). */
+/** Fila de vigencia CONPES (valor por año), persistida en financiera local. */
 export interface ProyectoFinancieraVigencia {
+  id: string;
   valor: number | null;
   anio: number | null;
+  /** Usuario que registro la vigencia (sesion). */
+  registradoPor: string;
+  /** ISO fecha/hora de registro. */
+  registradoEn: string;
+  actualizadoPor?: string;
+  actualizadoEn?: string;
 }
 
 /** Sesión: presupuesto indicativos. */
@@ -48,12 +55,21 @@ export interface ProyectoFinancieraComprometido {
   presupuestoComprometidoAportesOtros: number | null;
 }
 
-/** Sesión CONPES. */
+/** Sesión CONPES (debe registrarse antes de agregar vigencias). */
 export interface ProyectoFinancieraConpes {
   numeroConpes: string;
   fechaConpes: string;
   consecutivoProyecto: string;
   vigencias: ProyectoFinancieraVigencia[];
+  registradoPor?: string;
+  registradoEn?: string;
+  actualizadoPor?: string;
+  actualizadoEn?: string;
+}
+
+/** Indica si la sesión CONPES ya fue registrada (número y fecha obligatorios). */
+export function isProyectoFinancieraConpesRegistrado(conpes: ProyectoFinancieraConpes): boolean {
+  return !!(conpes.numeroConpes?.trim() && conpes.fechaConpes?.trim());
 }
 
 export interface ProyectoFinancieraData {
@@ -119,7 +135,7 @@ export function createEmptyProyectoFinancieraData(proyectoId: number): ProyectoF
       numeroConpes: '',
       fechaConpes: '',
       consecutivoProyecto: '',
-      vigencias: [{ valor: null, anio: null }]
+      vigencias: []
     },
     updatedAt: new Date().toISOString()
   };

@@ -43,20 +43,22 @@
           <thead class="table-light">
             <tr>
               <th>Código</th>
-              <th>Nombre</th>
+              <th>Nombre iniciativa</th>
+              <th>Nombre BPIN</th>
+              <th>Meta producto</th>
               <th>BPIN</th>
               <th>Pacto</th>
               <th>Sector</th>
               <th>Estado</th>
-              <th>Responsable</th>
+              <th>Municipio</th>
               <th class="text-end">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let proyecto of proyectos$ | async">
-              <td class="text-nowrap">{{ proyecto.codigo }}</td>
-              <td class="proyecto-nombre-cell" [title]="proyecto.nombre">
-                <div>{{ proyecto.nombre }}</div>
+              <td class="text-nowrap">{{ codigoProyectoResumen(proyecto) }}</td>
+              <td class="proyecto-nombre-cell" [title]="proyecto.nombreIniciativa">
+                <div>{{ textoResumenTabla(proyecto.nombreIniciativa) }}</div>
                 <div class="small text-secondary" *ngIf="proyecto.latitud != null || proyecto.longitud != null">
                   Coord: {{ formatCoordenadaResumen(proyecto.latitud) }}, {{ formatCoordenadaResumen(proyecto.longitud) }}
                 </div>
@@ -64,11 +66,19 @@
                   Imágenes: {{ getProyectoImagenesCount(proyecto) }}
                 </div>
               </td>
+              <td class="proyecto-nombre-cell" [title]="proyecto.nombreProyectoBpin || ''">
+                {{ textoResumenTabla(proyecto.nombreProyectoBpin) }}
+              </td>
+              <td class="text-nowrap text-end">{{ metaProductoPrincipalResumen(proyecto) }}</td>
               <td class="text-nowrap">{{ proyecto.bpin || '—' }}</td>
-              <td class="proyecto-pacto-cell" [title]="proyecto.pactoAsociado || ''">{{ proyecto.pactoAsociado || '—' }}</td>
-              <td>{{ proyecto.sector || '—' }}</td>
-              <td><span class="badge text-bg-light border proyecto-estado-badge">{{ proyecto.estado }}</span></td>
-              <td class="proyecto-responsable-cell" [title]="proyecto.responsable">{{ proyecto.responsable }}</td>
+              <td class="proyecto-pacto-cell" [title]="pactoResumenTabla(proyecto)">{{ pactoResumenTabla(proyecto) }}</td>
+              <td [title]="sectorResumenTabla(proyecto)">{{ sectorResumenTabla(proyecto) }}</td>
+              <td>
+                <span class="badge text-bg-light border proyecto-estado-badge">{{ estadoResumenTabla(proyecto) }}</span>
+              </td>
+              <td class="proyecto-municipio-cell" [title]="municipioResumenTabla(proyecto)">
+                {{ municipioResumenTabla(proyecto) }}
+              </td>
               <td class="text-end text-nowrap">
                 <a
                   class="btn btn-outline-success btn-sm me-1"
@@ -160,33 +170,33 @@
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Nombre de proyecto BPIN en MGA', campo: 'nombreBpin' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Nombre de proyecto BPIN en MGA', campo: 'nombreProyectoBpin' }"></ng-container>
                 <input
                   class="form-control"
                   type="text"
                   name="proyectoNombreBpin"
-                  [(ngModel)]="newProyecto.nombreBpin"
-                  [ngClass]="claseValidacionCampo('nombreBpin')"
-                  [attr.title]="mostrarErrorCampo('nombreBpin') ? mensajeErrorCampo('nombreBpin') : null"
-                  (ngModelChange)="onCampoValidacionChange('nombreBpin')"
-                  (blur)="marcarCampoTocado('nombreBpin')"
+                  [(ngModel)]="newProyecto.nombreProyectoBpin"
+                  [ngClass]="claseValidacionCampo('nombreProyectoBpin')"
+                  [attr.title]="mostrarErrorCampo('nombreProyectoBpin') ? mensajeErrorCampo('nombreProyectoBpin') : null"
+                  (ngModelChange)="onCampoValidacionChange('nombreProyectoBpin')"
+                  (blur)="marcarCampoTocado('nombreProyectoBpin')"
                 />
-                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombreBpin' }"></ng-container>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombreProyectoBpin' }"></ng-container>
               </label>
 
               <label>
-                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Nombre iniciativa', campo: 'nombre' }"></ng-container>
+                <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Nombre iniciativa', campo: 'nombreIniciativa' }"></ng-container>
                 <input
                   class="form-control"
                   type="text"
-                  name="proyectoNombre"
-                  [(ngModel)]="newProyecto.nombre"
-                  [ngClass]="claseValidacionCampo('nombre')"
-                  [attr.title]="mostrarErrorCampo('nombre') ? mensajeErrorCampo('nombre') : null"
-                  (ngModelChange)="onCampoValidacionChange('nombre')"
-                  (blur)="marcarCampoTocado('nombre')"
+                  name="proyectoNombreIniciativa"
+                  [(ngModel)]="newProyecto.nombreIniciativa"
+                  [ngClass]="claseValidacionCampo('nombreIniciativa')"
+                  [attr.title]="mostrarErrorCampo('nombreIniciativa') ? mensajeErrorCampo('nombreIniciativa') : null"
+                  (ngModelChange)="onCampoValidacionChange('nombreIniciativa')"
+                  (blur)="marcarCampoTocado('nombreIniciativa')"
                 />
-                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombre' }"></ng-container>
+                <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'nombreIniciativa' }"></ng-container>
               </label>
 
               <label>
@@ -467,31 +477,28 @@
 
                 <div class="mga-meta-secuencia__campos">
                   <label class="mga-meta-paso">
-                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Producto principal MGA', campo: 'productoMga' }"></ng-container>
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Producto principal MGA', campo: 'productoMgaDescripcion' }"></ng-container>
                     <input
                       class="form-control"
                       type="text"
-                      name="proyectoProductoMga"
-                      [(ngModel)]="newProyecto.productoPrincipalMga"
+                      name="proyectoProductoMgaDescripcion"
+                      [(ngModel)]="newProyecto.productoMgaDescripcion"
                     />
                   </label>
 
                   <label class="mga-meta-paso">
-                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta de producto principal', campo: 'cantidadMeta' }"></ng-container>
+                    <ng-container *ngTemplateOutlet="campoLabel; context: { $implicit: 'Meta de producto principal', campo: 'metaProductoPrincipal' }"></ng-container>
                     <input
                       class="form-control"
-                      type="number"
-                      name="proyectoCantidadMeta"
-                      min="0"
-                      step="1"
-                      inputmode="numeric"
-                      [(ngModel)]="newProyecto.cantidadMeta"
-                      [ngClass]="claseValidacionCampo('cantidadMeta')"
-                      [attr.title]="mostrarErrorCampo('cantidadMeta') ? mensajeErrorCampo('cantidadMeta') : null"
-                      (ngModelChange)="onCampoValidacionChange('cantidadMeta')"
-                      (blur)="marcarCampoTocado('cantidadMeta')"
+                      type="text"
+                      name="proyectoMetaProductoPrincipal"
+                      [(ngModel)]="newProyecto.metaProductoPrincipal"
+                      [ngClass]="claseValidacionCampo('metaProductoPrincipal')"
+                      [attr.title]="mostrarErrorCampo('metaProductoPrincipal') ? mensajeErrorCampo('metaProductoPrincipal') : null"
+                      (ngModelChange)="onCampoValidacionChange('metaProductoPrincipal')"
+                      (blur)="marcarCampoTocado('metaProductoPrincipal')"
                     />
-                    <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'cantidadMeta' }"></ng-container>
+                    <ng-container *ngTemplateOutlet="validacionCampo; context: { $implicit: 'metaProductoPrincipal' }"></ng-container>
                   </label>
 
                   <label class="mga-meta-paso">

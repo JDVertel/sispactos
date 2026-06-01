@@ -16,9 +16,10 @@ export interface Proyecto {
   plazoEstimadoEjecucion?: string;
   actaCdNumero?: string;
   actaCdFecha?: string;
-  nombre: string;
-  /** Nombre de proyecto BPIN en MGA (formulario / API). */
-  nombreBpin?: string;
+  /** Nombre iniciativa (`nombreIniciativa` en API). */
+  nombreIniciativa: string;
+  /** Nombre de proyecto BPIN en MGA (`nombreProyectoBpin` en API). */
+  nombreProyectoBpin?: string;
   descripcion: string;
   pactoAsociado?: string;
   codigo: string;
@@ -38,14 +39,20 @@ export interface Proyecto {
   numeroContratoEspecifico?: string;
   fechaFinalizacionCe?: Date;
   presupuesto: number;
-  responsable: string;
+  /** Municipio / entidad territorial (etiqueta para tabla; formulario `municipioEntidad`). */
+  municipioEntidadNombre?: string;
+  /** Nombre entidad responsable PI en API (`entidadResponsablePI`); no usar en tabla. */
+  responsable?: string;
   estado: string;
   fechaInicio: Date;
   fechaFin: Date;
   avance: number;
   fechaCreacion: Date;
-  productoPrincipalMga?: string;
-  /** Meta de producto principal (entero no negativo). */
+  /** Meta de producto principal (`productoPrincipalMGA` en API). */
+  productoPrincipalMGA?: string;
+  /** Descripcion adicional de producto MGA (solo formulario; no contrato API principal). */
+  productoMgaDescripcion?: string;
+  /** Legacy: cantidad meta numerica si la API aun la expone. */
   cantidadMeta?: number;
   /** Medido a traves de (unidad de medida). */
   unidadMedidaMeta?: string;

@@ -286,7 +286,7 @@ export class ContratosManagementComponent implements OnInit {
   private textoProyecto(idProyecto: number | null | undefined): string {
     if (!idProyecto) return '';
     return (
-      this.proyectosFiltrados.find((p) => p.id === idProyecto)?.nombre ??
+      this.proyectosFiltrados.find((p) => p.id === idProyecto)?.nombreIniciativa ??
       ''
     );
   }

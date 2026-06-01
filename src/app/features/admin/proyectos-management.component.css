@@ -575,6 +575,7 @@ textarea {
 
 .proyecto-nombre-cell,
 .proyecto-pacto-cell,
+.proyecto-municipio-cell,
 .proyecto-responsable-cell {
   max-width: 10rem;
   overflow: hidden;
