@@ -8,6 +8,7 @@ import {
   ProyectoApiResult,
   ProyectoDetalleApi,
   ProyectosService,
+  ProyectoImagenUpload,
   UpdateProyectoCommand
 } from '../../core/services/proyectos.service';
 import { AuthPromptService } from '../../core/services/auth-prompt.service';
@@ -30,6 +31,10 @@ import {
   PactosService,
   catalogoByTipoRoute
 } from '../../core/services/pactos.service';
+import {
+  EntidadResponsableProyectoOption,
+  EntidadesResponsablesProyectoService
+} from '../../core/services/entidades-responsables-proyecto.service';
 
 type ModoFormularioProyecto = 'crear' | 'editar';
 
@@ -38,6 +43,8 @@ interface ProyectoFormData {
   bpin: string;
   nombreProyectoBpin: string;
   nombreIniciativa: string;
+  /** Id de entidad responsable (catálogo dedicado; API pendiente). */
+  entidadResponsableId: string;
   actaCdNumero: string;
   actaCdFecha: string;
   idAreaInfluencia: number | null;
@@ -71,6 +78,10 @@ type MultimediaModalTipo = 'imagen' | 'video';
 
 type MultimediaImagenAdjunta = {
   id: string;
+  /** Id del archivo en API (imagen ya persistida). */
+  idArchivo?: string | null;
+  /** Contenido original devuelto por la API (base64 / data URL). */
+  archivoImagenApi?: string | null;
   file: File;
   url: string;
   nombre: string;
@@ -141,6 +152,8 @@ export class ProyectosManagementComponent implements OnInit {
   sectoresProyectoCatalogo: CatalogoOption[] = [];
   aportantesNacionCatalogo: CatalogoOption[] = [];
   entidadesTerritorialesProyecto: EntidadTerritorialOption[] = [];
+  entidadesResponsablesOpciones: EntidadResponsableProyectoOption[] = [];
+  isLoadingEntidadesResponsables = false;
   private catalogosProyectoListos = false;
 
   readonly catalogoByTipoRoute = catalogoByTipoRoute;
@@ -179,6 +192,7 @@ export class ProyectosManagementComponent implements OnInit {
     private proyectosService: ProyectosService,
     private dashboardService: DashboardService,
     private pactosService: PactosService,
+    private readonly entidadesResponsablesService: EntidadesResponsablesProyectoService,
     private readonly authService: AuthService,
     private readonly authPromptService: AuthPromptService
   ) {
@@ -206,10 +220,23 @@ export class ProyectosManagementComponent implements OnInit {
     this.isLoadingProyectoDetalle = true;
     forkJoin({
       catalogos: this.loadCatalogosProyecto$(),
+      entidadesResponsables: this.entidadesResponsablesService.getEntidadesResponsables(),
       detalle: detalle$
     })
-      .pipe(finalize(() => (this.isLoadingProyectoDetalle = false)))
-      .subscribe(({ detalle }) => {
+      .pipe(
+        catchError((err) => {
+          console.error('[SISPACTOS] Error al preparar edición de proyecto', err);
+          return of({
+            entidadesResponsables: this.entidadesResponsablesOpciones,
+            detalle: null as ProyectoDetalleApi | null
+          });
+        }),
+        finalize(() => (this.isLoadingProyectoDetalle = false))
+      )
+      .subscribe(({ entidadesResponsables, detalle }) => {
+        this.entidadesResponsablesOpciones = [...entidadesResponsables].sort((a, b) =>
+          a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' })
+        );
         if (detalle) {
           this.cargarFormularioDesdeDetalle(detalle, proyecto);
         } else {
@@ -249,6 +276,20 @@ export class ProyectosManagementComponent implements OnInit {
       );
       this.reenriquecerProyectosEnMemoria();
     });
+
+    this.cargarEntidadesResponsables();
+  }
+
+  private cargarEntidadesResponsables(): void {
+    this.isLoadingEntidadesResponsables = true;
+    this.entidadesResponsablesService
+      .getEntidadesResponsables()
+      .pipe(finalize(() => (this.isLoadingEntidadesResponsables = false)))
+      .subscribe((rows) => {
+        this.entidadesResponsablesOpciones = [...rows].sort((a, b) =>
+          a.nombre.localeCompare(b.nombre, 'es-CO', { sensitivity: 'base' })
+        );
+      });
   }
 
   get lineasTematicasDisponibles(): string[] {
@@ -512,6 +553,7 @@ export class ProyectosManagementComponent implements OnInit {
       numeroContratoEspecifico,
       idAportanteNacion,
       municipioEntidad,
+      entidadResponsableId,
       idEstadoProyecto,
       idAreaInfluencia,
       idCondicionProyecto,
@@ -537,8 +579,12 @@ export class ProyectosManagementComponent implements OnInit {
     const idEntidadTerritorial = municipioEntidad.trim();
     const entidadTerr = this.entidadesTerritorialesProyecto.find((e) => e.idEntidadTerritorial === idEntidadTerritorial);
     const nombreEntidadMunicipio =
-      entidadTerr?.nombreEntidadTerritorial || entidadTerr?.displayName || idEntidadTerritorial;
-    const responsableProyecto = nombreEntidadMunicipio;
+      entidadTerr?.nombreEntidadTerritorial || entidadTerr?.displayName || '';
+    const entidadResponsable = this.entidadesResponsablesOpciones.find(
+      (e) => e.id === (entidadResponsableId || '').trim()
+    );
+    const nombreEntidadResponsable = entidadResponsable?.nombre?.trim() ?? '';
+    const responsableProyecto = nombreEntidadResponsable || nombreEntidadMunicipio;
 
     if (PROYECTO_DEV_LOCAL_SAVE) {
       this.aplicarDefaultsFormularioProyectoDev();
@@ -563,6 +609,11 @@ export class ProyectosManagementComponent implements OnInit {
     const idCondicion = idCondicionProyecto ?? this.primerIdCatalogo(this.condicionesProyectoCatalogo);
     const idSectorVal = idSector ?? this.primerIdCatalogo(this.sectoresProyectoCatalogo);
 
+    const latitudProyecto = this.formatCoordenadaParaApi(this.newProyecto.latitud);
+    const longitudProyecto = this.formatCoordenadaParaApi(this.newProyecto.longitud);
+
+    const imagenesUpload = this.buildImagenesUploadPayload();
+
     const buildCommand = (codigo: string): CreateProyectoCommand => ({
       idPactoTerritorial,
       idEntidadProyecto: idEntidadTerritorial,
@@ -581,7 +632,7 @@ export class ProyectosManagementComponent implements OnInit {
       fechaFin: nowIso,
       plazoEstimadoEjecucion: nowIso,
       idAportanteNacion: idAportanteNacion != null && idAportanteNacion >= 1 ? idAportanteNacion : null,
-      entidadResponsablePI: nombreEntidadMunicipio.trim(),
+      entidadResponsablePI: responsableProyecto.trim(),
       esInversionClimatica: !!this.newProyecto.inversionClimatica,
       esFRPT: !!frpt,
       alcance: alcanceApi,
@@ -669,6 +720,16 @@ export class ProyectosManagementComponent implements OnInit {
       ...(unidadMedidaMetaTexto ? { unidadMedidaMeta: unidadMedidaMetaTexto } : {}),
       ...(latitud != null ? { latitud } : {}),
       ...(longitud != null ? { longitud } : {}),
+      ...(imagenesUpload.length
+        ? {
+            imagenes: imagenesUpload.map((imagen) => ({
+              idArchivo: imagen.idArchivo ?? null,
+              descripcionImagen: imagen.descripcionImagen,
+              fechaImagen: imagen.fechaImagen,
+              archivoImagen: null
+            }))
+          }
+        : {}),
       ...(nombresMultimedia.length ? { multimediaNombres: nombresMultimedia } : {}),
       ...(urlsVideoMultimedia.length ? { multimediaVideoUrls: urlsVideoMultimedia } : {}),
       ...(metadatosMultimedia.length ? { multimediaMetadatos: metadatosMultimedia } : {})
@@ -680,11 +741,6 @@ export class ProyectosManagementComponent implements OnInit {
       this.editingProyectoApiId = null;
     }
 
-    const imagenesApi = this.buildImagenesApiPayload();
-
-    const latitudProyecto = this.formatCoordenadaParaApi(this.newProyecto.latitud);
-    const longitudProyecto = this.formatCoordenadaParaApi(this.newProyecto.longitud);
-
     console.info('[SISPACTOS Proyecto guardar]', {
       modoFormulario: this.modoFormulario,
       metodoHttp: isEditMode ? 'PUT /api/Proyecto' : 'POST /api/Proyecto',
@@ -692,8 +748,8 @@ export class ProyectosManagementComponent implements OnInit {
     });
 
     const persistir$ = isEditMode
-      ? this.persistirProyectoEdicionEnApi$(buildCommand, proyectoBase, persistedApiFields)
-      : this.persistirProyectoCreacionEnApi$(buildCommand, proyectoBase, persistedApiFields);
+      ? this.persistirProyectoEdicionEnApi$(buildCommand, imagenesUpload, proyectoBase, persistedApiFields)
+      : this.persistirProyectoCreacionEnApi$(buildCommand, imagenesUpload, proyectoBase, persistedApiFields);
 
     const flujo$ = PROYECTO_DEV_LOCAL_SAVE
       ? this.authService.hasValidUserSession()
@@ -734,6 +790,7 @@ export class ProyectosManagementComponent implements OnInit {
   /** Renueva token y persiste edicion en API + almacen local. */
   private persistirProyectoEdicionEnApi$(
     buildCommand: (codigo: string) => CreateProyectoCommand,
+    imagenesUpload: ProyectoImagenUpload[],
     _proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion' | 'codigo'>,
     _persistedApiFields: Record<string, unknown>
   ): Observable<void> {
@@ -746,7 +803,7 @@ export class ProyectosManagementComponent implements OnInit {
     const codigo = this.codigoDesdeIdProyecto(apiId);
     const updateCommand: UpdateProyectoCommand = { ...buildCommand(codigo), id: apiId };
 
-    return this.proyectosService.updateProyectoInApi(updateCommand).pipe(
+    return this.proyectosService.updateProyectoInApi(updateCommand, imagenesUpload).pipe(
       switchMap((result) => {
         if (!result.success) {
           if (PROYECTO_DEV_LOCAL_SAVE) {
@@ -773,10 +830,11 @@ export class ProyectosManagementComponent implements OnInit {
   /** Renueva token y persiste creacion en API + almacen local. */
   private persistirProyectoCreacionEnApi$(
     buildCommand: (codigo: string) => CreateProyectoCommand,
+    imagenesUpload: ProyectoImagenUpload[],
     proyectoBase: Omit<Proyecto, 'id' | 'fechaCreacion' | 'codigo'>,
     persistedApiFields: Record<string, unknown>
   ): Observable<void> {
-    return this.proyectosService.createProyecto(buildCommand('')).pipe(
+    return this.proyectosService.createProyecto(buildCommand(''), imagenesUpload).pipe(
       switchMap((result) => {
         if (!result.success) {
           if (PROYECTO_DEV_LOCAL_SAVE) {
@@ -1149,16 +1207,33 @@ export class ProyectosManagementComponent implements OnInit {
     return [...imagenes, ...videos];
   }
 
-  private buildImagenesApiPayload(): ProyectoImagenApiCommand[] {
+  private buildImagenesUploadPayload(): ProyectoImagenUpload[] {
     if (!this.multimediaAdjuntos.length) {
       return [];
     }
 
-    return this.multimediaAdjuntos.map((adjunto) => ({
-      descripcionImagen: adjunto.detalle.trim() || adjunto.nombre,
-      fechaImagen: this.fechaYmdToIso(adjunto.fecha) ?? adjunto.fecha,
-      archivoImagen: null
-    }));
+    const imagenes: ProyectoImagenUpload[] = [];
+
+    for (const adjunto of this.multimediaAdjuntos) {
+      const descripcionImagen = adjunto.detalle.trim() || adjunto.nombre.trim();
+      const fechaImagen = this.fechaYmdToIso(adjunto.fecha) ?? adjunto.fecha.trim();
+      const idArchivo = adjunto.idArchivo?.trim() || null;
+      const file = adjunto.file.size > 0 ? adjunto.file : null;
+
+      if (!descripcionImagen && !fechaImagen && !idArchivo && !file) {
+        continue;
+      }
+
+      imagenes.push({
+        ...(idArchivo ? { idArchivo } : {}),
+        descripcionImagen,
+        fechaImagen,
+        file,
+        archivoImagenApi: adjunto.archivoImagenApi?.trim() || null
+      });
+    }
+
+    return imagenes;
   }
 
   private formatCoordenadaParaApi(value: number | string | null | undefined): string {
@@ -1409,7 +1484,9 @@ export class ProyectosManagementComponent implements OnInit {
 
   private cargarMultimediaDesdeProyecto(proyecto: Proyecto): void {
     this.clearMultimediaAdjuntos();
-    const imagenesApi = (proyecto.imagenes ?? []).filter((imagen) => !!imagen?.archivoImagen);
+    const imagenesApi = (proyecto.imagenes ?? []).filter(
+      (imagen) => !!imagen?.archivoImagen || !!imagen?.idArchivo || !!imagen?.descripcionImagen?.trim()
+    );
     if (imagenesApi.length) {
       this.multimediaAdjuntos = imagenesApi.map((imagen, index) =>
         this.mapImagenApiToAdjunto(imagen, index)
@@ -1446,7 +1523,9 @@ export class ProyectosManagementComponent implements OnInit {
 
   private cargarMultimediaDesdeDetalleApi(detalle: ProyectoDetalleApi, fallback: Proyecto): void {
     const imagenesApi = Array.isArray(detalle.imagenes)
-      ? detalle.imagenes.filter((imagen) => !!imagen?.archivoImagen)
+      ? detalle.imagenes.filter(
+          (imagen) => !!imagen?.archivoImagen || !!imagen?.idArchivo || !!imagen?.descripcionImagen?.trim()
+        )
       : [];
 
     if (!imagenesApi.length) {
@@ -1463,8 +1542,11 @@ export class ProyectosManagementComponent implements OnInit {
     index: number
   ): MultimediaImagenAdjunta {
     const nombre = this.buildNombreImagenApi(imagen, index);
+    const archivoRaw = imagen.archivoImagen?.trim() ?? '';
     return {
       id: this.nuevoIdMultimedia(),
+      idArchivo: imagen.idArchivo?.trim() || null,
+      archivoImagenApi: archivoRaw || null,
       file: new File([], nombre, { type: this.detectMimeTypeFromArchivoImagen(imagen.archivoImagen) }),
       url: this.resolveArchivoImagenPreviewUrl(imagen.archivoImagen),
       nombre,
@@ -1473,7 +1555,10 @@ export class ProyectosManagementComponent implements OnInit {
     };
   }
 
-  private buildNombreImagenApi(imagen: ProyectoImagenApiCommand, index: number): string {
+  private buildNombreImagenApi(
+    imagen: ProyectoImagenApiCommand | ProyectoImagenRegistrada,
+    index: number
+  ): string {
     const descripcion = (imagen.descripcionImagen || '').trim();
     if (!descripcion) {
       return `Imagen ${index + 1}`;
@@ -1532,6 +1617,7 @@ export class ProyectosManagementComponent implements OnInit {
       bpin: '',
       nombreProyectoBpin: '',
       nombreIniciativa: '',
+      entidadResponsableId: '',
       actaCdNumero: '',
       actaCdFecha: '',
       idAreaInfluencia: null,
@@ -1866,6 +1952,17 @@ export class ProyectosManagementComponent implements OnInit {
     return hit?.id ?? n;
   }
 
+  private resolveEntidadResponsableId(nombreFallback?: string | null): string {
+    const nombre = (nombreFallback || '').trim().toLowerCase();
+    if (!nombre) {
+      return '';
+    }
+    const hit = this.entidadesResponsablesOpciones.find(
+      (e) => e.nombre.trim().toLowerCase() === nombre
+    );
+    return hit?.id ?? '';
+  }
+
   private resolveMunicipioEntidadId(
     idEntidad?: string | null,
     nombreFallback?: string | null
@@ -1938,10 +2035,8 @@ export class ProyectosManagementComponent implements OnInit {
         proyecto.idAportanteNacion,
         this.aportantesNacionCatalogo
       ),
-      municipioEntidad: this.resolveMunicipioEntidadId(
-        proyecto.idEntidadProyecto,
-        proyecto.responsable
-      ),
+      entidadResponsableId: this.resolveEntidadResponsableId(proyecto.responsable),
+      municipioEntidad: this.resolveMunicipioEntidadId(proyecto.idEntidadProyecto, null),
       inversionClimatica: !!proyecto.inversionClimatica,
       alcance: desdeAlcance.alcanceLimpio || proyecto.descripcion || '',
       metaProductoPrincipal:
@@ -2021,9 +2116,12 @@ export class ProyectosManagementComponent implements OnInit {
         detalle.idAportanteNacion ?? fallback.idAportanteNacion,
         this.aportantesNacionCatalogo
       ),
+      entidadResponsableId: this.resolveEntidadResponsableId(
+        detalle.entidadResponsablePI ?? fallback.responsable
+      ),
       municipioEntidad: this.resolveMunicipioEntidadId(
         detalle.idEntidadProyecto ?? fallback.idEntidadProyecto,
-        detalle.entidadResponsablePI ?? fallback.responsable
+        null
       ),
       inversionClimatica: detalle.esInversionClimatica ?? !!fallback.inversionClimatica,
       alcance: desdeAlcance.alcanceLimpio || detalle.alcance || fallback.descripcion || '',
@@ -2120,12 +2218,34 @@ export class ProyectosManagementComponent implements OnInit {
     const el = document.getElementById(elementId);
     if (!el) return;
 
-    const bootstrap = (window as { bootstrap?: { Modal?: { getOrCreateInstance?: (el: Element) => { show?: () => void } } } })
-      .bootstrap;
+    const bootstrapModal = (
+      window as Window & {
+        bootstrap?: {
+          Modal?: {
+            getInstance?(element: Element): { show(): void };
+            getOrCreateInstance?(element: Element): { show(): void };
+          };
+        };
+      }
+    ).bootstrap?.Modal;
+
     try {
-      bootstrap?.Modal?.getOrCreateInstance?.(el)?.show?.();
+      const instance =
+        bootstrapModal?.getInstance?.(el)
+        || bootstrapModal?.getOrCreateInstance?.(el)
+        || (bootstrapModal ? new (bootstrapModal as unknown as new (e: Element) => { show(): void })(el) : null);
+      instance?.show?.();
     } catch {
-      // noop
+      el.classList.add('show');
+      el.style.display = 'block';
+      el.removeAttribute('aria-hidden');
+      el.setAttribute('aria-modal', 'true');
+      document.body.classList.add('modal-open');
+      if (!document.querySelector('.modal-backdrop')) {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+      }
     }
   }
 

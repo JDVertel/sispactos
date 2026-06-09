@@ -1,19 +1,23 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  CONTRATOS_DATA_SCOPE,
+  contratosStorageKey,
+  type ContratosDataScope
+} from '../contratos/contratos-scope';
 import {
   SeguimientoTecnicoContrato,
   SeguimientoTecnicoContratoInput
 } from '../../shared/models/seguimiento-tecnico-contrato.model';
 
-const STORAGE_KEY = 'sispactos.seguimiento.tecnico.contrato';
-
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class SeguimientoTecnicoContratoService {
+  private readonly storageKey: string;
   private readonly registros$ = new BehaviorSubject<SeguimientoTecnicoContrato[]>([]);
 
   constructor() {
+    const resolvedScope = inject(CONTRATOS_DATA_SCOPE, { optional: true });
+    this.storageKey = contratosStorageKey('sispactos.seguimiento.tecnico.contrato', resolvedScope);
     this.loadFromStorage();
   }
 
@@ -54,7 +58,7 @@ export class SeguimientoTecnicoContratoService {
 
   private loadFromStorage(): void {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(this.storageKey);
       if (!raw) {
         return;
       }
@@ -71,7 +75,7 @@ export class SeguimientoTecnicoContratoService {
   }
 
   private saveToStorage(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.registros$.value));
+    localStorage.setItem(this.storageKey, JSON.stringify(this.registros$.value));
   }
 
   private normalize(raw: Partial<SeguimientoTecnicoContrato>): SeguimientoTecnicoContrato {

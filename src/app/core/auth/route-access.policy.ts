@@ -4,12 +4,14 @@
  * El resto es visible en modo invitado.
  */
 export const DASHBOARD_PATHS_REQUIRING_SESSION = new Set([
-  // Administracion / configuracion
+  // Gestion (modulos) / configuracion
   'administracion',
   'gestion-pactos',
   'gestion-proyectos',
   'gestion-contratos',
+  'gestion-externa-contratos',
   'configuracion-actores',
+  'parametros',
   // Modulos operativos restringidos
   'avances',
   'alertas',

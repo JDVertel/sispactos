@@ -22,7 +22,8 @@ export class RolesUsersService {
     { value: 'dashboard', label: 'Dashboard' },
     { value: 'gestion-pactos', label: 'Gestión de Pactos' },
     { value: 'gestion-proyectos', label: 'Gestión de Proyectos' },
-    { value: 'gestion-contratos', label: 'Gestión de Contratos' }
+    { value: 'gestion-contratos', label: 'Gestión de Contratos' },
+    { value: 'gestion-externa-contratos', label: 'Gestión externa · Contratos' }
   ];
 
   constructor() {}

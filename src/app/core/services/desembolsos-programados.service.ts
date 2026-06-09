@@ -1,18 +1,22 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  CONTRATOS_DATA_SCOPE,
+  contratosStorageKey,
+  type ContratosDataScope
+} from '../contratos/contratos-scope';
 import { DesembolsoProgramado } from '../../shared/models/desembolso-programado.model';
-
-const STORAGE_KEY = 'sispactos.desembolsos.programados';
 
 export type DesembolsoProgramadoInput = Omit<DesembolsoProgramado, 'id' | 'registradoEn'>;
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class DesembolsosProgramadosService {
+  private readonly storageKey: string;
   private readonly desembolsos$ = new BehaviorSubject<DesembolsoProgramado[]>([]);
 
   constructor() {
+    const resolvedScope = inject(CONTRATOS_DATA_SCOPE, { optional: true });
+    this.storageKey = contratosStorageKey('sispactos.desembolsos.programados', resolvedScope);
     this.loadFromStorage();
   }
 
@@ -53,7 +57,7 @@ export class DesembolsosProgramadosService {
 
   private loadFromStorage(): void {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(this.storageKey);
       if (!raw) {
         return;
       }
@@ -68,7 +72,7 @@ export class DesembolsosProgramadosService {
   }
 
   private saveToStorage(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.desembolsos$.value));
+    localStorage.setItem(this.storageKey, JSON.stringify(this.desembolsos$.value));
   }
 
   private normalize(raw: Partial<DesembolsoProgramado>): DesembolsoProgramado {

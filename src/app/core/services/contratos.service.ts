@@ -1,16 +1,19 @@
-﻿import { Injectable } from '@angular/core';
+﻿import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  CONTRATOS_DATA_SCOPE,
+  contratosStorageKey,
+  type ContratosDataScope
+} from '../contratos/contratos-scope';
 import { Contrato } from '../../shared/models';
 
 interface ContratoExtended extends Contrato {
   fechaCreacion: Date;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class ContratosService {
-  private readonly storageKey = 'sispactos.contratos';
+  private readonly storageKey: string;
 
   private contratos = new BehaviorSubject<ContratoExtended[]>([]);
   public contratos$ = this.contratos.asObservable();
@@ -25,6 +28,8 @@ export class ContratosService {
   ];
 
   constructor() {
+    const resolvedScope = inject(CONTRATOS_DATA_SCOPE, { optional: true });
+    this.storageKey = contratosStorageKey('sispactos.contratos', resolvedScope);
     this.loadFromStorage();
   }
 

@@ -75,8 +75,14 @@ export interface ProyectoMultimediaMetadato {
   detalle: string;
 }
 
-export interface ProyectoImagenRegistrada {
+/** Imagen del proyecto según contrato API (`imagenes[]`). */
+export interface ProyectoImagenApi {
+  /** Id del archivo en el servidor (presente al editar registros existentes). */
+  idArchivo?: string | null;
   descripcionImagen: string;
   fechaImagen: string;
-  archivoImagen: string | null;
+  /** Contenido en base64 o URL (respuesta GET). Omitir en POST/PUT JSON. */
+  archivoImagen?: string | null;
 }
+
+export interface ProyectoImagenRegistrada extends ProyectoImagenApi {}

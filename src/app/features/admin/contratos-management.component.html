@@ -6,11 +6,11 @@
 
     <div>
 
-      <h1 class="h5 mb-0">Gestión de contratos</h1>
+      <h1 class="h5 mb-0">{{ tituloPagina }}</h1>
 
     </div>
 
-    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#nuevoContratoModal">
+    <button type="button" class="btn btn-primary btn-sm" [attr.data-bs-toggle]="'modal'" [attr.data-bs-target]="'#' + nuevoContratoModalId">
 
       + Nuevo contrato
 
@@ -334,17 +334,19 @@
 
         <div class="modal-content contrato-gestion-modal__content">
 
-          <div class="modal-header py-2">
+          <div class="modal-header contrato-gestion-modal__header py-2">
 
             <div class="min-w-0">
 
-              <h2 class="modal-title h6 mb-0 text-truncate" id="contratoGestionModalTitle">
+              <h2 class="modal-title contrato-gestion-modal__titulo h6 mb-0 text-truncate" id="contratoGestionModalTitle">
 
                 Gestión · {{ contrato.numeroContrato }}
 
               </h2>
 
-              <p class="small text-secondary mb-0 text-truncate">{{ contrato.proyecto }} · {{ contrato.pacto }}</p>
+              <p class="contrato-gestion-modal__proyecto mb-0 text-truncate">{{ contrato.proyecto }}</p>
+
+              <p class="contrato-gestion-modal__pacto mb-0 text-truncate" *ngIf="contrato.pacto">{{ contrato.pacto }}</p>
 
             </div>
 
@@ -906,7 +908,7 @@
 
 
 
-<div class="modal fade" id="nuevoContratoModal" tabindex="-1" aria-labelledby="nuevoContratoModalLabel" aria-hidden="true">
+<div class="modal fade" [id]="nuevoContratoModalId" tabindex="-1" [attr.aria-labelledby]="nuevoContratoModalId + 'Label'" aria-hidden="true">
 
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-fullscreen-md-down">
 
@@ -916,7 +918,7 @@
 
         <div class="modal-header">
 
-          <h2 class="modal-title fs-5" id="nuevoContratoModalLabel"><i class="bi bi-file-earmark-text"></i> Nuevo contrato</h2>
+          <h2 class="modal-title fs-5" [id]="nuevoContratoModalId + 'Label'"><i class="bi bi-file-earmark-text"></i> Nuevo contrato</h2>
 
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 

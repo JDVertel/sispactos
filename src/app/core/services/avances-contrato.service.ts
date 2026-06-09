@@ -1,16 +1,20 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  CONTRATOS_DATA_SCOPE,
+  contratosStorageKey,
+  type ContratosDataScope
+} from '../contratos/contratos-scope';
 import { AvanceContrato, AvanceContratoInput } from '../../shared/models/avance-contrato.model';
 
-const STORAGE_KEY = 'sispactos.avances.contrato';
-
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class AvancesContratoService {
+  private readonly storageKey: string;
   private readonly avances$ = new BehaviorSubject<AvanceContrato[]>([]);
 
   constructor() {
+    const resolvedScope = inject(CONTRATOS_DATA_SCOPE, { optional: true });
+    this.storageKey = contratosStorageKey('sispactos.avances.contrato', resolvedScope);
     this.loadFromStorage();
   }
 
@@ -51,7 +55,7 @@ export class AvancesContratoService {
 
   private loadFromStorage(): void {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(this.storageKey);
       if (!raw) {
         return;
       }
@@ -68,7 +72,7 @@ export class AvancesContratoService {
   }
 
   private saveToStorage(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.avances$.value));
+    localStorage.setItem(this.storageKey, JSON.stringify(this.avances$.value));
   }
 
   private normalize(raw: Partial<AvanceContrato>): AvanceContrato {

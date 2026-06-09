@@ -6,7 +6,10 @@ import { PactosManagementComponent } from './features/admin/pactos-management.co
 import { ProyectosManagementComponent } from './features/admin/proyectos-management.component';
 import { ProyectoFinancieraComponent } from './features/admin/proyecto-financiera.component';
 import { ContratosManagementComponent } from './features/admin/contratos-management.component';
+import { GestionExternaContratosComponent } from './features/admin/gestion-externa-contratos.component';
+import { provideContratosDataScope } from './core/contratos/contratos-scope';
 import { ConfiguracionActoresComponent } from './features/admin/configuracion-actores.component';
+import { ConfiguracionParametrosComponent } from './features/admin/configuracion-parametros.component';
 import { PactosTerritorialesComponent } from './features/pactos-territoriales/pactos-territoriales.component';
 import { dashboardAccessGuard } from './core/guards/dashboard-access.guard';
 import { proyectoFinancieraCanDeactivateGuard } from './core/guards/proyecto-financiera-can-deactivate.guard';
@@ -50,11 +53,22 @@ export const routes: Routes = [
       {
         path: 'gestion-contratos',
         component: ContratosManagementComponent,
+        providers: provideContratosDataScope('interno'),
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'gestion-externa-contratos',
+        component: GestionExternaContratosComponent,
         canActivate: [dashboardAccessGuard]
       },
       {
         path: 'configuracion-actores',
         component: ConfiguracionActoresComponent,
+        canActivate: [dashboardAccessGuard]
+      },
+      {
+        path: 'parametros',
+        component: ConfiguracionParametrosComponent,
         canActivate: [dashboardAccessGuard]
       },
       {

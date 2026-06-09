@@ -1,21 +1,25 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  CONTRATOS_DATA_SCOPE,
+  contratosStorageKey,
+  type ContratosDataScope
+} from '../contratos/contratos-scope';
 import {
   ModificacionContractual,
   TipoModificacionContractual
 } from '../../shared/models/modificacion-contractual.model';
 
-const STORAGE_KEY = 'sispactos.modificaciones.contractuales';
-
 export type ModificacionContractualInput = Omit<ModificacionContractual, 'id' | 'registradoEn'>;
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class ModificacionesContractualesService {
+  private readonly storageKey: string;
   private readonly modificaciones$ = new BehaviorSubject<ModificacionContractual[]>([]);
 
   constructor() {
+    const resolvedScope = inject(CONTRATOS_DATA_SCOPE, { optional: true });
+    this.storageKey = contratosStorageKey('sispactos.modificaciones.contractuales', resolvedScope);
     this.loadFromStorage();
   }
 
@@ -60,7 +64,7 @@ export class ModificacionesContractualesService {
 
   private loadFromStorage(): void {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(this.storageKey);
       if (!raw) {
         return;
       }
@@ -75,7 +79,7 @@ export class ModificacionesContractualesService {
   }
 
   private saveToStorage(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.modificaciones$.value));
+    localStorage.setItem(this.storageKey, JSON.stringify(this.modificaciones$.value));
   }
 
   private normalize(raw: Partial<ModificacionContractual>): ModificacionContractual {

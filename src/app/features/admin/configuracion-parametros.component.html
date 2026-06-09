@@ -1,0 +1,132 @@
+<section class="container-fluid px-0 parametros-page">
+  <header class="parametros-page__header mb-3">
+    <div>
+      <h1 class="h4 mb-1">Parámetros</h1>
+      <p class="text-secondary small mb-0">Configuración de catálogos y valores del sistema.</p>
+    </div>
+    <span class="badge text-bg-light border">Entidades PEI: {{ entidades.length }}</span>
+  </header>
+
+  <ul class="nav nav-tabs parametros-tabs" role="tablist">
+    <li class="nav-item" *ngFor="let tab of tabs" role="presentation">
+      <button
+        type="button"
+        class="nav-link"
+        [class.active]="tabActivo === tab.id"
+        (click)="setTab(tab.id)"
+      >
+        {{ tab.label }}
+      </button>
+    </li>
+  </ul>
+
+  <div class="parametros-pane card border-0 shadow-sm">
+    @if (tabActivo === 'entidadesResponsablesPei') {
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-lg-5">
+            <article class="card border h-100">
+              <div class="card-header bg-body-tertiary py-2">
+                <h2 class="h6 mb-0">Nueva entidad responsable PEI</h2>
+              </div>
+              <div class="card-body">
+                <form class="vstack gap-3" (ngSubmit)="guardarEntidad()">
+                  <label>
+                    <span class="form-label">Nombre <span class="text-danger">*</span></span>
+                    <input
+                      class="form-control form-control-sm"
+                      type="text"
+                      name="entidadPeiNombre"
+                      [(ngModel)]="form.nombre"
+                      (ngModelChange)="formError = ''"
+                      required
+                    />
+                  </label>
+                  <label>
+                    <span class="form-label">Observaciones</span>
+                    <textarea
+                      class="form-control form-control-sm"
+                      name="entidadPeiObservaciones"
+                      rows="3"
+                      [(ngModel)]="form.observaciones"
+                    ></textarea>
+                  </label>
+                  <div *ngIf="formError" class="alert alert-danger py-2 px-3 mb-0 small">{{ formError }}</div>
+                  <div *ngIf="formOk" class="alert alert-success py-2 px-3 mb-0 small" role="status">
+                    Entidad guardada correctamente.
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="resetForm()">
+                      Limpiar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </article>
+          </div>
+
+          <div class="col-12 col-lg-7">
+            <article class="card border h-100">
+              <div class="card-header bg-body-tertiary py-2">
+                <h2 class="h6 mb-0">Entidades registradas ({{ entidades.length }})</h2>
+              </div>
+              <div class="card-body p-0">
+                <div *ngIf="!entidades.length" class="alert alert-light border-0 rounded-0 mb-0 small py-3 text-center">
+                  No hay entidades responsables PEI. Use el formulario para crear la primera.
+                </div>
+                <div class="table-responsive" *ngIf="entidades.length">
+                  <table class="table table-sm table-striped align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Observaciones</th>
+                        <th class="text-end" style="width: 4rem">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let e of entidades; trackBy: trackEntidad">
+                        <td class="fw-semibold">{{ e.nombre }}</td>
+                        <td class="small text-secondary">{{ e.observaciones || '—' }}</td>
+                        <td class="text-end">
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm py-0 px-1"
+                            (click)="quitarEntidad(e)"
+                            title="Eliminar"
+                            aria-label="Eliminar entidad"
+                          >
+                            <i class="bi bi-trash" aria-hidden="true"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+        <p class="small text-secondary mt-3 mb-0">
+          Estas entidades se ofrecen en el formulario de proyectos (campo Entidad responsable).
+        </p>
+      </div>
+    }
+
+    @if (tabActivo === 'generales') {
+      <div class="card-body">
+        <div class="alert alert-light border small mb-0">
+          Parámetros generales del sistema. Esta sección se habilitará en una próxima versión.
+        </div>
+      </div>
+    }
+
+    @if (tabActivo === 'catalogos') {
+      <div class="card-body">
+        <div class="alert alert-light border small mb-0">
+          Administración de catálogos transversales. Esta sección se habilitará en una próxima versión.
+        </div>
+      </div>
+    }
+  </div>
+</section>

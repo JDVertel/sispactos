@@ -14,8 +14,8 @@ import { formatUiLabel } from '../../shared/utils/ui-label.util';
 
 const PROTECTED_ROUTES = DASHBOARD_PATHS_REQUIRING_SESSION;
 
-const RESTRICTED_MENU_SEPARATORS = new Set(['Herramientas']);
-const RESTRICTED_MENU_SUBMENUS = new Set(['administracion', 'configuracion']);
+const RESTRICTED_MENU_SEPARATORS = new Set(['Administración', 'Gestión externa']);
+const RESTRICTED_MENU_SUBMENUS = new Set(['Gestión', 'configuracion', 'gestion-externa']);
 
 const MENU_ITEMS: MenuItem[] = [
   // Menú principal que alimenta la navegación del panel.
@@ -60,10 +60,10 @@ const MENU_ITEMS: MenuItem[] = [
   { type: 'item', label: 'Tablero de mando', route: 'tablero-mando', icon: 'gauge' },
   { type: 'item', label: 'Acerca de', route: 'acerca-de', icon: 'info' },
   { type: 'item', label: 'Ayudas', route: 'ayudas', icon: 'help' },
-  { type: 'separator', label: 'Herramientas' },
+  { type: 'separator', label: 'Administración' },
   {
     type: 'submenu',
-    label: 'administracion',
+    label: 'Gestión',
     icon: 'settings',
     children: [
       { label: 'Pactos', route: 'gestion-pactos' },
@@ -77,8 +77,16 @@ const MENU_ITEMS: MenuItem[] = [
     icon: 'config',
     children: [
       { label: 'Roles', route: 'administracion' },
-      { label: 'Actores', route: 'configuracion-actores' }
+      { label: 'Actores', route: 'configuracion-actores' },
+      { label: 'Parámetros', route: 'parametros' }
     ]
+  },
+  { type: 'separator', label: 'Gestión externa' },
+  {
+    type: 'submenu',
+    label: 'gestion-externa',
+    icon: 'file',
+    children: [{ label: 'Contratos', route: 'gestion-externa-contratos' }]
   },
   { type: 'separator', label: 'Sesion' },
   // Agrupado bajo “Sesión” para modo invitado.
@@ -129,6 +137,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.sessionSub = this.authSessionStore.session$.subscribe(() => {
       this.refreshMenuItems();
     });
+    // Reaplica visibilidad tras hidratar sesión desde localStorage.
+    this.refreshMenuItems();
     if (this.authService.hasValidUserSession()) {
       this.authService.ensureSessionKeepalive();
     }

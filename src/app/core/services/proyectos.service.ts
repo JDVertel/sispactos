@@ -1,10 +1,9 @@
 ﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Proyecto, ProyectoImagenRegistrada, ProyectoMultimediaMetadato } from '../../shared/models';
+import { Proyecto, ProyectoImagenApi, ProyectoImagenRegistrada, ProyectoMultimediaMetadato } from '../../shared/models';
 import { parseCamposDesdeAlcanceApi } from '../utils/proyecto-alcance-fields.util';
-import { of } from 'rxjs';
 
 const PROYECTO_API_URL = '/api/Proyecto';
 /** Cuerpo POST `/api/Proyecto` (contrato OpenAPI). */
@@ -62,14 +61,20 @@ export type CreateProyectoCommand = {
   numeroContratoEspecifico: string;
   latitudProyecto: string;
   longitudProyecto: string;
-  imagenes: ProyectoImagenApiCommand[];
+  imagenes: ProyectoImagenApi[];
 };
 
-export type ProyectoImagenApiCommand = {
+export type ProyectoImagenApiCommand = ProyectoImagenApi;
+
+/** Metadatos + archivo local para POST/PUT (JSON o multipart según haya archivos nuevos). */
+export interface ProyectoImagenUpload {
+  idArchivo?: string | null;
   descripcionImagen: string;
   fechaImagen: string;
-  archivoImagen: string | null;
-};
+  file?: File | null;
+  /** Contenido previo de la API (GET); solo metadatos si no hay file nuevo. */
+  archivoImagenApi?: string | null;
+}
 
 /** Cuerpo PUT `/api/Proyecto` (`EditaProyecto_Command`). */
 export type UpdateProyectoCommand = CreateProyectoCommand & {
@@ -218,50 +223,63 @@ export class ProyectosService {
    * POST `/api/Proyecto` — alta de un registro nuevo.
    * El cuerpo no debe incluir `id`; la API asigna la PK (identity) y responde `{ id, nombre }`.
    */
-  createProyecto(command: CreateProyectoCommand): Observable<ProyectoApiResult> {
-    const payload = this.buildPostProyectoPayload(command);
-    console.info('[SISPACTOS] HTTP POST /api/Proyecto (crear — no usa PUT)', payload);
-    return this.http.post(PROYECTO_API_URL, payload, { responseType: 'text' }).pipe(
+  createProyecto(
+    command: CreateProyectoCommand,
+    imagenes: ProyectoImagenUpload[] = []
+  ): Observable<ProyectoApiResult> {
+    const payload = this.buildPostProyectoPayload({ ...command, imagenes: [] });
+    return this.sendProyectoMutation('POST', payload, imagenes, false);
+  }
+
+  /** PUT `/api/Proyecto` — actualiza un proyecto existente. */
+  updateProyectoInApi(
+    command: UpdateProyectoCommand,
+    imagenes: ProyectoImagenUpload[] = []
+  ): Observable<ProyectoApiResult> {
+    const payload = this.sanitizeCreateProyectoPayload({ ...command, imagenes: [] }, true) as UpdateProyectoCommand;
+    return this.sendProyectoMutation('PUT', payload, imagenes, true);
+  }
+
+  /**
+   * POST/PUT — sin archivos nuevos: JSON directo.
+   * Con archivos nuevos: multipart con campo `command` (JSON) + `imagenes[i].archivoImagen` (IFormFile).
+   */
+  private sendProyectoMutation(
+    method: 'POST' | 'PUT',
+    payload: CreateProyectoCommand | UpdateProyectoCommand,
+    imagenes: ProyectoImagenUpload[],
+    isUpdate: boolean
+  ): Observable<ProyectoApiResult> {
+    const jsonPayload = this.buildProyectoJsonBody(payload, imagenes, isUpdate);
+    const hasNewFiles = imagenes.some((img) => !!img.file && img.file.size > 0);
+    const body = hasNewFiles
+      ? this.buildProyectoMultipartWithCommand(jsonPayload, imagenes)
+      : jsonPayload;
+    const contentType = hasNewFiles ? 'multipart/form-data' : 'application/json';
+
+    this.logProyectoEnvioConsola(method, contentType, jsonPayload, imagenes, hasNewFiles);
+
+    const request$ =
+      method === 'POST'
+        ? this.http.post(PROYECTO_API_URL, body, { responseType: 'text' })
+        : this.http.put(PROYECTO_API_URL, body, { responseType: 'text' });
+
+    return request$.pipe(
       tap((raw) => {
-        console.groupCollapsed('[API OK] POST /api/Proyecto');
-        console.log('method:', 'POST');
-        console.log('contentType:', 'application/json');
-        console.log('request:', payload);
+        console.groupCollapsed(`[API OK] ${method} /api/Proyecto`);
+        console.log('method:', method);
+        console.log('contentType:', contentType);
+        console.log('imagenes:', imagenes.length);
         console.log('response:', raw);
         console.groupEnd();
       }),
       map((raw) => this.mapCreateProyectoResponse(raw)),
       catchError((error: HttpErrorResponse) => {
         const errText = this.extractHttpErrorText(error);
-        console.error('[API ERROR] POST /api/Proyecto', error.status, errText || error.message);
+        console.error(`[API ERROR] ${method} /api/Proyecto`, error.status, errText || error.message);
         return of({
           success: false,
-          message: this.buildCreateProyectoErrorMessage(error),
-          httpStatus: error.status
-        } as ProyectoApiResult);
-      })
-    );
-  }
-
-  /** PUT `/api/Proyecto` — actualiza un proyecto existente. */
-  updateProyectoInApi(command: UpdateProyectoCommand): Observable<ProyectoApiResult> {
-    const payload = this.sanitizeCreateProyectoPayload(command, true);
-    console.info('[SISPACTOS] HTTP PUT /api/Proyecto (editar)', payload);
-    return this.http.put(PROYECTO_API_URL, payload, { responseType: 'text' }).pipe(
-      tap((raw) => {
-        console.groupCollapsed('[API OK] PUT /api/Proyecto');
-        console.log('method:', 'PUT');
-        console.log('contentType:', 'application/json');
-        console.log('request:', payload);
-        console.log('response:', raw);
-        console.groupEnd();
-      }),
-      map((raw) => this.mapCreateProyectoResponse(raw)),
-      catchError((error: HttpErrorResponse) => {
-        console.error('[API ERROR] PUT /api/Proyecto', error);
-        return of({
-          success: false,
-          message: this.buildProyectoApiErrorMessage(error, 'actualizar'),
+          message: this.buildProyectoApiErrorMessage(error, method === 'POST' ? 'crear' : 'actualizar'),
           httpStatus: error.status
         } as ProyectoApiResult);
       })
@@ -696,25 +714,33 @@ export class ProyectosService {
     return raw
       .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
       .map((item) => ({
+        idArchivo:
+          this.readApiString(item['idArchivo'] ?? item['IdArchivo']) ?? null,
         descripcionImagen:
           this.readApiString(item['descripcionImagen'] ?? item['DescripcionImagen']) ?? '',
         fechaImagen:
           this.readApiString(item['fechaImagen'] ?? item['FechaImagen']) ?? '',
         archivoImagen:
-          this.readApiString(item['archivoImagen'] ?? item['ArchivoImagen']) ?? ''
+          this.readApiString(item['archivoImagen'] ?? item['ArchivoImagen']) ?? null
       }))
-      .filter((item) => !!item.archivoImagen);
+      .filter(
+        (item) =>
+          !!item.archivoImagen
+          || !!item.idArchivo
+          || !!item.descripcionImagen.trim()
+      );
   }
 
   private mapImagenesApiToProyecto(
     imagenes: ProyectoImagenApiCommand[] | undefined
   ): Pick<Proyecto, 'imagenes' | 'multimediaNombres' | 'multimediaMetadatos'> {
     const safeImagenes: ProyectoImagenRegistrada[] = (imagenes ?? [])
-      .filter((item) => !!item?.archivoImagen)
+      .filter((item) => !!item?.archivoImagen || !!item?.idArchivo || !!item?.descripcionImagen?.trim())
       .map((item) => ({
+        idArchivo: item.idArchivo ?? null,
         descripcionImagen: item.descripcionImagen,
         fechaImagen: item.fechaImagen,
-        archivoImagen: item.archivoImagen
+        archivoImagen: item.archivoImagen ?? null
       }));
 
     const multimediaNombres = safeImagenes.map((item, index) => {
@@ -804,9 +830,177 @@ export class ProyectosService {
     return payload;
   }
 
+  /** JSON directo cuando no hay archivos binarios nuevos. */
+  private buildProyectoJsonBody(
+    command: CreateProyectoCommand | UpdateProyectoCommand,
+    imagenes: ProyectoImagenUpload[],
+    isUpdate: boolean
+  ): CreateProyectoCommand | UpdateProyectoCommand {
+    return {
+      ...command,
+      imagenes: this.buildImagenesMetadataForApi(imagenes, isUpdate)
+    };
+  }
+
+  /**
+   * Multipart exigido por el backend cuando hay IFormFile:
+   * - `command`: JSON del comando (imagenes solo metadatos, sin archivoImagen).
+   * - `imagenes[i].archivoImagen`: archivo binario.
+   */
+  private buildProyectoMultipartWithCommand(
+    commandPayload: CreateProyectoCommand | UpdateProyectoCommand,
+    imagenes: ProyectoImagenUpload[]
+  ): FormData {
+    const form = new FormData();
+    const imagenesMeta = commandPayload.imagenes ?? [];
+
+    form.append('command', JSON.stringify(commandPayload));
+
+    imagenesMeta.forEach((meta, index) => {
+      const prefix = `imagenes[${index}]`;
+      if (meta.descripcionImagen) {
+        form.append(`${prefix}.descripcionImagen`, meta.descripcionImagen);
+      }
+      if (meta.fechaImagen) {
+        form.append(`${prefix}.fechaImagen`, meta.fechaImagen);
+      }
+      if (meta.idArchivo) {
+        form.append(`${prefix}.idArchivo`, meta.idArchivo);
+      }
+      const file = imagenes[index]?.file;
+      if (file && file.size > 0) {
+        form.append(`${prefix}.archivoImagen`, file, file.name);
+      }
+    });
+
+    return form;
+  }
+
+  private buildImagenesMetadataForApi(
+    imagenes: ProyectoImagenUpload[],
+    includeIdArchivo: boolean
+  ): ProyectoImagenApi[] {
+    return imagenes.map((img) => {
+      const item: ProyectoImagenApi = {
+        descripcionImagen: img.descripcionImagen,
+        fechaImagen: img.fechaImagen,
+        archivoImagen: this.resolveArchivoImagenForApiJson(img)
+      };
+      const idArchivo = img.idArchivo?.trim();
+      if (includeIdArchivo && idArchivo) {
+        item.idArchivo = idArchivo;
+      }
+      return item;
+    });
+  }
+
+  /**
+   * En el JSON real: null si hay file nuevo (el binario va en multipart).
+   * Si es imagen ya guardada, reutiliza el string devuelto por GET.
+   */
+  private resolveArchivoImagenForApiJson(img: ProyectoImagenUpload): string | null {
+    const file = img.file;
+    if (file && file.size > 0) {
+      return null;
+    }
+    const existing = img.archivoImagenApi?.trim();
+    return existing || null;
+  }
+
+  /** Muestra en consola el JSON con `archivoImagen` (base64 para archivos nuevos). */
+  private logProyectoEnvioConsola(
+    method: 'POST' | 'PUT',
+    contentType: string,
+    jsonPayload: CreateProyectoCommand | UpdateProyectoCommand,
+    imagenes: ProyectoImagenUpload[],
+    multipart: boolean
+  ): void {
+    void this.buildProyectoJsonLogPayload(jsonPayload, imagenes).then((logPayload) => {
+      const jsonText = JSON.stringify(logPayload, null, 2);
+      const label = method === 'POST' ? 'POST /api/Proyecto' : 'PUT /api/Proyecto';
+
+      console.group(`[SISPACTOS] ${label} — JSON de envío`);
+      console.log('Content-Type:', contentType);
+      if (multipart) {
+        console.log(
+          'Nota: con imagen nueva, `archivoImagen` en el JSON de consola es base64 para inspección;'
+          + ' el envío real usa null en `command` y el binario en imagenes[i].archivoImagen (multipart).'
+        );
+      }
+      console.log(jsonText);
+      console.log('Objeto parseado:', logPayload);
+
+      if (multipart) {
+        const archivos = imagenes
+          .map((img, index) => {
+            const file = img.file;
+            if (!file || file.size <= 0) {
+              return null;
+            }
+            return {
+              campo: `imagenes[${index}].archivoImagen`,
+              nombre: file.name,
+              tipo: file.type,
+              bytes: file.size
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null);
+        console.log('Archivos binarios multipart:', archivos);
+      }
+
+      console.groupEnd();
+    });
+  }
+
+  private async buildProyectoJsonLogPayload(
+    jsonPayload: CreateProyectoCommand | UpdateProyectoCommand,
+    imagenes: ProyectoImagenUpload[]
+  ): Promise<CreateProyectoCommand | UpdateProyectoCommand> {
+    const imagenesLog = await Promise.all(
+      (jsonPayload.imagenes ?? []).map(async (meta, index) => {
+        const upload = imagenes[index];
+        const file = upload?.file;
+        if (file && file.size > 0) {
+          return {
+            ...meta,
+            archivoImagen: await this.fileToBase64(file)
+          };
+        }
+        return {
+          ...meta,
+          archivoImagen: meta.archivoImagen ?? upload?.archivoImagenApi?.trim() ?? null
+        };
+      })
+    );
+
+    return { ...jsonPayload, imagenes: imagenesLog };
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result ?? '');
+        const comma = dataUrl.indexOf(',');
+        resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
+      };
+      reader.onerror = () => reject(reader.error ?? new Error('No fue posible leer la imagen.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   private buildProyectoApiErrorMessage(error: HttpErrorResponse, accion: 'crear' | 'actualizar'): string {
     if (error.status === 401 || error.status === 403) {
       return 'Su sesion expiro o no tiene permiso para guardar proyectos. Inicie sesion nuevamente con su usuario y contrasena.';
+    }
+    if (error.status === 415) {
+      return 'El servidor no acepto el formato de la peticion (415). Con imagenes nuevas debe enviarse multipart/form-data.';
+    }
+    if (error.status === 400) {
+      const raw = this.extractHttpErrorText(error);
+      if (/command field is required/i.test(raw) || /IFormFile/i.test(raw)) {
+        return 'El servidor espera las imagenes como archivo (multipart), no como texto en JSON. Intente guardar de nuevo; si persiste, contacte al administrador de la API.';
+      }
     }
 
     const raw = this.extractHttpErrorText(error);

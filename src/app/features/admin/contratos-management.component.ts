@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ContratosService } from '../../core/services/contratos.service';
@@ -69,7 +69,14 @@ export interface ContratoMonitores {
   styleUrl: './contratos-management.component.css'
 })
 export class ContratosManagementComponent implements OnInit {
+  @Input() tituloPagina = 'Gestión de contratos';
+  @Input() modalIdPrefix = '';
+
   contratos: ContratoExtended[] = [];
+
+  get nuevoContratoModalId(): string {
+    return `${this.modalIdPrefix}nuevoContratoModal`;
+  }
 
   readonly contratoDetalleTabs: ContratoDetalleTabDef[] = [
     { id: 'modificaciones', label: 'MODIFICACIONES CONTRACTUALES' },
